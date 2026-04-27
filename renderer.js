@@ -5,9 +5,11 @@
 const navTimeclock = document.getElementById('nav-timeclock');
 const navEmployee = document.getElementById('nav-employee');
 const navManager = document.getElementById('nav-manager');
+const navSchedule = document.getElementById('nav-schedule');
 const viewTimeclock = document.getElementById('view-timeclock');
 const viewEmployee = document.getElementById('view-employee');
 const viewManager = document.getElementById('view-manager');
+const viewSchedule = document.getElementById('view-schedule');
 
 // Clock
 const clockDisplay = document.getElementById('clock-display');
@@ -87,12 +89,85 @@ const newLogAction = document.getElementById('new-log-action');
 const newLogTime = document.getElementById('new-log-time');
 const btnAddLog = document.getElementById('btn-add-log');
 
+// Schedules
+const btnShowPostSchedule = document.getElementById('btn-show-post-schedule');
+const postScheduleSection = document.getElementById('post-schedule-section');
+const scheduleWeekRange = document.getElementById('schedule-week-range');
+const scheduleEditorBody = document.getElementById('schedule-editor-body');
+const scheduleHeaderInputs = document.querySelectorAll('.schedule-header-input');
+const btnSubmitSchedule = document.getElementById('btn-submit-schedule');
+const scheduleList = document.getElementById('schedule-list');
+const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
+const scheduleManagerAuth = document.getElementById('schedule-manager-auth');
+const scheduleManagerUsername = document.getElementById('schedule-manager-username');
+const scheduleManagerPassword = document.getElementById('schedule-manager-password');
+const btnScheduleLoginSubmit = document.getElementById('btn-schedule-login-submit');
+
 let selectedEmployeeForLogs = null;
+let editingScheduleId = null;
 
 // --- State ---
 let currentPin = '';
 let currentUser = null; // The employee currently using the terminal
 let managerLoggedIn = false;
+
+// --- Geofencing Configuration ---
+// TO DO: Replace these with the actual Latitude and Longitude of the Car Wash building
+const CAR_WASH_LAT = 33.06734; // Longhorn Car Wash Latitude
+const CAR_WASH_LON = -97.29654; // Longhorn Car Wash Longitude
+const ALLOWED_RADIUS_METERS = 100; // ~328 feet radius
+
+function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // Earth radius in meters
+  const p1 = lat1 * Math.PI/180;
+  const p2 = lat2 * Math.PI/180;
+  const dp = (lat2-lat1) * Math.PI/180;
+  const dl = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(dp/2) * Math.sin(dp/2) +
+            Math.cos(p1) * Math.cos(p2) *
+            Math.sin(dl/2) * Math.sin(dl/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function checkLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser."));
+      return;
+    }
+    
+    showToast("Verifying your location...", "success"); // Show temporary toast while loading GPS
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const dist = getDistanceInMeters(
+          CAR_WASH_LAT, 
+          CAR_WASH_LON, 
+          position.coords.latitude, 
+          position.coords.longitude
+        );
+        
+        if (dist <= ALLOWED_RADIUS_METERS) {
+          resolve(true); // Within range!
+        } else {
+          // Convert meters to feet for easier reading
+          const feetAway = Math.round(dist * 3.28084);
+          reject(new Error(`You are too far away! (${feetAway} feet away from the site)`));
+        }
+      },
+      (error) => {
+        let msg = "Could not get location.";
+        if (error.code === 1) msg = "Please allow location access to clock in.";
+        if (error.code === 2) msg = "Location unavailable (GPS signal lost).";
+        if (error.code === 3) msg = "Location request timed out.";
+        reject(new Error(msg));
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
 
 // --- Clock Logic ---
 function updateClock() {
@@ -108,9 +183,11 @@ function switchView(view) {
   viewTimeclock.classList.remove('active');
   viewManager.classList.remove('active');
   viewEmployee.classList.remove('active');
+  viewSchedule.classList.remove('active');
   navTimeclock.classList.remove('active');
   navManager.classList.remove('active');
   navEmployee.classList.remove('active');
+  navSchedule.classList.remove('active');
 
   if (view === 'timeclock') {
     viewTimeclock.classList.add('active');
@@ -130,12 +207,17 @@ function switchView(view) {
     if (currentPortalEmployee) {
       loadEmployeePortal(currentPortalEmployee.id, currentPortalEmployee.name);
     }
+  } else if (view === 'schedule') {
+    viewSchedule.classList.add('active');
+    navSchedule.classList.add('active');
+    loadSchedules();
   }
 }
 
 navTimeclock.addEventListener('click', () => switchView('timeclock'));
 navEmployee.addEventListener('click', () => switchView('employee'));
 navManager.addEventListener('click', () => switchView('manager'));
+navSchedule.addEventListener('click', () => switchView('schedule'));
 
 // --- Toast Utility ---
 function showToast(msg, type = 'success') {
@@ -213,6 +295,10 @@ async function logTime(action) {
   if (!currentUser) return;
   
   try {
+    // 1. Check if the employee is physically at the location
+    await checkLocation();
+    
+    // 2. If checkLocation didn't throw an error, proceed with clocking
     const { error } = await window.supabaseClient
       .from('time_logs')
       .insert([
@@ -227,7 +313,7 @@ async function logTime(action) {
       loadTimesheets();
     }
   } catch (err) {
-    showToast('Error saving log.', 'error');
+    showToast(err.message || 'Error saving log.', 'error');
   }
 }
 
@@ -299,6 +385,8 @@ btnManagerLogin.addEventListener('click', async () => {
     }
     
     managerLoggedIn = true;
+    btnShowPostSchedule.classList.remove('hidden');
+    btnScheduleManagerLogin.classList.add('hidden');
     managerAuth.classList.add('hidden');
     managerDashboard.classList.remove('hidden');
     managerUsernameInput.value = '';
@@ -311,6 +399,10 @@ btnManagerLogin.addEventListener('click', async () => {
 
 function logoutManager() {
   managerLoggedIn = false;
+  btnShowPostSchedule.classList.add('hidden');
+  postScheduleSection.classList.add('hidden');
+  btnScheduleManagerLogin.classList.remove('hidden');
+  scheduleManagerAuth.classList.add('hidden');
   managerDashboard.classList.add('hidden');
   managerAuth.classList.remove('hidden');
   managerUsernameInput.value = '';
@@ -734,3 +826,217 @@ async function initAdmin() {
   }
 }
 initAdmin();
+
+// --- Schedule Logic ---
+async function loadSchedules() {
+  try {
+    const { data, error } = await window.supabaseClient.from('schedules').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    
+    scheduleList.innerHTML = '';
+    if (!data || data.length === 0) {
+      scheduleList.innerHTML = '<div style="background: var(--card); padding: 30px; border-radius: 15px; text-align: center; color: var(--text-muted);">No schedules posted yet.</div>';
+      return;
+    }
+
+    data.forEach(sched => {
+      const div = document.createElement('div');
+      div.style = 'background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto;';
+      const time = new Date(sched.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      
+      let contentHtml = '';
+      try {
+        const parsed = JSON.parse(sched.content);
+        const headersHtml = parsed.headers.map(h => `<th>${h}</th>`).join('');
+        const rowsHtml = parsed.rows.map(r => {
+          const cellsHtml = r.shifts.map(s => `<td style="text-align: center;">${s}</td>`).join('');
+          return `<tr><td><strong>${r.employee}</strong></td>${cellsHtml}</tr>`;
+        }).join('');
+        
+        contentHtml = `
+          <h4 style="margin-bottom: 15px; color: var(--primary);">${parsed.weekRange || 'Weekly Schedule'}</h4>
+          <table class="data-table" style="min-width: 800px;">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                ${headersHtml}
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        // Fallback for old plain text schedules
+        contentHtml = `<div style="white-space: pre-wrap; line-height: 1.5;">${sched.content}</div>`;
+      }
+
+      div.innerHTML = `
+        <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+          <span>Posted on ${time}</span>
+          <div>
+            ${managerLoggedIn ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;">Edit</button>` : ''}
+            ${managerLoggedIn ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Delete</button>` : ''}
+          </div>
+        </div>
+        ${contentHtml}
+      `;
+      scheduleList.appendChild(div);
+    });
+  } catch (e) {
+    scheduleList.innerHTML = '<div style="background: var(--card); padding: 30px; border-radius: 15px; text-align: center; color: var(--danger);">Failed to load schedules. The "schedules" table might not exist in Supabase.</div>';
+  }
+}
+
+btnShowPostSchedule.addEventListener('click', async () => {
+  editingScheduleId = null;
+  btnSubmitSchedule.textContent = 'Post Schedule';
+  scheduleWeekRange.value = '';
+  
+  postScheduleSection.classList.toggle('hidden');
+  if (!postScheduleSection.classList.contains('hidden')) {
+    // Populate employees for editing
+    try {
+      const { data: users } = await window.supabaseClient.from('users').select('name').order('name', { ascending: true });
+      scheduleEditorBody.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${u.name}</strong></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+          `;
+          scheduleEditorBody.appendChild(tr);
+        });
+      }
+      
+      // Reset headers
+      scheduleHeaderInputs.forEach((inp, idx) => {
+        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        inp.value = days[idx];
+      });
+    } catch(e) {}
+  }
+});
+
+btnSubmitSchedule.addEventListener('click', async () => {
+  const weekRange = scheduleWeekRange.value.trim() || 'Weekly Schedule';
+  
+  const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(inp => inp.value || '-');
+  const rows = [];
+  
+  const trs = scheduleEditorBody.querySelectorAll('tr');
+  trs.forEach(tr => {
+    const employee = tr.querySelector('td strong').innerText;
+    const shiftInputs = tr.querySelectorAll('.sched-cell');
+    const shifts = Array.from(shiftInputs).map(inp => inp.value || '-');
+    rows.push({ employee, shifts });
+  });
+  
+  const scheduleData = { weekRange, headers, rows };
+  
+  try {
+    let error;
+    if (editingScheduleId) {
+      const res = await window.supabaseClient.from('schedules').update({ content: JSON.stringify(scheduleData) }).eq('id', editingScheduleId);
+      error = res.error;
+    } else {
+      const res = await window.supabaseClient.from('schedules').insert([{ content: JSON.stringify(scheduleData) }]);
+      error = res.error;
+    }
+    
+    if (error) throw error;
+    showToast(editingScheduleId ? 'Schedule updated!' : 'Schedule posted!');
+    editingScheduleId = null;
+    postScheduleSection.classList.add('hidden');
+    loadSchedules();
+  } catch (err) {
+    showToast('Failed to save schedule.', 'error');
+  }
+});
+
+scheduleList.addEventListener('click', async (e) => {
+  if (e.target.classList.contains('btn-edit-schedule')) {
+    editingScheduleId = e.target.dataset.id;
+    try {
+      const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
+      
+      scheduleWeekRange.value = parsed.weekRange || '';
+      
+      parsed.headers.forEach((h, idx) => {
+        if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h;
+      });
+      
+      scheduleEditorBody.innerHTML = '';
+      parsed.rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const cellsHtml = r.shifts.map(s => `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>`).join('');
+        tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cellsHtml}`;
+        scheduleEditorBody.appendChild(tr);
+      });
+      
+      btnSubmitSchedule.textContent = 'Save Changes';
+      postScheduleSection.classList.remove('hidden');
+      postScheduleSection.scrollIntoView({ behavior: 'smooth' });
+    } catch (err) {
+      showToast('Could not load schedule for editing.', 'error');
+    }
+  } else if (e.target.classList.contains('btn-delete-schedule')) {
+    if (!confirm('Are you sure you want to delete this schedule?')) return;
+    try {
+      const { error } = await window.supabaseClient.from('schedules').delete().eq('id', e.target.dataset.id);
+      if (error) throw error;
+      showToast('Schedule deleted');
+      loadSchedules();
+    } catch (err) {
+      showToast('Failed to delete schedule', 'error');
+    }
+  }
+});
+
+btnScheduleManagerLogin.addEventListener('click', () => {
+  scheduleManagerAuth.classList.toggle('hidden');
+});
+
+btnScheduleLoginSubmit.addEventListener('click', async () => {
+  const username = scheduleManagerUsername.value;
+  const password = scheduleManagerPassword.value;
+  if (!username || !password) return;
+  
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('users')
+      .select('*')
+      .eq('name', username)
+      .eq('password', password)
+      .eq('role', 'Manager')
+      .single();
+      
+    if (error || !data) {
+      showToast('Invalid Manager Username or Password', 'error');
+      return;
+    }
+    
+    managerLoggedIn = true;
+    scheduleManagerAuth.classList.add('hidden');
+    scheduleManagerUsername.value = '';
+    scheduleManagerPassword.value = '';
+    btnScheduleManagerLogin.classList.add('hidden');
+    
+    btnShowPostSchedule.classList.remove('hidden');
+    managerAuth.classList.add('hidden');
+    managerDashboard.classList.remove('hidden');
+    
+    showToast('Logged in as Manager');
+    loadSchedules(); // refresh to show delete buttons
+  } catch (err) {
+    showToast('Error during login.', 'error');
+  }
+});
