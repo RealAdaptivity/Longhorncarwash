@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Longhorn Car Wash Timeclock</title>
+    <link rel="stylesheet" href="index.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <script>
+      window.onerror = function(msg, url, line) {
+        alert("Error: " + msg + "\nLine: " + line);
+      };
+      window.addEventListener('unhandledrejection', function(event) {
+        alert("Promise Error: " + event.reason);
+      });
+    </script>
+    <div id="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <!-- Logo removed -->
+          <h1>LONGHORN</h1>
+          <p>CAR WASH</p>
+        </div>
+        <nav>
+          <button id="nav-timeclock" class="nav-btn active">Timeclock</button>
+          <button id="nav-employee" class="nav-btn">My Hours</button>
+          <button id="nav-manager" class="nav-btn">Manager</button>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden">Message</div>
+
+        <!-- TIMECLOCK VIEW -->
+        <section id="view-timeclock" class="view active">
+          <div class="clock-container">
+            <h1 id="clock-display">00:00:00</h1>
+            <p id="date-display">Monday, January 1</p>
+          </div>
+
+          <div class="pin-pad-container">
+            <h3>Enter PIN</h3>
+            <div class="pin-display-wrapper">
+              <input type="password" id="pin-display" readonly placeholder="----" maxlength="4"/>
+            </div>
+            
+            <div class="pin-pad">
+              <button class="pin-btn" data-val="1">1</button>
+              <button class="pin-btn" data-val="2">2</button>
+              <button class="pin-btn" data-val="3">3</button>
+              <button class="pin-btn" data-val="4">4</button>
+              <button class="pin-btn" data-val="5">5</button>
+              <button class="pin-btn" data-val="6">6</button>
+              <button class="pin-btn" data-val="7">7</button>
+              <button class="pin-btn" data-val="8">8</button>
+              <button class="pin-btn" data-val="9">9</button>
+              <button class="pin-btn btn-clear" id="btn-clear">C</button>
+              <button class="pin-btn" data-val="0">0</button>
+              <button class="pin-btn btn-primary" id="btn-submit">OK</button>
+            </div>
+            
+            <p id="btn-forgot-pin" style="margin-top: 20px; color: var(--text-muted); cursor: pointer; text-decoration: underline; font-size: 0.9rem;">Forgot PIN?</p>
+            
+            <div class="action-buttons hidden" id="action-buttons">
+              <h2 id="employee-welcome">Welcome, Name</h2>
+              <button id="btn-clock-in" class="btn-action btn-success">CLOCK IN</button>
+              <button id="btn-clock-out" class="btn-action btn-danger">CLOCK OUT</button>
+              <button id="btn-cancel-action" class="btn-action btn-ghost">Cancel</button>
+            </div>
+          </div>
+          
+          <!-- Forgot PIN Modal -->
+          <div id="modal-forgot-pin" class="modal hidden">
+            <div class="modal-content" style="width: 400px; text-align: left;">
+              <h3 style="margin-bottom: 15px;">Request PIN Change</h3>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Enter your name and requested 4-digit PIN. A manager will review this.</p>
+              <input type="text" id="forgot-pin-name" placeholder="Your Full Name" class="input-field" />
+              <input type="password" id="forgot-pin-new" placeholder="New 4-Digit PIN" maxlength="4" class="input-field" />
+              <div class="modal-actions" style="margin-top: 20px;">
+                <button id="btn-cancel-forgot" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
+                <button id="btn-submit-forgot" class="btn-primary" style="padding: 10px 20px; border-radius: 8px;">Submit</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- EMPLOYEE VIEW -->
+        <section id="view-employee" class="view">
+          
+          <!-- Employee Login -->
+          <div id="employee-auth" class="pin-pad-container" style="max-width: 400px; margin: 0 auto; margin-top: 10vh;">
+            <h3>Employee Portal</h3>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Log in to view your hours</p>
+            <input type="text" id="employee-username-input" placeholder="Full Name" class="input-field" style="margin-bottom: 15px;" />
+            <input type="password" id="employee-pin-input" placeholder="4-Digit PIN" maxlength="4" class="input-field" style="margin-bottom: 20px;" />
+            <button id="btn-employee-login" class="btn-primary btn-action" style="padding: 15px; font-size: 1.1rem;">View My Hours</button>
+          </div>
+
+          <!-- Employee Dashboard -->
+          <div id="employee-dashboard" class="hidden" style="margin-top: 5vh;">
+            <div class="dashboard-header" style="justify-content: center; margin-bottom: 40px; border-bottom: none;">
+              <h2 id="employee-portal-welcome">Welcome, Employee</h2>
+            </div>
+            
+            <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 40px; flex-wrap: wrap;">
+              <div style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
+                <h3 style="color: var(--text-muted); margin-bottom: 10px;">This Week</h3>
+                <h1 id="emp-this-week" style="color: var(--primary); font-size: 3.5rem;">0.00</h1>
+                <p style="color: var(--text-muted);">Hours</p>
+              </div>
+              <div style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
+                <h3 style="color: var(--text-muted); margin-bottom: 10px;">Last Week</h3>
+                <h1 id="emp-last-week" style="color: var(--text); font-size: 3.5rem;">0.00</h1>
+                <p style="color: var(--text-muted);">Hours</p>
+              </div>
+            </div>
+            
+            <div style="text-align: center;">
+              <button id="btn-employee-logout" class="btn-ghost" style="padding: 10px 40px; font-size: 1.1rem; border: 1px solid var(--border);">Log Out</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- MANAGER VIEW -->
+        <section id="view-manager" class="view">
+          <div id="manager-auth">
+            <h2>Manager Access</h2>
+            <p>Enter your Username and Password</p>
+            <div style="margin-top: 20px;">
+                <input type="text" id="manager-username-input" placeholder="Username" class="input-field" />
+                <input type="password" id="manager-password-input" placeholder="Password" class="input-field" />
+                <button id="btn-manager-login" class="btn-primary" style="padding: 10px 20px; font-size: 1rem; width: 100%;">Login</button>
+            </div>
+          </div>
+
+          <div id="manager-dashboard" class="hidden">
+            <header class="dash-header">
+              <h2>Dashboard</h2>
+              <button id="btn-show-create-user" class="btn-primary">Add Employee</button>
+            </header>
+
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Status</th>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Wed</th>
+                    <th>Thu</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                    <th>Sun</th>
+                    <th>Total</th>
+                    <th>Last Week</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="timesheet-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- MANAGE LOGS MODAL -->
+            <div id="modal-manage-logs" class="modal hidden">
+              <div class="modal-content" style="width: 600px; max-height: 80vh; overflow-y: auto;">
+                <h3 id="manage-logs-title">Manage Logs</h3>
+                
+                <div style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
+                  <h4>Add Manual Punch</h4>
+                  <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <select id="new-log-action" class="input-field" style="width: auto; margin-bottom: 0;">
+                      <option value="IN">Clock IN</option>
+                      <option value="OUT">Clock OUT</option>
+                    </select>
+                    <input type="datetime-local" id="new-log-time" class="input-field" style="margin-bottom: 0;" />
+                    <button id="btn-add-log" class="btn-primary" style="padding: 10px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
+                  </div>
+                </div>
+
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Action</th>
+                      <th>Time</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="manage-logs-body">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+
+                <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
+                  <button id="btn-delete-employee" class="btn-danger" style="padding: 10px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
+                  <button id="btn-close-manage" class="btn-ghost" style="border: none; cursor: pointer; padding: 10px;">Close</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pending PIN Requests -->
+            <div id="pending-pins-section" class="hidden" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
+              <h3 style="color: var(--primary); margin-bottom: 15px;">Pending PIN Approvals</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Requested PIN</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-pins-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- CREATE USER SECTION (Toggleable) -->
+            <div id="create-user-section" class="hidden" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
+              <div class="pin-pad-container" style="max-width: 500px; margin: 0 auto;">
+                <h3>Create New Account</h3>
+                <div style="margin-top: 20px; text-align: left;">
+                  <input type="text" id="new-user-name" placeholder="Full Name (Username)" class="input-field" style="margin-bottom: 20px;" />
+                  <input type="password" id="new-user-pin" placeholder="Create a 4-Digit PIN (for Timeclock)" maxlength="4" class="input-field" style="margin-bottom: 20px;" />
+                  <input type="password" id="new-user-password" placeholder="Create a Dashboard Password" class="input-field hidden" />
+                  <div class="role-select" style="margin-top: 20px; justify-content: center;">
+                    <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
+                    <label><input type="radio" name="new-user-role" value="Manager"> Manager</label>
+                  </div>
+                  <div style="margin-top: 30px; text-align: center;">
+                    <button id="btn-confirm-create" class="btn-primary btn-action" style="padding: 15px 30px; font-size: 1.1rem;">Register Account</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </main>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabaseConfig.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>
