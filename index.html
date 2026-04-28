@@ -2,17 +2,19 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Longhorn Car Wash Timeclock</title>
     <link rel="stylesheet" href="index.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   </head>
   <body>
     <script>
-      window.onerror = function(msg, url, line) {
-        alert("Error: " + msg + "\nLine: " + line);
+      // Enhanced error logging to console instead of alerts
+      window.onerror = function(msg, url, line, col, error) {
+        console.error("Global Error: " + msg + " at " + url + ":" + line + ":" + col, error);
       };
       window.addEventListener('unhandledrejection', function(event) {
-        alert("Promise Error: " + event.reason);
+        console.error("Promise Error: ", event.reason);
       });
     </script>
     <div id="app">
@@ -220,21 +222,20 @@
               </table>
             </div>
 
-            <!-- CREATE USER SECTION (Toggleable) -->
-            <div id="create-user-section" class="hidden" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
-              <div class="pin-pad-container" style="max-width: 500px; margin: 0 auto;">
-                <h3>Create New Account</h3>
-                <div style="margin-top: 20px; text-align: left;">
-                  <input type="text" id="new-user-name" placeholder="Full Name (Username)" class="input-field" style="margin-bottom: 20px;" />
-                  <input type="password" id="new-user-pin" placeholder="Create a 4-Digit PIN (for Timeclock)" maxlength="4" class="input-field" style="margin-bottom: 20px;" />
-                  <input type="password" id="new-user-password" placeholder="Create a Dashboard Password" class="input-field hidden" />
-                  <div class="role-select" style="margin-top: 20px; justify-content: center;">
-                    <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
-                    <label><input type="radio" name="new-user-role" value="Manager"> Manager</label>
-                  </div>
-                  <div style="margin-top: 30px; text-align: center;">
-                    <button id="btn-confirm-create" class="btn-primary btn-action" style="padding: 15px 30px; font-size: 1.1rem;">Register Account</button>
-                  </div>
+            <!-- CREATE USER MODAL -->
+            <div id="modal-create-user" class="modal hidden">
+              <div class="modal-content" style="width: 500px; text-align: left;">
+                <h3 style="margin-bottom: 20px;">Create New Account</h3>
+                <input type="text" id="new-user-name" placeholder="Full Name (Username)" class="input-field" style="margin-bottom: 20px;" />
+                <input type="password" id="new-user-pin" placeholder="Create a 4-Digit PIN (for Timeclock)" maxlength="4" class="input-field" style="margin-bottom: 20px;" />
+                <input type="password" id="new-user-password" placeholder="Create a Dashboard Password" class="input-field hidden" />
+                <div class="role-select" style="margin-top: 10px; margin-bottom: 20px;">
+                  <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
+                  <label style="margin-left: 15px;"><input type="radio" name="new-user-role" value="Manager"> Manager</label>
+                </div>
+                <div class="modal-actions" style="margin-top: 30px;">
+                  <button id="btn-cancel-create" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
+                  <button id="btn-confirm-create" class="btn-primary" style="padding: 10px 20px; border-radius: 8px;">Register Account</button>
                 </div>
               </div>
             </div>
@@ -267,6 +268,7 @@
                     <th><input type="text" class="input-field schedule-header-input" value="Fri" style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                     <th><input type="text" class="input-field schedule-header-input" value="Sat" style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                     <th><input type="text" class="input-field schedule-header-input" value="Sun" style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
+                    <th style="width: 80px;">Total</th>
                   </tr>
                 </thead>
                 <tbody id="schedule-editor-body">

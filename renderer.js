@@ -48,9 +48,10 @@ const managerDashboard = document.getElementById('manager-dashboard');
 const timesheetBody = document.getElementById('timesheet-body');
 const btnShowCreateUser = document.getElementById('btn-show-create-user');
 
-// Create User Form
-const createUserSection = document.getElementById('create-user-section');
+// Create User Modal
+const modalCreateUser = document.getElementById('modal-create-user');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
+const btnCancelCreate = document.getElementById('btn-cancel-create');
 const newUserName = document.getElementById('new-user-name');
 const newUserPin = document.getElementById('new-user-pin');
 const newUserPassword = document.getElementById('new-user-password');
@@ -283,9 +284,10 @@ function resetTimeclockState() {
   currentPin = '';
   currentUser = null;
   updatePinDisplay();
-  document.querySelector('.pin-pad').classList.remove('hidden');
-  pinDisplay.classList.remove('hidden');
-  actionButtons.classList.add('hidden');
+  const pp = document.querySelector('.pin-pad');
+  if (pp) pp.classList.remove('hidden');
+  if (pinDisplay) pinDisplay.classList.remove('hidden');
+  if (actionButtons) actionButtons.classList.add('hidden');
 }
 
 btnCancelAction.addEventListener('click', resetTimeclockState);
@@ -293,6 +295,10 @@ btnCancelAction.addEventListener('click', resetTimeclockState);
 // --- Clock In / Out Logic ---
 async function logTime(action) {
   if (!currentUser) return;
+  
+  const btn = action === 'IN' ? btnClockIn : btnClockOut;
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
   
   try {
     // 1. Check if the employee is physically at the location
@@ -314,6 +320,9 @@ async function logTime(action) {
     }
   } catch (err) {
     showToast(err.message || 'Error saving log.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
   }
 }
 
@@ -399,15 +408,15 @@ btnManagerLogin.addEventListener('click', async () => {
 
 function logoutManager() {
   managerLoggedIn = false;
-  btnShowPostSchedule.classList.add('hidden');
-  postScheduleSection.classList.add('hidden');
-  btnScheduleManagerLogin.classList.remove('hidden');
-  scheduleManagerAuth.classList.add('hidden');
-  managerDashboard.classList.add('hidden');
-  managerAuth.classList.remove('hidden');
-  managerUsernameInput.value = '';
-  managerPasswordInput.value = '';
-  createUserSection.classList.add('hidden');
+  if (btnShowPostSchedule) btnShowPostSchedule.classList.add('hidden');
+  if (postScheduleSection) postScheduleSection.classList.add('hidden');
+  if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.remove('hidden');
+  if (scheduleManagerAuth) scheduleManagerAuth.classList.add('hidden');
+  if (managerDashboard) managerDashboard.classList.add('hidden');
+  if (managerAuth) managerAuth.classList.remove('hidden');
+  if (managerUsernameInput) managerUsernameInput.value = '';
+  if (managerPasswordInput) managerPasswordInput.value = '';
+  if (modalCreateUser) modalCreateUser.classList.add('hidden');
 }
 
 // --- Employee Portal Logic ---
@@ -509,14 +518,44 @@ async function loadEmployeePortal(userId, name) {
 }
 
 function getStartOfWeek() {
-  const d = new Date();
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0,0,0,0);
-  return monday;
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const start = new Date(now.setDate(diff));
+  start.setHours(0, 0, 0, 0);
+  return start;
 }
 
+// --- Schedule Helpers ---
+function parseShiftHours(shiftStr) {
+  if (!shiftStr || typeof shiftStr !== 'string') return 0;
+  const s = shiftStr.trim().toUpperCase();
+  if (s === '-' || s === 'OFF' || s === 'OC' || s === '') return 0;
+  
+  const parts = s.split('-');
+  if (parts.length !== 2) return 0;
+  
+  function toDecimal(time) {
+    let [h, m] = time.split(':').map(Number);
+    if (isNaN(m)) m = 0;
+    return h + (m / 60);
+  }
+
+  try {
+    let start = toDecimal(parts[0].trim());
+    let end = toDecimal(parts[1].trim());
+    
+    // If end time is same or numerically smaller than start (e.g. 7-7 or 8-5),
+    // assume the end time is in the afternoon (add 12 hours).
+    if (end <= start) {
+      end += 12;
+    }
+    
+    return Math.max(0, end - start);
+  } catch(e) { return 0; }
+}
+
+// --- Schedule Logic ---
 async function loadTimesheets() {
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient.from('users').select('*');
@@ -766,7 +805,14 @@ btnAddLog.addEventListener('click', async () => {
 
 // --- Create User Logic ---
 btnShowCreateUser.addEventListener('click', () => {
-  createUserSection.classList.toggle('hidden');
+  modalCreateUser.classList.remove('hidden');
+});
+
+btnCancelCreate.addEventListener('click', () => {
+  modalCreateUser.classList.add('hidden');
+  newUserName.value = '';
+  newUserPin.value = '';
+  newUserPassword.value = '';
 });
 
 btnConfirmCreate.addEventListener('click', async () => {
@@ -807,7 +853,7 @@ btnConfirmCreate.addEventListener('click', async () => {
     newUserName.value = '';
     newUserPin.value = '';
     newUserPassword.value = '';
-    createUserSection.classList.add('hidden');
+    modalCreateUser.classList.add('hidden');
     loadTimesheets();
   } catch (err) {
     showToast('Failed to create user.', 'error');
@@ -849,8 +895,16 @@ async function loadSchedules() {
         const parsed = JSON.parse(sched.content);
         const headersHtml = parsed.headers.map(h => `<th>${h}</th>`).join('');
         const rowsHtml = parsed.rows.map(r => {
-          const cellsHtml = r.shifts.map(s => `<td style="text-align: center;">${s}</td>`).join('');
-          return `<tr><td><strong>${r.employee}</strong></td>${cellsHtml}</tr>`;
+          // Check if employee has any entered shifts (not just '-' or empty)
+          const hasShifts = r.shifts.some(s => s && s !== '-' && s.trim() !== '');
+          if (!hasShifts) return ''; // Skip this employee if they have no entry for the week
+
+          let rowTotal = 0;
+          const cellsHtml = r.shifts.map(s => {
+            rowTotal += parseShiftHours(s);
+            return `<td style="text-align: center;">${s}</td>`;
+          }).join('');
+          return `<tr><td><strong>${r.employee}</strong></td>${cellsHtml}<td style="text-align: center; font-weight: bold; background: rgba(169, 59, 47, 0.05);">${rowTotal.toFixed(1)}</td></tr>`;
         }).join('');
         
         contentHtml = `
@@ -860,6 +914,7 @@ async function loadSchedules() {
               <tr>
                 <th>Employee</th>
                 ${headersHtml}
+                <th>Total</th>
               </tr>
             </thead>
             <tbody>
@@ -912,6 +967,7 @@ btnShowPostSchedule.addEventListener('click', async () => {
             <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
             <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
             <td><input type="text" class="input-field sched-cell" placeholder="-" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>
+            <td style="text-align: center; font-weight: bold;">-</td>
           `;
           scheduleEditorBody.appendChild(tr);
         });
@@ -927,6 +983,9 @@ btnShowPostSchedule.addEventListener('click', async () => {
 });
 
 btnSubmitSchedule.addEventListener('click', async () => {
+  btnSubmitSchedule.disabled = true;
+  btnSubmitSchedule.style.opacity = '0.5';
+
   const weekRange = scheduleWeekRange.value.trim() || 'Weekly Schedule';
   
   const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(inp => inp.value || '-');
@@ -959,6 +1018,9 @@ btnSubmitSchedule.addEventListener('click', async () => {
     loadSchedules();
   } catch (err) {
     showToast('Failed to save schedule.', 'error');
+  } finally {
+    btnSubmitSchedule.disabled = false;
+    btnSubmitSchedule.style.opacity = '1';
   }
 });
 
@@ -977,8 +1039,12 @@ scheduleList.addEventListener('click', async (e) => {
       scheduleEditorBody.innerHTML = '';
       parsed.rows.forEach(r => {
         const tr = document.createElement('tr');
-        const cellsHtml = r.shifts.map(s => `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>`).join('');
-        tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cellsHtml}`;
+        let rowTotal = 0;
+        const cellsHtml = r.shifts.map(s => {
+          rowTotal += parseShiftHours(s);
+          return `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>`;
+        }).join('');
+        tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cellsHtml}<td style="text-align: center; font-weight: bold;">${rowTotal.toFixed(1)}</td>`;
         scheduleEditorBody.appendChild(tr);
       });
       

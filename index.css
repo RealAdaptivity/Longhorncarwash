@@ -365,3 +365,82 @@ nav {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
+
+/* MOBILE RESPONSIVENESS */
+@media (max-width: 768px) {
+  #app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand {
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  .brand h1 { font-size: 1.5rem; margin-bottom: 0; }
+  .brand p { display: none; }
+
+  nav {
+    flex-direction: row;
+    padding: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-btn {
+    padding: 15px;
+    text-align: center;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    flex: 1;
+    font-size: 0.9rem;
+  }
+
+  .nav-btn.active {
+    border-left-color: transparent;
+    border-bottom-color: var(--primary);
+  }
+
+  .view {
+    padding: 20px;
+  }
+
+  #clock-display {
+    font-size: 3.5rem;
+  }
+
+  .pin-pad-container, .modal-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+    margin-top: 2vh !important;
+  }
+
+  .pin-pad {
+    gap: 10px;
+  }
+
+  .pin-btn {
+    padding: 15px;
+  }
+  
+  .table-container {
+    border-radius: 8px;
+  }
+  
+  #manager-auth {
+    padding: 30px;
+    margin-top: 20px;
+  }
+}
