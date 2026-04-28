@@ -975,10 +975,10 @@ async function loadEmployeePortal(userId, name) {
 function getStartOfWeek() {
   const d = new Date();
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
+  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
+  wednesday.setHours(0, 0, 0, 0);
+  return wednesday;
 }
 
 // --- Weather Integration ---
@@ -1816,6 +1816,60 @@ if (btnGetCurrentLocation) {
   });
 }
 
+// --- Edit Payroll Format Logic ---
+const btnEditPayrollFormat = document.getElementById('btn-edit-payroll-format');
+const modalEditPayrollFormat = document.getElementById('modal-edit-payroll-format');
+const btnCancelPayrollFormat = document.getElementById('btn-cancel-payroll-format');
+const btnSavePayrollFormat = document.getElementById('btn-save-payroll-format');
+const customCurrentFormatInput = document.getElementById('custom-current-format');
+const customNextFormatInput = document.getElementById('custom-next-format');
+
+let customPayrollFormat = { current: '', next: '' };
+
+async function loadCustomPayrollFormat() {
+  try {
+    const { data, error } = await window.supabaseClient.from('settings').select('value').eq('id', 'custom_payroll_format').limit(1);
+    if (!error && data && data.length > 0) {
+      customPayrollFormat = JSON.parse(data[0].value);
+      if (customCurrentFormatInput) customCurrentFormatInput.value = customPayrollFormat.current || '';
+      if (customNextFormatInput) customNextFormatInput.value = customPayrollFormat.next || '';
+    }
+  } catch (e) { }
+}
+loadCustomPayrollFormat();
+
+if (btnEditPayrollFormat) {
+  btnEditPayrollFormat.addEventListener('click', () => {
+    modalEditPayrollFormat.classList.remove('hidden');
+  });
+}
+
+if (btnCancelPayrollFormat) {
+  btnCancelPayrollFormat.addEventListener('click', () => {
+    modalEditPayrollFormat.classList.add('hidden');
+  });
+}
+
+if (btnSavePayrollFormat) {
+  btnSavePayrollFormat.addEventListener('click', async () => {
+    customPayrollFormat.current = customCurrentFormatInput.value.trim();
+    customPayrollFormat.next = customNextFormatInput.value.trim();
+
+    try {
+      const val = JSON.stringify(customPayrollFormat);
+      const { data, error: updateErr } = await window.supabaseClient.from('settings').update({ value: val }).eq('id', 'custom_payroll_format').select();
+      if (updateErr || !data || data.length === 0) {
+        await window.supabaseClient.from('settings').delete().eq('id', 'custom_payroll_format');
+        await window.supabaseClient.from('settings').insert({ id: 'custom_payroll_format', value: val });
+      }
+      showToast('Payroll format saved!', 'success');
+      modalEditPayrollFormat.classList.add('hidden');
+    } catch (e) {
+      showToast('Failed to save payroll format', 'error');
+    }
+  });
+}
+
 // --- Export Payroll Logic ---
 const btnDownloadPayroll = document.getElementById('btn-download-payroll');
 if (btnDownloadPayroll) {
@@ -1871,19 +1925,40 @@ if (btnDownloadPayroll) {
       });
 
       // Generate CSV
-      let csvContent = "Employee Name,Current Week Hours,Last Week Hours\n";
+      const formatDate = (dateObj) => {
+        return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear().toString().slice(-2)}`;
+      };
+
+      const currentStart = new Date(startOfWeek);
+      const currentEnd = new Date(startOfWeek);
+      currentEnd.setDate(currentStart.getDate() + 6);
+
+      const nextStart = new Date(startOfWeek);
+      nextStart.setDate(nextStart.getDate() + 7);
+      const nextEnd = new Date(nextStart);
+      nextEnd.setDate(nextStart.getDate() + 6);
+
+      let currentLabel = `${formatDate(currentStart)} - ${formatDate(currentEnd)}`;
+      let nextLabel = `${formatDate(nextStart)} - ${formatDate(nextEnd)}`;
+
+      if (customPayrollFormat.current) currentLabel = customPayrollFormat.current;
+      if (customPayrollFormat.next) nextLabel = customPayrollFormat.next;
+
+      let csvContent = `Employee Name,${currentLabel},${nextLabel}\n`;
       Object.values(employeeMap).forEach(emp => {
         const twHrs = (emp.thisWeekMs / (1000 * 60 * 60)).toFixed(2);
-        const lwHrs = (emp.lastWeekMs / (1000 * 60 * 60)).toFixed(2);
-        csvContent += `"${emp.name}",${twHrs},${lwHrs}\n`;
+        csvContent += `"${emp.name}",${twHrs},0.00\n`;
       });
 
       // Download it
+      let safeFilenameSuffix = currentLabel.replace(/[\/\\]/g, '-').replace(/\s*-\s*/g, '_').replace(/\s+/g, '_');
+      safeFilenameSuffix = safeFilenameSuffix.replace(/[^a-zA-Z0-9_-]/g, '');
+
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
-      link.setAttribute('download', `Payroll_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `Payroll_Export_${safeFilenameSuffix}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -2039,6 +2114,13 @@ async function loadSchedules() {
   } catch (e) {
     scheduleList.innerHTML = '<div style="background: var(--card); padding: 30px; border-radius: 15px; text-align: center; color: var(--danger);">Failed to load schedules. The "schedules" table might not exist in Supabase.</div>';
   }
+}
+
+const btnPrintSchedule = document.getElementById('btn-print-schedule');
+if (btnPrintSchedule) {
+  btnPrintSchedule.addEventListener('click', () => {
+    window.print();
+  });
 }
 
 btnShowPostSchedule.addEventListener('click', async () => {

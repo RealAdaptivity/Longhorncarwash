@@ -526,3 +526,60 @@ nav {
     width: 100%;
   }
 }
+
+/* PRINT MODE */
+@media print {
+  /* Hide unnecessary elements */
+  .sidebar, .dash-header, .btn-ghost, .btn-primary, .btn-danger, .btn-success, #manager-auth, #toast, .modal, #btn-schedule-manager-login, #post-schedule-section, #schedule-manager-auth {
+    display: none !important;
+  }
+
+  /* Reset body and content for printing */
+  body, .content, #app, #view-schedule {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Only show the schedule view */
+  .view { display: none !important; }
+  #view-schedule { display: block !important; width: 100% !important; max-width: none !important; }
+
+  /* Format Schedule Items */
+  #schedule-list > div {
+    background: white !important;
+    color: black !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    padding: 15px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Clean up tables */
+  .data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .data-table th, .data-table td {
+    border: 1px solid #ccc !important;
+    color: black !important;
+    padding: 8px !important;
+    font-size: 12pt !important;
+  }
+  .data-table th {
+    background-color: #f5f5f5 !important;
+    font-weight: bold !important;
+  }
+
+  h4 {
+    color: black !important;
+    font-size: 16pt !important;
+    text-align: center;
+    margin-bottom: 10px !important;
+  }
+}
