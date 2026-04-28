@@ -496,6 +496,8 @@ btnEmployeeLogin.addEventListener('click', async () => {
     employeePinInput.value = '';
     employeeAuth.classList.add('hidden');
     employeeDashboard.classList.remove('hidden');
+    
+    loadMySchedule(); 
     loadEmployeePortal(user.id, user.name);
   } catch (err) {
     showToast('Error logging in', 'error');
@@ -1022,18 +1024,38 @@ async function loadSchedules() {
       try {
         const parsed = JSON.parse(sched.content);
         const headersHtml = parsed.headers.map(h => `<th>${h}</th>`).join('');
-        const rowsHtml = parsed.rows.map(r => {
-          // Check if employee has any entered shifts (not just '-' or empty)
-          const hasShifts = r.shifts.some(s => s && s !== '-' && s.trim() !== '');
-          if (!hasShifts) return ''; // Skip this employee if they have no entry for the week
+          const rowsHtml = parsed.rows.map(r => {
+            // Check if employee has any entered shifts (not just '-' or empty)
+            const hasShifts = r.shifts.some(s => s && s !== '-' && s.trim() !== '');
+            if (!hasShifts) return ''; // Skip this employee if they have no entry for the week
 
-          let rowTotal = 0;
-          const cellsHtml = r.shifts.map(s => {
-            rowTotal += parseShiftHours(s);
-            return `<td style="text-align: center;">${s}</td>`;
+            let rowTotal = 0;
+            const cellsHtml = r.shifts.map(s => {
+              rowTotal += parseShiftHours(s);
+              return `<td style="text-align: center;">${s}</td>`;
+            }).join('');
+            
+            // Encode the row data for the calendar generator
+            const rowData = encodeURIComponent(JSON.stringify({
+              employee: r.employee,
+              shifts: r.shifts,
+              weekRange: parsed.weekRange,
+              headers: parsed.headers
+            }));
+
+            return `
+              <tr>
+                <td>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <strong>${r.employee}</strong>
+                    <button onclick="downloadCalendar('${rowData}')" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px;" title="Add to Calendar">📅</button>
+                  </div>
+                </td>
+                ${cellsHtml}
+                <td style="text-align: center; font-weight: bold; background: rgba(169, 59, 47, 0.05);">${rowTotal.toFixed(1)}</td>
+              </tr>
+            `;
           }).join('');
-          return `<tr><td><strong>${r.employee}</strong></td>${cellsHtml}<td style="text-align: center; font-weight: bold; background: rgba(169, 59, 47, 0.05);">${rowTotal.toFixed(1)}</td></tr>`;
-        }).join('');
         
         contentHtml = `
           <h4 style="margin-bottom: 15px; color: var(--primary);">${parsed.weekRange || 'Weekly Schedule'}</h4>
@@ -1353,3 +1375,143 @@ btnSaveSecurity.addEventListener('click', async () => {
     showToast('Failed to save security settings', 'error');
   }
 });
+
+// --- Personal Schedule Logic ---
+async function loadMySchedule() {
+  if (!currentUser) return;
+  
+  const empScheduleSection = document.getElementById('emp-schedule-section');
+  const empScheduleContainer = document.getElementById('emp-schedule-container');
+  const empScheduleWeek = document.getElementById('emp-schedule-week');
+  const btnSyncCalendar = document.getElementById('btn-sync-calendar');
+  
+  try {
+    // Fetch latest schedule
+    const { data, error } = await window.supabaseClient
+      .from('schedules')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error || !data) {
+      empScheduleSection.classList.add('hidden');
+      return;
+    }
+    
+    const parsed = JSON.parse(data.content);
+    const myRow = parsed.rows.find(r => r.employee === currentUser.name);
+    
+    if (!myRow) {
+      empScheduleSection.classList.add('hidden');
+      return;
+    }
+    
+    empScheduleSection.classList.remove('hidden');
+    empScheduleWeek.textContent = `Schedule: ${parsed.weekRange || 'This Week'}`;
+    
+    empScheduleContainer.innerHTML = '';
+    myRow.shifts.forEach((shift, idx) => {
+      const dayName = parsed.headers[idx] || 'Day';
+      const div = document.createElement('div');
+      div.style = 'background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border);';
+      div.innerHTML = `
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">${dayName}</div>
+        <div style="font-weight: 700; font-size: 0.9rem;">${shift}</div>
+      `;
+      empScheduleContainer.appendChild(div);
+    });
+    
+    // Set up sync button
+    btnSyncCalendar.onclick = () => {
+      const rowData = encodeURIComponent(JSON.stringify({
+        employee: myRow.employee,
+        shifts: myRow.shifts,
+        weekRange: parsed.weekRange,
+        headers: parsed.headers
+      }));
+      window.downloadCalendar(rowData);
+    };
+    
+  } catch (err) {
+    empScheduleSection.classList.add('hidden');
+  }
+}
+
+// --- Calendar Export Logic ---
+window.downloadCalendar = (encodedData) => {
+  try {
+    const data = JSON.parse(decodeURIComponent(encodedData));
+    const { employee, shifts, weekRange } = data;
+    
+    const year = new Date().getFullYear();
+    const parts = weekRange.split('-').map(p => p.trim());
+    const startPart = parts[0]; 
+    const [month, day] = startPart.split('/').map(Number);
+    
+    const baseDate = new Date(year, month - 1, day);
+    
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Longhorn Car Wash//Timeclock//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ];
+
+    shifts.forEach((s, idx) => {
+      if (!s || s === '-' || s.toLowerCase() === 'off') return;
+      
+      const hours = s.split('-');
+      if (hours.length < 2) return;
+      
+      const startTimeStr = hours[0].trim();
+      const endTimeStr = hours[1].trim();
+      
+      function parseTime(timeStr) {
+        let [h, m] = timeStr.split(':').map(Number);
+        if (isNaN(m)) m = 0;
+        return { h, m };
+      }
+
+      const start = parseTime(startTimeStr);
+      const end = parseTime(endTimeStr);
+      
+      let startH = start.h;
+      let endH = end.h;
+      if (endH <= startH) endH += 12; // PM heuristic
+      
+      const formatDate = (offset, h, m) => {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + offset);
+        d.setHours(h, m, 0);
+        return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      };
+
+      const dtStart = formatDate(idx, startH, start.m);
+      const dtEnd = formatDate(idx, endH, end.m);
+
+      icsContent.push('BEGIN:VEVENT');
+      icsContent.push(`SUMMARY:Car Wash Shift: ${employee}`);
+      icsContent.push(`DTSTART:${dtStart}`);
+      icsContent.push(`DTEND:${dtEnd}`);
+      icsContent.push(`LOCATION:Longhorn Car Wash`);
+      icsContent.push('END:VEVENT');
+    });
+
+    icsContent.push('END:VCALENDAR');
+    const content = icsContent.join('\r\n');
+    
+    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${employee}_Schedule.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Calendar file downloaded!');
+  } catch (err) {
+    showToast('Failed to generate calendar file', 'error');
+  }
+};
