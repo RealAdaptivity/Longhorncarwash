@@ -141,7 +141,8 @@
             </div>
           </div>
 
-          <div id="new-schedule-alert" class="hidden" style="max-width: 600px; margin: 0 auto 20px auto; background: var(--primary); color: white; padding: 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.4);">
+          <div id="new-schedule-alert" class="hidden"
+            style="max-width: 600px; margin: 0 auto 20px auto; background: var(--primary); color: white; padding: 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.4);">
             <span>🔔</span> New Schedule Posted! Tap to sync to your phone.
           </div>
 
@@ -204,7 +205,13 @@
         <div id="manager-dashboard" class="hidden">
           <header class="dash-header">
             <h2>Manager Dashboard</h2>
-            <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
+            <div style="display: flex; gap: 10px;">
+              <button id="btn-download-payroll" class="btn-ghost"
+                style="padding: 10px 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Export Payroll
+              </button>
+              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
+            </div>
           </header>
 
           <div class="quick-actions"
@@ -221,6 +228,12 @@
             <div id="btn-show-security" class="action-card">
               <div class="action-icon">🔒</div>
               <div class="action-label">Security Settings</div>
+            </div>
+            <div id="weather-card" class="action-card"
+              style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
+              <div id="weather-icon" class="action-icon">☀️</div>
+              <div id="weather-temp" class="action-label" style="font-size: 1.2rem; font-weight: 800;">--°F</div>
+              <div id="weather-desc" style="font-size: 0.8rem; opacity: 0.9;">Loading weather...</div>
             </div>
           </div>
 

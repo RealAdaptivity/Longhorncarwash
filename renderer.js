@@ -1617,3 +1617,80 @@ window.downloadCalendar = (encodedData) => {
     showToast('Failed to generate calendar file', 'error');
   }
 };
+
+// --- Payroll Export Logic ---
+const btnDownloadPayroll = document.getElementById('btn-download-payroll');
+if (btnDownloadPayroll) {
+  btnDownloadPayroll.addEventListener('click', () => {
+    const rows = document.querySelectorAll('#timesheet-body tr');
+    if (!rows.length) {
+      showToast('No payroll data to export', 'error');
+      return;
+    }
+
+    let csv = 'Employee,Status,Total Hours (This Week),Last Week Hours\n';
+    rows.forEach(tr => {
+      const name = tr.querySelector('td strong')?.innerText || 'Unknown';
+      const status = tr.querySelector('td:nth-child(2) .status-badge')?.innerText || '--';
+      const totalThis = tr.querySelector('td:nth-child(10)')?.innerText || '0.00';
+      const totalLast = tr.querySelector('td:nth-child(11)')?.innerText || '0.00';
+      csv += `"${name}","${status}",${totalThis},${totalLast}\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+    showToast('Payroll CSV exported!');
+  });
+}
+
+// --- Weather Forecast Logic ---
+async function updateWeather() {
+  const weatherTemp = document.getElementById('weather-temp');
+  const weatherDesc = document.getElementById('weather-desc');
+  const weatherIcon = document.getElementById('weather-icon');
+  if (!weatherTemp) return;
+
+  try {
+    // Use geolocation for the car wash location
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      
+      const resp = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=auto`);
+      const data = await resp.json();
+      
+      if (data.current_weather) {
+        const temp = Math.round((data.current_weather.temperature * 9/5) + 32);
+        const code = data.current_weather.weathercode;
+        const rainProb = (data.daily && data.daily.precipitation_probability_max) ? data.daily.precipitation_probability_max[0] : 0;
+        
+        weatherTemp.innerText = `${temp}°F`;
+        
+        let desc = "Clear Skies";
+        let icon = "☀️";
+        
+        if (code >= 51 && code <= 67) { desc = "Rainy"; icon = "🌧️"; }
+        else if (code >= 71 && code <= 86) { desc = "Snowing"; icon = "❄️"; }
+        else if (code >= 95) { desc = "Stormy"; icon = "⛈️"; }
+        else if (code >= 1 && code <= 3) { desc = "Partly Cloudy"; icon = "⛅"; }
+        else if (code >= 45) { desc = "Foggy"; icon = "🌫️"; }
+        
+        weatherDesc.innerHTML = `${desc}<br>${rainProb}% chance of rain`;
+        weatherIcon.innerText = icon;
+      }
+    }, () => {
+      weatherDesc.innerText = "Location access denied";
+    });
+  } catch (e) {
+    weatherDesc.innerText = "Weather unavailable";
+  }
+}
+
+// Initial update and interval
+updateWeather();
+setInterval(updateWeather, 600000); // 10 mins
