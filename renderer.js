@@ -1444,12 +1444,30 @@ window.downloadCalendar = (encodedData) => {
     const data = JSON.parse(decodeURIComponent(encodedData));
     const { employee, shifts, weekRange } = data;
     
+    // Robust date parsing for weekRange (e.g. "4/28 - 5/4" or "April 28 - May 4")
     const year = new Date().getFullYear();
-    const parts = weekRange.split('-').map(p => p.trim());
-    const startPart = parts[0]; 
-    const [month, day] = startPart.split('/').map(Number);
+    let baseDate = new Date(); // Fallback to today
     
-    const baseDate = new Date(year, month - 1, day);
+    try {
+      const parts = weekRange.split('-').map(p => p.trim());
+      const startPart = parts[0]; 
+      
+      // Try M/D format
+      if (startPart.includes('/')) {
+        const [m, d] = startPart.split('/').map(Number);
+        if (!isNaN(m) && !isNaN(d)) {
+          baseDate = new Date(year, m - 1, d);
+        }
+      } else {
+        // Try word format (e.g. "April 28")
+        const parsed = new Date(`${startPart}, ${year}`);
+        if (!isNaN(parsed.getTime())) {
+          baseDate = parsed;
+        }
+      }
+    } catch(e) {
+      console.log('Using fallback date for calendar');
+    }
     
     let icsContent = [
       'BEGIN:VCALENDAR',
@@ -1460,7 +1478,7 @@ window.downloadCalendar = (encodedData) => {
     ];
 
     shifts.forEach((s, idx) => {
-      if (!s || s === '-' || s.toLowerCase() === 'off') return;
+      if (!s || s === '-' || s.toLowerCase() === 'off' || s.toLowerCase() === 'oc') return;
       
       const hours = s.split('-');
       if (hours.length < 2) return;
@@ -1479,13 +1497,28 @@ window.downloadCalendar = (encodedData) => {
       
       let startH = start.h;
       let endH = end.h;
-      if (endH <= startH) endH += 12; // PM heuristic
+      
+      // Smart PM heuristic: 
+      // If end is <= start, end is definitely PM.
+      // If start is < 7 (and not 12), it's likely PM (e.g. 1-6).
+      // Car wash typical shifts: 7am to 7pm.
+      if (startH >= 1 && startH < 7) startH += 12;
+      if (endH <= startH && endH !== 0) endH += 12;
       
       const formatDate = (offset, h, m) => {
         const d = new Date(baseDate);
         d.setDate(baseDate.getDate() + offset);
         d.setHours(h, m, 0);
-        return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        
+        // Manual ISO-like format for ICS: YYYYMMDDTHHMMSSZ
+        const pad = (n) => n.toString().padStart(2, '0');
+        const Y = d.getUTCFullYear();
+        const M = pad(d.getUTCMonth() + 1);
+        const D = pad(d.getUTCDate());
+        const H = pad(d.getUTCHours());
+        const Min = pad(d.getUTCMinutes());
+        const S = pad(d.getUTCSeconds());
+        return `${Y}${M}${D}T${H}${Min}${S}Z`;
       };
 
       const dtStart = formatDate(idx, startH, start.m);
@@ -1512,6 +1545,7 @@ window.downloadCalendar = (encodedData) => {
     document.body.removeChild(link);
     showToast('Calendar file downloaded!');
   } catch (err) {
+    console.error(err);
     showToast('Failed to generate calendar file', 'error');
   }
 };
