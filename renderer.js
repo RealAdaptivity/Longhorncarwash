@@ -1081,7 +1081,12 @@ btnShowPostSchedule.addEventListener('click', async () => {
   if (!postScheduleSection.classList.contains('hidden')) {
     // Populate employees for editing
     try {
-      const { data: users } = await window.supabaseClient.from('users').select('name').order('name', { ascending: true });
+      const { data: users } = await window.supabaseClient
+        .from('users')
+        .select('name')
+        .eq('is_approved', true) // Only active/approved employees
+        .order('name', { ascending: true });
+        
       scheduleEditorBody.innerHTML = '';
       if (users) {
         users.forEach(u => {
@@ -1165,14 +1170,27 @@ scheduleList.addEventListener('click', async (e) => {
       });
       
       scheduleEditorBody.innerHTML = '';
-      parsed.rows.forEach(r => {
+      
+      // Fetch LATEST employees so new ones show up in old schedules
+      const { data: currentUsers } = await window.supabaseClient
+        .from('users')
+        .select('name')
+        .eq('is_approved', true)
+        .order('name', { ascending: true });
+
+      (currentUsers || []).forEach(u => {
+        // Try to find this employee in the saved schedule data
+        const savedRow = parsed.rows.find(r => r.employee === u.name);
+        const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
+        
         const tr = document.createElement('tr');
         let rowTotal = 0;
-        const cellsHtml = r.shifts.map(s => {
+        const cellsHtml = shifts.map(s => {
           rowTotal += parseShiftHours(s);
           return `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding: 5px; text-align: center; margin-bottom: 0;"></td>`;
         }).join('');
-        tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cellsHtml}<td style="text-align: center; font-weight: bold;">${rowTotal.toFixed(1)}</td>`;
+        
+        tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align: center; font-weight: bold;">${rowTotal.toFixed(1)}</td>`;
         scheduleEditorBody.appendChild(tr);
       });
       
