@@ -80,6 +80,14 @@ const btnSubmitForgot = document.getElementById('btn-submit-forgot');
 const pendingPinsSection = document.getElementById('pending-pins-section');
 const pendingPinsBody = document.getElementById('pending-pins-body');
 
+// Forgot Password
+const btnForgotPwd = document.getElementById('btn-forgot-password');
+const modalForgotPwd = document.getElementById('modal-forgot-password');
+const forgotPwdName = document.getElementById('forgot-password-name');
+const forgotPwdNew = document.getElementById('forgot-password-new');
+const btnCancelPwdReset = document.getElementById('btn-cancel-password-reset');
+const btnSubmitPwdReset = document.getElementById('btn-submit-password-reset');
+
 // Manage Logs Modal
 const modalManageLogs = document.getElementById('modal-manage-logs');
 const manageLogsTitle = document.getElementById('manage-logs-title');
@@ -111,6 +119,20 @@ let editingScheduleId = null;
 let currentPin = '';
 let currentUser = null; // The employee currently using the terminal
 let managerLoggedIn = false;
+let currentManager = null; // Track who is currently logged into the dashboard
+let pending2FAUser = null; // For login flow
+
+// --- 2FA DOM Elements ---
+const btnShowSecurity = document.getElementById('btn-show-security');
+const modalSecurity = document.getElementById('modal-security');
+const enable2FA = document.getElementById('enable-2fa');
+const setup2FASection = document.getElementById('setup-2fa-section');
+const setup2FAPin = document.getElementById('setup-2fa-pin');
+const btnCloseSecurity = document.getElementById('btn-close-security');
+const btnSaveSecurity = document.getElementById('btn-save-security');
+const modal2FAVerify = document.getElementById('modal-2fa-verify');
+const verify2FAPin = document.getElementById('verify-2fa-pin');
+const btnSubmit2FA = document.getElementById('btn-submit-2fa');
 
 // --- Geofencing Configuration ---
 // TO DO: Replace these with the actual Latitude and Longitude of the Car Wash building
@@ -386,6 +408,8 @@ btnManagerLogin.addEventListener('click', async () => {
       .eq('name', username)
       .eq('password', password)
       .eq('role', 'Manager')
+      .eq('is_approved', true)
+      .not('password', 'is', null)
       .single();
       
     if (error || !data) {
@@ -393,21 +417,50 @@ btnManagerLogin.addEventListener('click', async () => {
       return;
     }
     
-    managerLoggedIn = true;
-    btnShowPostSchedule.classList.remove('hidden');
-    btnScheduleManagerLogin.classList.add('hidden');
-    managerAuth.classList.add('hidden');
-    managerDashboard.classList.remove('hidden');
-    managerUsernameInput.value = '';
-    managerPasswordInput.value = '';
-    loadTimesheets();
+    // Check 2FA
+    if (data.two_factor_enabled) {
+      pending2FAUser = data;
+      modal2FAVerify.classList.remove('hidden');
+      verify2FAPin.value = '';
+      verify2FAPin.focus();
+      return;
+    }
+
+    completeManagerLogin(data);
   } catch (err) {
     showToast('Error during login.', 'error');
   }
 });
 
+function completeManagerLogin(data) {
+  managerLoggedIn = true;
+  currentManager = data;
+  if (btnShowPostSchedule) btnShowPostSchedule.classList.remove('hidden');
+  if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.add('hidden');
+  managerAuth.classList.add('hidden');
+  managerDashboard.classList.remove('hidden');
+  managerUsernameInput.value = '';
+  managerPasswordInput.value = '';
+  loadTimesheets();
+}
+
+btnSubmit2FA.addEventListener('click', () => {
+  if (!pending2FAUser) return;
+  if (verify2FAPin.value === pending2FAUser.two_factor_pin) {
+    const user = pending2FAUser;
+    pending2FAUser = null;
+    modal2FAVerify.classList.add('hidden');
+    completeManagerLogin(user);
+  } else {
+    showToast('Invalid 2-Step PIN', 'error');
+    verify2FAPin.value = '';
+  }
+});
+
 function logoutManager() {
   managerLoggedIn = false;
+  currentManager = null;
+  pending2FAUser = null;
   if (btnShowPostSchedule) btnShowPostSchedule.classList.add('hidden');
   if (postScheduleSection) postScheduleSection.classList.add('hidden');
   if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.remove('hidden');
@@ -631,23 +684,77 @@ async function loadTimesheets() {
       timesheetBody.appendChild(tr);
     });
 
-    // Populate Pending PINs
-    const pendingPins = usersData.filter(u => u.pending_pin);
-    if (pendingPins.length > 0) {
-      pendingPinsSection.classList.remove('hidden');
-      pendingPinsBody.innerHTML = '';
-      pendingPins.forEach(u => {
+    // Populate Pending Approvals
+    pendingPinsBody.innerHTML = '';
+    let hasPending = false;
+    let pendingCount = 0;
+
+    usersData.forEach(u => {
+      // Account Approvals
+      if (u.is_approved === false) {
+        hasPending = true;
+        pendingCount++;
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td>${u.name}</td>
-          <td>${u.pending_pin}</td>
+          <td><span style="color: var(--warning); font-weight: bold;">New Account (${u.role})</span></td>
+          <td>PIN: ${u.pin}</td>
           <td>
-            <button class="btn-success btn-approve-pin" data-id="${u.id}" data-pin="${u.pending_pin}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none; margin-right: 5px;">Approve</button>
-            <button class="btn-danger btn-deny-pin" data-id="${u.id}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Deny</button>
+            <button class="btn-success btn-approve-account" data-id="${u.id}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Approve</button>
+            <button class="btn-ghost btn-reject-account" data-id="${u.id}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Reject</button>
           </td>
         `;
         pendingPinsBody.appendChild(tr);
-      });
+      }
+
+      // PIN Changes
+      if (u.pending_pin) {
+        hasPending = true;
+        pendingCount++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.name}</td>
+          <td><span style="color: var(--primary); font-weight: bold;">PIN Change</span></td>
+          <td>${u.pending_pin}</td>
+          <td>
+            <button class="btn-success btn-approve-pin" data-id="${u.id}" data-val="${u.pending_pin}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Approve</button>
+            <button class="btn-ghost btn-reject-pin" data-id="${u.id}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Reject</button>
+          </td>
+        `;
+        pendingPinsBody.appendChild(tr);
+      }
+
+      // Password Resets
+      if (u.pending_password) {
+        hasPending = true;
+        pendingCount++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${u.name}</td>
+          <td><span style="color: var(--success); font-weight: bold;">Password Reset</span></td>
+          <td>********</td>
+          <td>
+            <button class="btn-success btn-approve-pwd" data-id="${u.id}" data-val="${u.pending_password}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Approve</button>
+            <button class="btn-ghost btn-reject-pwd" data-id="${u.id}" style="padding: 5px 10px; font-size: 0.8rem; border: none; border-radius: 4px; cursor: pointer;">Reject</button>
+          </td>
+        `;
+        pendingPinsBody.appendChild(tr);
+      }
+    });
+    
+    // Update Badge
+    const badge = document.getElementById('approval-badge');
+    if (badge) {
+      if (pendingCount > 0) {
+        badge.textContent = pendingCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    if (hasPending) {
+      pendingPinsSection.classList.remove('hidden');
     } else {
       pendingPinsSection.classList.add('hidden');
     }
@@ -663,35 +770,56 @@ timesheetBody.addEventListener('click', (e) => {
   }
 });
 
-pendingPinsBody.addEventListener('click', (e) => {
+pendingPinsBody.addEventListener('click', async (e) => {
   if (e.target.classList.contains('btn-approve-pin')) {
-    window.approvePin(e.target.dataset.id, e.target.dataset.pin);
-  } else if (e.target.classList.contains('btn-deny-pin')) {
-    window.denyPin(e.target.dataset.id);
+    const id = e.target.dataset.id;
+    const val = e.target.dataset.val;
+    try {
+      const { error } = await window.supabaseClient.from('users').update({ pin: val, pending_pin: null }).eq('id', id);
+      if (error) throw error;
+      showToast('PIN change approved');
+      loadTimesheets();
+    } catch(e) {
+      showToast('Failed to approve PIN', 'error');
+    }
+  } else if (e.target.classList.contains('btn-reject-pin')) {
+    const id = e.target.dataset.id;
+    try {
+      await window.supabaseClient.from('users').update({ pending_pin: null }).eq('id', id);
+      showToast('PIN request rejected');
+      loadTimesheets();
+    } catch(e) {}
+  } else if (e.target.classList.contains('btn-approve-pwd')) {
+    const id = e.target.dataset.id;
+    const val = e.target.dataset.val;
+    try {
+      await window.supabaseClient.from('users').update({ password: val, pending_password: null }).eq('id', id);
+      showToast('Password reset approved!');
+      loadTimesheets();
+    } catch(e) {}
+  } else if (e.target.classList.contains('btn-reject-pwd')) {
+    const id = e.target.dataset.id;
+    try {
+      await window.supabaseClient.from('users').update({ pending_password: null }).eq('id', id);
+      showToast('Password reset rejected');
+      loadTimesheets();
+    } catch(e) {}
+  } else if (e.target.classList.contains('btn-approve-account')) {
+    const id = e.target.dataset.id;
+    try {
+      await window.supabaseClient.from('users').update({ is_approved: true }).eq('id', id);
+      showToast('Account approved!');
+      loadTimesheets();
+    } catch(e) {}
+  } else if (e.target.classList.contains('btn-reject-account')) {
+    const id = e.target.dataset.id;
+    try {
+      await window.supabaseClient.from('users').delete().eq('id', id);
+      showToast('Account request removed');
+      loadTimesheets();
+    } catch(e) {}
   }
 });
-
-window.approvePin = async (userId, newPin) => {
-  try {
-    const { error } = await window.supabaseClient.from('users').update({ pin: newPin, pending_pin: null }).eq('id', userId);
-    if (error) throw error;
-    showToast('PIN change approved');
-    loadTimesheets();
-  } catch(e) {
-    showToast('Failed to approve PIN', 'error');
-  }
-};
-
-window.denyPin = async (userId) => {
-  try {
-    const { error } = await window.supabaseClient.from('users').update({ pending_pin: null }).eq('id', userId);
-    if (error) throw error;
-    showToast('PIN change denied');
-    loadTimesheets();
-  } catch(e) {
-    showToast('Failed to deny PIN', 'error');
-  }
-};
 
 // --- Manage Logs Logic ---
 window.openManageLogs = async (userId, userName) => {
@@ -845,11 +973,11 @@ btnConfirmCreate.addEventListener('click', async () => {
     
     const { error } = await window.supabaseClient
       .from('users')
-      .insert([{ name, pin, role, password: role === 'Manager' ? password : null }]);
+      .insert([{ name, pin, role, password: role === 'Manager' ? password : null, is_approved: false }]);
       
     if (error) throw error;
     
-    showToast(`User ${name} created successfully!`);
+    showToast(`Account request for ${name} submitted for approval.`);
     newUserName.value = '';
     newUserPin.value = '';
     newUserPassword.value = '';
@@ -865,7 +993,7 @@ async function initAdmin() {
   try {
     const { data } = await window.supabaseClient.from('users').select('id').eq('name', 'Admin').single();
     if (!data) {
-      await window.supabaseClient.from('users').insert([{ name: 'Admin', pin: '0000', password: 'Longhornadmin', role: 'Manager' }]);
+      await window.supabaseClient.from('users').insert([{ name: 'Admin', pin: '0000', password: 'Longhornadmin', role: 'Manager', is_approved: true }]);
     }
   } catch(e) {
     console.log('Admin check failed', e);
@@ -1083,6 +1211,8 @@ btnScheduleLoginSubmit.addEventListener('click', async () => {
       .eq('name', username)
       .eq('password', password)
       .eq('role', 'Manager')
+      .eq('is_approved', true)
+      .not('password', 'is', null)
       .single();
       
     if (error || !data) {
@@ -1104,5 +1234,104 @@ btnScheduleLoginSubmit.addEventListener('click', async () => {
     loadSchedules(); // refresh to show delete buttons
   } catch (err) {
     showToast('Error during login.', 'error');
+  }
+});
+
+const btnScrollApprovals = document.getElementById('btn-scroll-approvals');
+if (btnScrollApprovals) {
+  btnScrollApprovals.addEventListener('click', () => {
+    pendingPinsSection.scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+// --- Manager Forgot Password ---
+btnForgotPwd.addEventListener('click', () => {
+  modalForgotPwd.classList.remove('hidden');
+});
+
+btnCancelPwdReset.addEventListener('click', () => {
+  modalForgotPwd.classList.add('hidden');
+  forgotPwdName.value = '';
+  forgotPwdNew.value = '';
+});
+
+btnSubmitPwdReset.addEventListener('click', async () => {
+  const name = forgotPwdName.value;
+  const newPwd = forgotPwdNew.value;
+  if (!name || !newPwd) {
+    showToast('Please enter username and new password', 'error');
+    return;
+  }
+  
+  try {
+    const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).eq('role', 'Manager').single();
+    if (error || !user) {
+      showToast('Manager username not found', 'error');
+      return;
+    }
+    
+    await window.supabaseClient.from('users').update({ pending_password: newPwd }).eq('id', user.id);
+    showToast('Password reset requested! Another manager must approve it.');
+    modalForgotPwd.classList.add('hidden');
+    forgotPwdName.value = '';
+    forgotPwdNew.value = '';
+  } catch (err) {
+    showToast('Failed to request password reset', 'error');
+  }
+});
+
+// --- Security Settings Logic ---
+btnShowSecurity.addEventListener('click', () => {
+  if (!currentManager) return;
+  enable2FA.checked = currentManager.two_factor_enabled || false;
+  if (enable2FA.checked) {
+    setup2FASection.classList.remove('hidden');
+    setup2FAPin.value = currentManager.two_factor_pin || '';
+  } else {
+    setup2FASection.classList.add('hidden');
+    setup2FAPin.value = '';
+  }
+  modalSecurity.classList.remove('hidden');
+});
+
+enable2FA.addEventListener('change', () => {
+  if (enable2FA.checked) {
+    setup2FASection.classList.remove('hidden');
+  } else {
+    setup2FASection.classList.add('hidden');
+  }
+});
+
+btnCloseSecurity.addEventListener('click', () => {
+  modalSecurity.classList.add('hidden');
+});
+
+btnSaveSecurity.addEventListener('click', async () => {
+  if (!currentManager) return;
+  
+  const isEnabled = enable2FA.checked;
+  const pin = setup2FAPin.value;
+  
+  if (isEnabled && pin.length !== 4) {
+    showToast('2-Step PIN must be 4 digits', 'error');
+    return;
+  }
+  
+  try {
+    const { error } = await window.supabaseClient.from('users').update({
+      two_factor_enabled: isEnabled,
+      two_factor_pin: isEnabled ? pin : null
+    }).eq('id', currentManager.id);
+    
+    if (error) throw error;
+    
+    // Update local currentManager state
+    currentManager.two_factor_enabled = isEnabled;
+    currentManager.two_factor_pin = isEnabled ? pin : null;
+    
+    showToast('Security settings saved!');
+    modalSecurity.classList.add('hidden');
+  } catch (err) {
+    showToast('Failed to save security settings', 'error');
   }
 });
