@@ -1593,16 +1593,11 @@ window.downloadCalendar = (encodedData) => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     if (isIOS) {
-      // iOS works best with Data URI and target="_blank"
+      // iOS Safari handles "Add to Calendar" best if we NAVIGATE to the Data URI 
+      // without a download attribute. This triggers the native Calendar import.
       const base64Content = btoa(unescape(encodeURIComponent(content)));
       const dataUri = `data:text/calendar;base64,${base64Content}`;
-      const link = document.createElement('a');
-      link.href = dataUri;
-      link.setAttribute('download', fileName);
-      link.setAttribute('target', '_blank');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.location.href = dataUri;
     } else {
       // Android and Desktop work best with Blobs
       const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
