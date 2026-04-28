@@ -5,6 +5,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Longhorn Car Wash Timeclock</title>
+
+  <!-- PWA & Apple App Settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Longhorn">
+  <link rel="apple-touch-icon" href="app_icon_longhorn_1777337011552.png">
+  <meta name="theme-color" content="#a93b2f">
+
   <link rel="stylesheet" href="index.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -132,11 +141,17 @@
             </div>
           </div>
 
+          <div id="new-schedule-alert" class="hidden" style="max-width: 600px; margin: 0 auto 20px auto; background: var(--primary); color: white; padding: 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.4);">
+            <span>🔔</span> New Schedule Posted! Tap to sync to your phone.
+          </div>
+
           <div id="emp-schedule-section" class="hidden" style="margin-bottom: 40px; text-align: center;">
-            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 25px; max-width: 600px; margin: 0 auto;">
+            <div
+              style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 25px; max-width: 600px; margin: 0 auto;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 id="emp-schedule-week" style="color: var(--primary); margin: 0;">Your Weekly Schedule</h3>
-                <button id="btn-sync-calendar" class="btn-ghost" style="padding: 5px 15px; font-size: 0.9rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+                <button id="btn-sync-calendar" class="btn-ghost"
+                  style="padding: 5px 15px; font-size: 0.9rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
                   <span>📅</span> Add to Calendar
                 </button>
               </div>

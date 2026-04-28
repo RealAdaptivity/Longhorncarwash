@@ -1130,11 +1130,41 @@ btnShowPostSchedule.addEventListener('click', async () => {
       
       // Reset headers
       scheduleHeaderInputs.forEach((inp, idx) => {
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const days = ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'];
         inp.value = days[idx];
       });
     } catch(e) {}
   }
+});
+
+// --- Auto-populate dates in headers ---
+scheduleWeekRange.addEventListener('input', () => {
+  const val = scheduleWeekRange.value.trim();
+  if (!val) return;
+  
+  try {
+    // Try to extract the first date (e.g. "4/28" from "4/28 - 5/4")
+    const match = val.match(/(\d+)\/(\d+)/);
+    if (!match) return;
+    
+    const m = parseInt(match[1]) - 1;
+    const d = parseInt(match[2]);
+    const year = new Date().getFullYear();
+    
+    const startDate = new Date(year, m, d);
+    if (isNaN(startDate.getTime())) return;
+    
+    const days = ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'];
+    
+    scheduleHeaderInputs.forEach((inp, idx) => {
+      const current = new Date(startDate);
+      current.setDate(startDate.getDate() + idx);
+      
+      const dayName = days[idx];
+      const monthDay = `${current.getMonth() + 1}/${current.getDate()}`;
+      inp.value = `${dayName} ${monthDay}`;
+    });
+  } catch(e) {}
 });
 
 btnSubmitSchedule.addEventListener('click', async () => {
@@ -1384,6 +1414,7 @@ async function loadMySchedule() {
   const empScheduleContainer = document.getElementById('emp-schedule-container');
   const empScheduleWeek = document.getElementById('emp-schedule-week');
   const btnSyncCalendar = document.getElementById('btn-sync-calendar');
+  const newScheduleAlert = document.getElementById('new-schedule-alert');
   
   try {
     // Fetch latest schedule
@@ -1396,7 +1427,18 @@ async function loadMySchedule() {
       
     if (error || !data) {
       empScheduleSection.classList.add('hidden');
+      if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
       return;
+    }
+    
+    // Check if this is a "new" schedule the user hasn't synced yet
+    const lastSeenId = localStorage.getItem('last_seen_schedule_id');
+    if (newScheduleAlert) {
+      if (lastSeenId !== data.id) {
+        newScheduleAlert.classList.remove('hidden');
+      } else {
+        newScheduleAlert.classList.add('hidden');
+      }
     }
     
     const parsed = JSON.parse(data.content);
@@ -1422,8 +1464,7 @@ async function loadMySchedule() {
       empScheduleContainer.appendChild(div);
     });
     
-    // Set up sync button
-    btnSyncCalendar.onclick = () => {
+    const triggerSync = () => {
       const rowData = encodeURIComponent(JSON.stringify({
         employee: myRow.employee,
         shifts: myRow.shifts,
@@ -1431,10 +1472,19 @@ async function loadMySchedule() {
         headers: parsed.headers
       }));
       window.downloadCalendar(rowData);
+      
+      // Mark as seen
+      localStorage.setItem('last_seen_schedule_id', data.id);
+      if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
     };
+
+    // Set up buttons
+    btnSyncCalendar.onclick = triggerSync;
+    if (newScheduleAlert) newScheduleAlert.onclick = triggerSync;
     
   } catch (err) {
     empScheduleSection.classList.add('hidden');
+    if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
   }
 }
 
@@ -1523,8 +1573,12 @@ window.downloadCalendar = (encodedData) => {
 
       const dtStart = formatDate(idx, startH, start.m);
       const dtEnd = formatDate(idx, endH, end.m);
+      const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const uid = `shift-${employee.replace(/\s+/g, '-')}-${idx}-${Date.now()}@longhorn.com`;
 
       icsContent.push('BEGIN:VEVENT');
+      icsContent.push(`UID:${uid}`);
+      icsContent.push(`DTSTAMP:${dtStamp}`);
       icsContent.push(`SUMMARY:Car Wash Shift: ${employee}`);
       icsContent.push(`DTSTART:${dtStart}`);
       icsContent.push(`DTEND:${dtEnd}`);
@@ -1535,15 +1589,34 @@ window.downloadCalendar = (encodedData) => {
     icsContent.push('END:VCALENDAR');
     const content = icsContent.join('\r\n');
     
-    const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `${employee}_Schedule.ics`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Calendar file downloaded!');
+    const fileName = `${employee}_Schedule.ics`;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      // iOS works best with Data URI and target="_blank"
+      const base64Content = btoa(unescape(encodeURIComponent(content)));
+      const dataUri = `data:text/calendar;base64,${base64Content}`;
+      const link = document.createElement('a');
+      link.href = dataUri;
+      link.setAttribute('download', fileName);
+      link.setAttribute('target', '_blank');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Android and Desktop work best with Blobs
+      const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }
+    
+    showToast('Calendar file generated!');
   } catch (err) {
     console.error(err);
     showToast('Failed to generate calendar file', 'error');
