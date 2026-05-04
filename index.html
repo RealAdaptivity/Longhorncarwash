@@ -540,6 +540,35 @@
               </table>
             </div>
 
+            <!-- Monthly Archive Section -->
+            <div id="monthly-archive-section" style="margin-bottom: 40px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary); margin: 0;">Monthly Payroll Archive (Past 4 Weeks)</h3>
+                <button id="btn-export-monthly" class="btn-ghost"
+                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                  <span>📊</span> Export Monthly CSV
+                </button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4 weeks. Data older than 30 days is automatically purged.</p>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>4 Weeks Ago</th>
+                    <th>3 Weeks Ago</th>
+                    <th>2 Weeks Ago</th>
+                    <th>Last Week</th>
+                    <th>This Week</th>
+                    <th>Monthly Total (Hrs)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="monthly-archive-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
               <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet</h3>
               <button id="btn-export-csv" class="btn-ghost"

@@ -98,6 +98,7 @@ const btnManagerLogin = document.getElementById('btn-manager-login');
 const managerDashboard = document.getElementById('manager-dashboard');
 const timesheetBody = document.getElementById('timesheet-body');
 const biweeklyHistoryBody = document.getElementById('biweekly-history-body');
+const monthlyArchiveBody = document.getElementById('monthly-archive-body');
 const btnShowCreateUser = document.getElementById('btn-show-create-user');
 
 // Create User Modal
@@ -1075,7 +1076,18 @@ async function loadTimesheets() {
 
     const startOfWeek = getStartOfWeek().getTime();
     const startOfLastWeek = startOfWeek - (7 * 24 * 60 * 60 * 1000);
+    const startOf2WeeksAgo = startOfWeek - (14 * 24 * 60 * 60 * 1000);
+    const startOf3WeeksAgo = startOfWeek - (21 * 24 * 60 * 60 * 1000);
+    const startOf4WeeksAgo = startOfWeek - (28 * 24 * 60 * 60 * 1000);
     const employeeMap = {};
+
+    // Perform automated 30-day purge in the background
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    window.supabaseClient.from('time_logs')
+      .delete()
+      .lt('created_at', thirtyDaysAgo.toISOString())
+      .then(({error}) => { if (error) console.error("Purge error", error); });
 
     // Wire up CSV Export Buttons
     const exportBtns = [
@@ -1166,8 +1178,54 @@ async function loadTimesheets() {
       });
     }
 
+    // Wire up Monthly CSV Export
+    const btnExportMonthly = document.getElementById('btn-export-monthly');
+    if (btnExportMonthly) {
+      const newBtnMonthly = btnExportMonthly.cloneNode(true);
+      btnExportMonthly.parentNode.replaceChild(newBtnMonthly, btnExportMonthly);
+      newBtnMonthly.addEventListener('click', () => {
+        const rows = document.querySelectorAll('#monthly-archive-body tr');
+        if (rows.length === 0) {
+          showToast('No data to export', 'warning');
+          return;
+        }
+
+        let csv = "Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs)\n";
+        rows.forEach(row => {
+          const cols = row.querySelectorAll('td');
+          let rowData = [];
+          cols.forEach((col, index) => {
+            if (index === cols.length - 1) return; // Skip Action buttons
+            let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
+            text = text.replace(/"/g, '""');
+            rowData.push(`"${text}"`);
+          });
+          csv += rowData.join(",") + "\n";
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Monthly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Monthly CSV Downloaded!', 'success');
+      });
+    }
+
     usersData.forEach(u => {
-      employeeMap[u.id] = { id: u.id, name: u.name, weekMs: [0, 0, 0, 0, 0, 0, 0], lastWeekMs: 0, currentStatus: 'OUT', lastIn: null };
+      employeeMap[u.id] = { 
+        id: u.id, name: u.name, 
+        weekMs: [0, 0, 0, 0, 0, 0, 0], 
+        lastWeekMs: 0, 
+        week2Ms: 0,
+        week3Ms: 0,
+        week4Ms: 0,
+        currentStatus: 'OUT', lastIn: null 
+      };
     });
 
     logsData.forEach(log => {
@@ -1187,6 +1245,12 @@ async function loadTimesheets() {
             emp.weekMs[dayIndex] += duration;
           } else if (emp.lastIn >= startOfLastWeek && emp.lastIn < startOfWeek) {
             emp.lastWeekMs += duration;
+          } else if (emp.lastIn >= startOf2WeeksAgo && emp.lastIn < startOfLastWeek) {
+            emp.week2Ms += duration;
+          } else if (emp.lastIn >= startOf3WeeksAgo && emp.lastIn < startOf2WeeksAgo) {
+            emp.week3Ms += duration;
+          } else if (emp.lastIn >= startOf4WeeksAgo && emp.lastIn < startOf3WeeksAgo) {
+            emp.week4Ms += duration;
           } else if (time >= startOfWeek) {
             emp.weekMs[0] += (time - startOfWeek);
           }
@@ -1198,6 +1262,7 @@ async function loadTimesheets() {
 
     timesheetBody.innerHTML = '';
     if (biweeklyHistoryBody) biweeklyHistoryBody.innerHTML = '';
+    if (monthlyArchiveBody) monthlyArchiveBody.innerHTML = '';
     let overtimeCount = 0;
     Object.values(employeeMap).forEach(emp => {
       if (emp.currentStatus === 'IN' && emp.lastIn) {
@@ -1207,6 +1272,12 @@ async function loadTimesheets() {
           emp.weekMs[dayIndex] += activeMs;
         } else if (emp.lastIn >= startOfLastWeek && emp.lastIn < startOfWeek) {
           emp.lastWeekMs += activeMs;
+        } else if (emp.lastIn >= startOf2WeeksAgo && emp.lastIn < startOfLastWeek) {
+          emp.week2Ms += activeMs;
+        } else if (emp.lastIn >= startOf3WeeksAgo && emp.lastIn < startOf2WeeksAgo) {
+          emp.week3Ms += activeMs;
+        } else if (emp.lastIn >= startOf4WeeksAgo && emp.lastIn < startOf3WeeksAgo) {
+          emp.week4Ms += activeMs;
         } else {
           emp.weekMs[0] += (Date.now() - startOfWeek);
         }
@@ -1257,6 +1328,26 @@ async function loadTimesheets() {
           <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
         `;
         biweeklyHistoryBody.appendChild(trBiweekly);
+      }
+
+      if (monthlyArchiveBody) {
+        const w2Hrs = (emp.week2Ms / (1000 * 60 * 60)).toFixed(2);
+        const w3Hrs = (emp.week3Ms / (1000 * 60 * 60)).toFixed(2);
+        const w4Hrs = (emp.week4Ms / (1000 * 60 * 60)).toFixed(2);
+        const monthlyTotal = (Number(totalWeekHrs) + Number(totalLastWeekHrs) + Number(w2Hrs) + Number(w3Hrs) + Number(w4Hrs)).toFixed(2);
+
+        const trMonthly = document.createElement('tr');
+        trMonthly.innerHTML = `
+          <td>${emp.name}</td>
+          <td>${w4Hrs}</td>
+          <td>${w3Hrs}</td>
+          <td>${w2Hrs}</td>
+          <td>${totalLastWeekHrs}</td>
+          <td>${totalWeekHrs}</td>
+          <td style="font-weight: bold; color: var(--success);">${monthlyTotal}</td>
+          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
+        `;
+        monthlyArchiveBody.appendChild(trMonthly);
       }
     });
 
@@ -1391,6 +1482,14 @@ timesheetBody.addEventListener('click', (e) => {
 
 if (biweeklyHistoryBody) {
   biweeklyHistoryBody.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-manage-logs')) {
+      window.openManageLogs(e.target.dataset.id, e.target.dataset.name);
+    }
+  });
+}
+
+if (monthlyArchiveBody) {
+  monthlyArchiveBody.addEventListener('click', (e) => {
     if (e.target.classList.contains('btn-manage-logs')) {
       window.openManageLogs(e.target.dataset.id, e.target.dataset.name);
     }
