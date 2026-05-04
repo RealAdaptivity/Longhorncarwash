@@ -1082,7 +1082,7 @@ async function loadTimesheets() {
       document.getElementById('btn-export-csv'),
       document.getElementById('btn-download-payroll')
     ];
-    
+
     exportBtns.forEach(btn => {
       if (btn) {
         // Remove old listeners to avoid multiple fires
@@ -1105,7 +1105,7 @@ async function loadTimesheets() {
               text = text.replace(/"/g, '""');
               rowData.push(`"${text}"`);
             });
-            
+
             // Calculate and append Biweekly Total
             const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
             const lastWeek = parseFloat(rowData[10] ? rowData[10].replace(/"/g, '') : 0) || 0;
@@ -1254,6 +1254,7 @@ async function loadTimesheets() {
           <td>${totalLastWeekHrs}</td>
           <td>${totalWeekHrs}</td>
           <td style="font-weight: bold; color: var(--primary);">${biweeklyTotalHrs}</td>
+          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
         `;
         biweeklyHistoryBody.appendChild(trBiweekly);
       }
@@ -1387,6 +1388,14 @@ timesheetBody.addEventListener('click', (e) => {
     window.openManageLogs(e.target.dataset.id, e.target.dataset.name);
   }
 });
+
+if (biweeklyHistoryBody) {
+  biweeklyHistoryBody.addEventListener('click', (e) => {
+    if (e.target.classList.contains('btn-manage-logs')) {
+      window.openManageLogs(e.target.dataset.id, e.target.dataset.name);
+    }
+  });
+}
 
 pendingPinsBody.addEventListener('click', async (e) => {
   if (e.target.classList.contains('btn-approve-pin')) {
@@ -2339,7 +2348,7 @@ if (aiFab) {
         const [meta, base64] = result.split(',');
         aiSelectedImageMime = meta.match(/:(.*?);/)[1];
         aiSelectedImageBase64 = base64;
-        
+
         aiImagePreviewName.textContent = file.name;
         aiImagePreviewContainer.classList.remove('hidden');
       };
@@ -2357,13 +2366,13 @@ if (aiFab) {
   async function sendAiMessage(message) {
     const userMsg = document.createElement('div');
     userMsg.style = "background: var(--primary); padding: 10px; border-radius: 10px; color: white; align-self: flex-end; max-width: 85%; line-height: 1.4;";
-    
+
     if (aiSelectedImageBase64) {
       userMsg.innerHTML = `<img src="data:${aiSelectedImageMime};base64,${aiSelectedImageBase64}" style="max-width: 100%; border-radius: 5px; margin-bottom: 5px;" /><br>` + message;
     } else {
       userMsg.textContent = message;
     }
-    
+
     aiChatHistory.appendChild(userMsg);
     aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
 
@@ -2399,7 +2408,7 @@ if (aiFab) {
     }
 
     const currentImageBase64 = aiSelectedImageBase64; // preserve in case they remove it while sending
-    
+
     // Clear attachment after sending
     btnRemoveAiImage.click();
 
@@ -2413,7 +2422,7 @@ if (aiFab) {
       if (data.error) throw new Error(data.error.message);
 
       let aiText = data.candidates[0].content.parts[0].text;
-      
+
       const jsonMatch = aiText.match(/\`\`\`json\n([\s\S]*?)\n\`\`\`/);
       if (jsonMatch) {
         try {
@@ -2430,7 +2439,7 @@ if (aiFab) {
             }
           });
           aiText = aiText.replace(/\`\`\`json\n[\s\S]*?\n\`\`\`/, "✅ I've populated the schedule editor for you.");
-        } catch(e) {}
+        } catch (e) { }
       }
 
       typingMsg.innerHTML = aiText.replace(/\n/g, '<br>');
