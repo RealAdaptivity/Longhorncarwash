@@ -97,6 +97,7 @@ const managerRememberMe = document.getElementById('manager-remember-me');
 const btnManagerLogin = document.getElementById('btn-manager-login');
 const managerDashboard = document.getElementById('manager-dashboard');
 const timesheetBody = document.getElementById('timesheet-body');
+const biweeklyHistoryBody = document.getElementById('biweekly-history-body');
 const btnShowCreateUser = document.getElementById('btn-show-create-user');
 
 // Create User Modal
@@ -1076,25 +1077,75 @@ async function loadTimesheets() {
     const startOfLastWeek = startOfWeek - (7 * 24 * 60 * 60 * 1000);
     const employeeMap = {};
 
-    // Wire up CSV Export Button
-    const btnExportCsv = document.getElementById('btn-export-csv');
-    if (btnExportCsv) {
-      // Remove old listeners to avoid multiple fires
-      const newBtn = btnExportCsv.cloneNode(true);
-      btnExportCsv.parentNode.replaceChild(newBtn, btnExportCsv);
-      newBtn.addEventListener('click', () => {
-        const rows = document.querySelectorAll('#timesheets-body tr');
+    // Wire up CSV Export Buttons
+    const exportBtns = [
+      document.getElementById('btn-export-csv'),
+      document.getElementById('btn-download-payroll')
+    ];
+    
+    exportBtns.forEach(btn => {
+      if (btn) {
+        // Remove old listeners to avoid multiple fires
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', () => {
+          const rows = document.querySelectorAll('#timesheet-body tr');
+          if (rows.length === 0) {
+            showToast('No data to export', 'warning');
+            return;
+          }
+
+          let csv = "Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Last Week Total,Biweekly Total\n";
+          rows.forEach(row => {
+            const cols = row.querySelectorAll('td');
+            let rowData = [];
+            cols.forEach((col, index) => {
+              if (index === cols.length - 1) return; // Skip Action buttons
+              let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
+              text = text.replace(/"/g, '""');
+              rowData.push(`"${text}"`);
+            });
+            
+            // Calculate and append Biweekly Total
+            const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
+            const lastWeek = parseFloat(rowData[10] ? rowData[10].replace(/"/g, '') : 0) || 0;
+            const biweeklyTotal = (thisWeek + lastWeek).toFixed(2);
+            rowData.push(`"${biweeklyTotal}"`);
+
+            csv += rowData.join(",") + "\n";
+          });
+
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", `Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          showToast('Payroll CSV Downloaded!', 'success');
+        });
+      }
+    });
+
+    // Wire up Biweekly CSV Export
+    const btnExportBiweekly = document.getElementById('btn-export-biweekly');
+    if (btnExportBiweekly) {
+      const newBtnBiweekly = btnExportBiweekly.cloneNode(true);
+      btnExportBiweekly.parentNode.replaceChild(newBtnBiweekly, btnExportBiweekly);
+      newBtnBiweekly.addEventListener('click', () => {
+        const rows = document.querySelectorAll('#biweekly-history-body tr');
         if (rows.length === 0) {
           showToast('No data to export', 'warning');
           return;
         }
 
-        let csv = "Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Last Week Total\n";
+        let csv = "Employee,Last Week (Hrs),This Week (Hrs),Biweekly Total (Hrs)\n";
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
           let rowData = [];
-          cols.forEach((col, index) => {
-            if (index === cols.length - 1) return; // Skip Action buttons
+          cols.forEach((col) => {
             let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
             text = text.replace(/"/g, '""');
             rowData.push(`"${text}"`);
@@ -1106,12 +1157,12 @@ async function loadTimesheets() {
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+        link.setAttribute("download", `Biweekly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast('Payroll CSV Downloaded!', 'success');
+        showToast('Biweekly CSV Downloaded!', 'success');
       });
     }
 
@@ -1146,6 +1197,7 @@ async function loadTimesheets() {
     });
 
     timesheetBody.innerHTML = '';
+    if (biweeklyHistoryBody) biweeklyHistoryBody.innerHTML = '';
     let overtimeCount = 0;
     Object.values(employeeMap).forEach(emp => {
       if (emp.currentStatus === 'IN' && emp.lastIn) {
@@ -1193,6 +1245,18 @@ async function loadTimesheets() {
         <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
       `;
       timesheetBody.appendChild(tr);
+
+      if (biweeklyHistoryBody) {
+        const biweeklyTotalHrs = (Number(totalWeekHrs) + Number(totalLastWeekHrs)).toFixed(2);
+        const trBiweekly = document.createElement('tr');
+        trBiweekly.innerHTML = `
+          <td>${emp.name}</td>
+          <td>${totalLastWeekHrs}</td>
+          <td>${totalWeekHrs}</td>
+          <td style="font-weight: bold; color: var(--primary);">${biweeklyTotalHrs}</td>
+        `;
+        biweeklyHistoryBody.appendChild(trBiweekly);
+      }
     });
 
     // Update Overtime Badge

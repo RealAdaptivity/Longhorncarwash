@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Longhorn">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="apple-touch-icon" href="app_icon_longhorn_1777337011552.png">
   <meta name="theme-color" content="#a93b2f">
 
   <link rel="stylesheet" href="index.css" />
@@ -514,13 +514,38 @@
 
             </div>
 
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
-              <button id="btn-export-csv" class="btn-ghost"
-                style="padding: 10px 15px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                <span>📊</span> Export Payroll to CSV
-              </button>
+            <!-- Biweekly History Section -->
+            <div id="biweekly-history-section" style="margin-bottom: 40px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary); margin: 0;">Biweekly Payroll History</h3>
+                <button id="btn-export-biweekly" class="btn-ghost"
+                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                  <span>📊</span> Export Biweekly CSV
+                </button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for Last Week + This Week (for Wednesday Payroll)</p>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Last Week (Hrs)</th>
+                    <th>This Week (Hrs)</th>
+                    <th>Biweekly Total (Hrs)</th>
+                  </tr>
+                </thead>
+                <tbody id="biweekly-history-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
             </div>
 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet</h3>
+              <button id="btn-export-csv" class="btn-ghost"
+                style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                <span>📊</span> Export Weekly CSV
+              </button>
+            </div>
             <table class="data-table">
               <thead>
                 <tr>
@@ -542,6 +567,7 @@
                 <!-- Populated by JS -->
               </tbody>
             </table>
+
           </div>
 
           <!-- MANAGE LOGS MODAL -->
