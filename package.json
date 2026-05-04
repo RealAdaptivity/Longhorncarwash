@@ -3,7 +3,7 @@
   "productName": "car-wash-timeclock",
   "version": "1.1.2",
   "description": "My Electron application description",
-  "main": "index.js",
+  "main": "src/index.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
