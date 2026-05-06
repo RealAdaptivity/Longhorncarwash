@@ -39,6 +39,7 @@
         <button id="nav-timeclock" class="nav-btn active">Timeclock</button>
         <button id="nav-employee" class="nav-btn">My Hours</button>
         <button id="nav-manager" class="nav-btn">Manager</button>
+        <button id="nav-payroll" class="nav-btn">Payroll</button>
         <button id="nav-schedule" class="nav-btn">Schedule</button>
       </nav>
     </aside>
@@ -396,10 +397,6 @@
                 title="Edit Payroll Format">
                 <span>⚙️</span> Edit Format
               </button>
-              <button id="btn-download-payroll" class="btn-ghost"
-                style="padding: 10px 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
-                <span>📊</span> Export Payroll
-              </button>
               <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
             </div>
           </header>
@@ -514,60 +511,6 @@
 
             </div>
 
-            <!-- Biweekly History Section -->
-            <div id="biweekly-history-section" style="margin-bottom: 40px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="color: var(--primary); margin: 0;">Biweekly Payroll History</h3>
-                <button id="btn-export-biweekly" class="btn-ghost"
-                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                  <span>📊</span> Export Biweekly CSV
-                </button>
-              </div>
-              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for Last Week + This Week (for Wednesday Payroll)</p>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Last Week (Hrs)</th>
-                    <th>This Week (Hrs)</th>
-                    <th>Biweekly Total (Hrs)</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="biweekly-history-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Monthly Archive Section -->
-            <div id="monthly-archive-section" style="margin-bottom: 40px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="color: var(--primary); margin: 0;">Monthly Payroll Archive (Past 4 Weeks)</h3>
-                <button id="btn-export-monthly" class="btn-ghost"
-                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                  <span>📊</span> Export Monthly CSV
-                </button>
-              </div>
-              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4 weeks. Data older than 30 days is automatically purged.</p>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>4 Weeks Ago</th>
-                    <th>3 Weeks Ago</th>
-                    <th>2 Weeks Ago</th>
-                    <th>Last Week</th>
-                    <th>This Week</th>
-                    <th>Monthly Total (Hrs)</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="monthly-archive-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
               <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet</h3>
@@ -604,6 +547,48 @@
           <div id="modal-manage-logs" class="modal hidden">
             <div class="modal-content" style="width: 850px; max-width: 95vw; max-height: 80vh; overflow-y: auto;">
               <h3 id="manage-logs-title">Manage Logs</h3>
+
+              <div
+                style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 10px; color: var(--primary);">Employee Details</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                  <div>
+                    <label
+                      style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">First
+                      Name</label>
+                    <input type="text" id="edit-employee-first-name" class="input-field" style="margin-bottom: 0;"
+                      placeholder="First Name" />
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Last
+                      Name</label>
+                    <input type="text" id="edit-employee-last-name" class="input-field" style="margin-bottom: 0;"
+                      placeholder="Last Name" />
+                  </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Username</label>
+                    <input type="text" id="edit-employee-login-name" class="input-field"
+                      style="padding: 8px; font-size: 0.9rem;" />
+                  </div>
+                  <div style="flex: 0.5;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Rate / Salary ($)</label>
+                    <input type="number" id="edit-employee-pay-rate" step="0.01" class="input-field"
+                      style="padding: 8px; font-size: 0.9rem;" placeholder="0.00" />
+                  </div>
+                  <div
+                    style="flex: 0.3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Salary?</label>
+                    <input type="checkbox" id="edit-employee-is-salary"
+                      style="width: 20px; height: 20px; cursor: pointer;" />
+                  </div>
+                  <button id="btn-save-employee-details" class="btn-primary"
+                    style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Save Changes</button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">* Changing the username will
+                  affect their login. The First/Last name will be used for reports.</p>
+              </div>
 
               <div style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
                 <h4>Add Manual Punch</h4>
@@ -736,8 +721,29 @@
           <div id="modal-create-user" class="modal hidden">
             <div class="modal-content" style="width: 500px; text-align: left;">
               <h3 style="margin-bottom: 20px;">Create New Account</h3>
-              <input type="text" id="new-user-name" placeholder="Full Name (Username)" class="input-field"
-                style="margin-bottom: 20px;" />
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                  <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">First
+                    Name</label>
+                  <input type="text" id="new-user-first-name" placeholder="First Name" class="input-field"
+                    style="margin-bottom: 0;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Last
+                    Name</label>
+                  <input type="text" id="new-user-last-name" placeholder="Last Name" class="input-field"
+                    style="margin-bottom: 0;" />
+                </div>
+              </div>
+
+              <div style="margin-bottom: 20px;">
+                <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Login
+                  Username</label>
+                <input type="text" id="new-user-login-name" placeholder="Username (for logging in)" class="input-field"
+                  style="margin-bottom: 0;" />
+                <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">* This is what the employee
+                  will type to clock in.</p>
+              </div>
               <input type="password" id="new-user-pin" placeholder="Create a 4-Digit PIN (for Timeclock)" maxlength="4"
                 class="input-field" style="margin-bottom: 20px;" />
               <input type="password" id="new-user-password" placeholder="Create a Dashboard Password"
@@ -793,6 +799,90 @@
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <!-- PAYROLL VIEW -->
+      <section id="view-payroll" class="view">
+        <div id="payroll-auth" style="max-width: 400px; margin: 0 auto; margin-top: 10vh; text-align: center;">
+          <h2>Payroll Access</h2>
+          <p style="color: var(--text-muted); margin-bottom: 20px;">Manager login required</p>
+          <div style="margin-top: 20px; text-align: left;">
+            <input type="text" id="payroll-username-input" placeholder="Username" class="input-field" />
+            <input type="password" id="payroll-password-input" placeholder="Password" class="input-field" />
+            <button id="btn-payroll-login" class="btn-primary"
+              style="padding: 10px 20px; font-size: 1rem; width: 100%;">Login to Payroll</button>
+          </div>
+        </div>
+
+        <div id="payroll-dashboard" class="hidden" style="width: 100%; max-width: 1100px; margin: 0 auto;">
+          <header class="dash-header">
+            <h2>Payroll Dashboard</h2>
+            <div style="display: flex; gap: 10px;">
+              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
+            </div>
+          </header>
+
+          <div style="display: grid; grid-template-columns: 1fr; gap: 40px;">
+            <!-- Biweekly History Section -->
+            <div id="biweekly-history-section">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary); margin: 0;">Biweekly Payroll History</h3>
+                <button id="btn-export-biweekly" class="btn-ghost"
+                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                  <span>📊</span> Export Biweekly CSV
+                </button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for Last Week
+                + This Week (for Wednesday Payroll)</p>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Last Week (Hrs)</th>
+                    <th>This Week (Hrs)</th>
+                    <th>Biweekly Total (Hrs)</th>
+                    <th>Est. Pay ($)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="biweekly-history-body-payroll">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Monthly Archive Section -->
+            <div id="monthly-archive-section">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: var(--primary); margin: 0;">Monthly Payroll Archive (Past 4 Weeks)</h3>
+                <button id="btn-export-monthly" class="btn-ghost"
+                  style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                  <span>📊</span> Export Monthly CSV
+                </button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4
+                weeks. Data older than 30 days is automatically purged.</p>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>4 Weeks Ago</th>
+                    <th>3 Weeks Ago</th>
+                    <th>2 Weeks Ago</th>
+                    <th>Last Week</th>
+                    <th>This Week</th>
+                    <th>Monthly Total (Hrs)</th>
+                    <th>Est. Pay ($)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="monthly-archive-body-payroll">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 

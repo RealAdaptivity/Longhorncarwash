@@ -5,10 +5,12 @@
 const navTimeclock = document.getElementById('nav-timeclock');
 const navEmployee = document.getElementById('nav-employee');
 const navManager = document.getElementById('nav-manager');
+const navPayroll = document.getElementById('nav-payroll');
 const navSchedule = document.getElementById('nav-schedule');
 const viewTimeclock = document.getElementById('view-timeclock');
 const viewEmployee = document.getElementById('view-employee');
 const viewManager = document.getElementById('view-manager');
+const viewPayroll = document.getElementById('view-payroll');
 const viewSchedule = document.getElementById('view-schedule');
 
 // Clock
@@ -97,15 +99,24 @@ const managerRememberMe = document.getElementById('manager-remember-me');
 const btnManagerLogin = document.getElementById('btn-manager-login');
 const managerDashboard = document.getElementById('manager-dashboard');
 const timesheetBody = document.getElementById('timesheet-body');
-const biweeklyHistoryBody = document.getElementById('biweekly-history-body');
-const monthlyArchiveBody = document.getElementById('monthly-archive-body');
+
+// Payroll
+const payrollAuth = document.getElementById('payroll-auth');
+const payrollDashboard = document.getElementById('payroll-dashboard');
+const btnPayrollLogin = document.getElementById('btn-payroll-login');
+const payrollUsernameInput = document.getElementById('payroll-username-input');
+const payrollPasswordInput = document.getElementById('payroll-password-input');
+const biweeklyHistoryBody = document.getElementById('biweekly-history-body-payroll');
+const monthlyArchiveBody = document.getElementById('monthly-archive-body-payroll');
 const btnShowCreateUser = document.getElementById('btn-show-create-user');
 
 // Create User Modal
 const modalCreateUser = document.getElementById('modal-create-user');
 const btnConfirmCreate = document.getElementById('btn-confirm-create');
 const btnCancelCreate = document.getElementById('btn-cancel-create');
-const newUserName = document.getElementById('new-user-name');
+const newUserFirstName = document.getElementById('new-user-first-name');
+const newUserLastName = document.getElementById('new-user-last-name');
+const newUserLoginName = document.getElementById('new-user-login-name');
 const newUserPin = document.getElementById('new-user-pin');
 const newUserPassword = document.getElementById('new-user-password');
 
@@ -217,6 +228,8 @@ let currentUser = null; // The employee currently using the terminal
 let managerLoggedIn = false;
 let currentManager = null; // Track who is currently logged into the dashboard
 let pending2FAUser = null; // For login flow
+let pendingLoginTarget = 'manager'; // 'manager' or 'payroll'
+let employeeMap = {}; // Global employee data map
 
 window.addEventListener('DOMContentLoaded', () => {
   const savedUser = localStorage.getItem('managerRememberUser');
@@ -320,10 +333,12 @@ function switchView(view) {
   viewTimeclock.classList.remove('active');
   viewManager.classList.remove('active');
   viewEmployee.classList.remove('active');
+  viewPayroll.classList.remove('active');
   viewSchedule.classList.remove('active');
   navTimeclock.classList.remove('active');
   navManager.classList.remove('active');
   navEmployee.classList.remove('active');
+  navPayroll.classList.remove('active');
   navSchedule.classList.remove('active');
 
   if (view === 'timeclock') {
@@ -336,13 +351,29 @@ function switchView(view) {
     viewManager.classList.add('active');
     navManager.classList.add('active');
     if (managerLoggedIn) {
+      managerAuth.classList.add('hidden');
+      managerDashboard.classList.remove('hidden');
       loadTimesheets();
+    } else {
+      managerAuth.classList.remove('hidden');
+      managerDashboard.classList.add('hidden');
     }
   } else if (view === 'employee') {
     viewEmployee.classList.add('active');
     navEmployee.classList.add('active');
     if (currentPortalEmployee) {
       loadEmployeePortal(currentPortalEmployee.id, currentPortalEmployee.name);
+    }
+  } else if (view === 'payroll') {
+    viewPayroll.classList.add('active');
+    navPayroll.classList.add('active');
+    if (managerLoggedIn) {
+      payrollAuth.classList.add('hidden');
+      payrollDashboard.classList.remove('hidden');
+      loadTimesheets();
+    } else {
+      payrollAuth.classList.remove('hidden');
+      payrollDashboard.classList.add('hidden');
     }
   } else if (view === 'schedule') {
     viewSchedule.classList.add('active');
@@ -353,7 +384,14 @@ function switchView(view) {
 
 navTimeclock.addEventListener('click', () => switchView('timeclock'));
 navEmployee.addEventListener('click', () => switchView('employee'));
-navManager.addEventListener('click', () => switchView('manager'));
+navManager.addEventListener('click', () => {
+  pendingLoginTarget = 'manager';
+  switchView('manager');
+});
+navPayroll.addEventListener('click', () => {
+  pendingLoginTarget = 'payroll';
+  switchView('payroll');
+});
 navSchedule.addEventListener('click', () => switchView('schedule'));
 
 // --- Toast Utility ---
@@ -825,15 +863,61 @@ btnManagerLogin.addEventListener('click', async () => {
   }
 });
 
+btnPayrollLogin.addEventListener('click', async () => {
+  const username = payrollUsernameInput.value.trim();
+  const password = payrollPasswordInput.value;
+  if (!username || !password) return;
+
+  try {
+    const { data: rawData, error } = await window.supabaseClient
+      .from('users')
+      .select('*')
+      .eq('name', username)
+      .eq('password', password)
+      .eq('role', 'Manager')
+      .eq('is_approved', true)
+      .not('password', 'is', null)
+      .limit(1);
+
+    if (error || !rawData || rawData.length === 0) {
+      showToast('Invalid Manager Username or Password', 'error');
+      return;
+    }
+
+    const data = rawData[0];
+
+    // Check 2FA
+    if (data.two_factor_enabled) {
+      pending2FAUser = data;
+      modal2FAVerify.classList.remove('hidden');
+      verify2FAPin.value = '';
+      verify2FAPin.focus();
+      return;
+    }
+
+    completeManagerLogin(data);
+  } catch (err) {
+    showToast('Error during login.', 'error');
+  }
+});
+
 function completeManagerLogin(data) {
   managerLoggedIn = true;
   currentManager = data;
   if (btnShowPostSchedule) btnShowPostSchedule.classList.remove('hidden');
   if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.add('hidden');
-  managerAuth.classList.add('hidden');
-  managerDashboard.classList.remove('hidden');
-  managerUsernameInput.value = '';
-  managerPasswordInput.value = '';
+  
+  if (pendingLoginTarget === 'payroll') {
+    if (payrollAuth) payrollAuth.classList.add('hidden');
+    if (payrollDashboard) payrollDashboard.classList.remove('hidden');
+    if (payrollUsernameInput) payrollUsernameInput.value = '';
+    if (payrollPasswordInput) payrollPasswordInput.value = '';
+  } else {
+    managerAuth.classList.add('hidden');
+    managerDashboard.classList.remove('hidden');
+    managerUsernameInput.value = '';
+    managerPasswordInput.value = '';
+  }
   loadTimesheets();
 }
 
@@ -998,6 +1082,18 @@ function getStartOfWeek() {
   return wednesday;
 }
 
+function formatNameLastFirst(fullName) {
+  if (!fullName) return '';
+  // If already has a comma, assume it's already "Last, First"
+  if (fullName.includes(',')) return fullName;
+  
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length < 2) return fullName;
+  const lastName = parts.pop();
+  const firstName = parts.join(' ');
+  return `${lastName}, ${firstName}`;
+}
+
 // --- Weather Integration ---
 const weatherIcon = document.getElementById('weather-icon');
 const weatherTemp = document.getElementById('weather-temp');
@@ -1079,7 +1175,7 @@ async function loadTimesheets() {
     const startOf2WeeksAgo = startOfWeek - (14 * 24 * 60 * 60 * 1000);
     const startOf3WeeksAgo = startOfWeek - (21 * 24 * 60 * 60 * 1000);
     const startOf4WeeksAgo = startOfWeek - (28 * 24 * 60 * 60 * 1000);
-    const employeeMap = {};
+    employeeMap = {};
 
     // Perform automated 30-day purge in the background
     const thirtyDaysAgo = new Date();
@@ -1091,8 +1187,7 @@ async function loadTimesheets() {
 
     // Wire up CSV Export Buttons
     const exportBtns = [
-      document.getElementById('btn-export-csv'),
-      document.getElementById('btn-download-payroll')
+      document.getElementById('btn-export-csv')
     ];
 
     exportBtns.forEach(btn => {
@@ -1107,13 +1202,15 @@ async function loadTimesheets() {
             return;
           }
 
-          let csv = "Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Last Week Total,Biweekly Total\n";
+          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Last Week Total,Biweekly Total\n";
+          let count = 1;
           rows.forEach(row => {
             const cols = row.querySelectorAll('td');
             let rowData = [];
             cols.forEach((col, index) => {
               if (index === cols.length - 1) return; // Skip Action buttons
               let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
+              if (index === 0) text = formatNameLastFirst(text); // Format name
               text = text.replace(/"/g, '""');
               rowData.push(`"${text}"`);
             });
@@ -1121,8 +1218,16 @@ async function loadTimesheets() {
             // Calculate and append Biweekly Total
             const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
             const lastWeek = parseFloat(rowData[10] ? rowData[10].replace(/"/g, '') : 0) || 0;
-            const biweeklyTotal = (thisWeek + lastWeek).toFixed(2);
+            const biweeklyTotalVal = thisWeek + lastWeek;
+            
+            // Skip if Biweekly Total is 0
+            if (biweeklyTotalVal === 0) return;
+
+            const biweeklyTotal = biweeklyTotalVal.toFixed(2);
             rowData.push(`"${biweeklyTotal}"`);
+
+            // Prepend sequence number
+            rowData.unshift(`"${count++}"`);
 
             csv += rowData.join(",") + "\n";
           });
@@ -1147,21 +1252,42 @@ async function loadTimesheets() {
       const newBtnBiweekly = btnExportBiweekly.cloneNode(true);
       btnExportBiweekly.parentNode.replaceChild(newBtnBiweekly, btnExportBiweekly);
       newBtnBiweekly.addEventListener('click', () => {
-        const rows = document.querySelectorAll('#biweekly-history-body tr');
+        const rows = document.querySelectorAll('#biweekly-history-body-payroll tr');
         if (rows.length === 0) {
           showToast('No data to export', 'warning');
           return;
         }
 
-        let csv = "Employee,Last Week (Hrs),This Week (Hrs),Biweekly Total (Hrs)\n";
+        let csv = "#,Employee,Last Week (Hrs),This Week (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n";
+        let count = 1;
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
-          let rowData = [];
-          cols.forEach((col) => {
+          if (cols.length < 4) return;
+
+          // Check Biweekly Total (index 3)
+          const biweeklyTotalText = cols[3].textContent.trim();
+          const biweeklyTotal = parseFloat(biweeklyTotalText) || 0;
+          if (biweeklyTotal === 0) return;
+
+          let rowData = [`"${count++}"`];
+          cols.forEach((col, index) => {
+            if (index >= 4) return; // Skip Actions column
             let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
+            if (index === 0) text = formatNameLastFirst(text); // Format name
             text = text.replace(/"/g, '""');
             rowData.push(`"${text}"`);
           });
+
+          const manageBtn = row.querySelector('.btn-manage-logs');
+          const empId = manageBtn ? manageBtn.dataset.id : null;
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+          const totalHrs = parseFloat(cols[3].textContent) || 0;
+          const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
+          
+          rowData.push(`"${emp.is_salary ? 'Salary' : 'Hourly'}"`);
+          rowData.push(`"${emp.pay_rate}"`);
+          rowData.push(`"${estPay}"`);
+
           csv += rowData.join(",") + "\n";
         });
 
@@ -1184,22 +1310,42 @@ async function loadTimesheets() {
       const newBtnMonthly = btnExportMonthly.cloneNode(true);
       btnExportMonthly.parentNode.replaceChild(newBtnMonthly, btnExportMonthly);
       newBtnMonthly.addEventListener('click', () => {
-        const rows = document.querySelectorAll('#monthly-archive-body tr');
+        const rows = document.querySelectorAll('#monthly-archive-body-payroll tr');
         if (rows.length === 0) {
           showToast('No data to export', 'warning');
           return;
         }
 
-        let csv = "Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs)\n";
+        let csv = "#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n";
+        let count = 1;
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
-          let rowData = [];
+          if (cols.length < 7) return;
+
+          // Check Monthly Total (index 6)
+          const monthlyTotalText = cols[6].textContent.trim();
+          const monthlyTotal = parseFloat(monthlyTotalText) || 0;
+          if (monthlyTotal === 0) return;
+
+          let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
-            if (index === cols.length - 1) return; // Skip Action buttons
+            if (index >= 7) return; // Skip Actions column
             let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
+            if (index === 0) text = formatNameLastFirst(text); // Format name
             text = text.replace(/"/g, '""');
             rowData.push(`"${text}"`);
           });
+
+          const manageBtn = row.querySelector('.btn-manage-logs');
+          const empId = manageBtn ? manageBtn.dataset.id : null;
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+          const totalHrs = parseFloat(cols[6].textContent) || 0;
+          const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
+          
+          rowData.push(`"${emp.is_salary ? 'Salary' : 'Hourly'}"`);
+          rowData.push(`"${emp.pay_rate}"`);
+          rowData.push(`"${estPay}"`);
+
           csv += rowData.join(",") + "\n";
         });
 
@@ -1219,6 +1365,9 @@ async function loadTimesheets() {
     usersData.forEach(u => {
       employeeMap[u.id] = { 
         id: u.id, name: u.name, 
+        payroll_name: u.payroll_name, // Store payroll_name
+        pay_rate: u.pay_rate || 0, // Store pay_rate
+        is_salary: u.is_salary || false, // Store salary flag
         weekMs: [0, 0, 0, 0, 0, 0, 0], 
         lastWeekMs: 0, 
         week2Ms: 0,
@@ -1307,45 +1456,52 @@ async function loadTimesheets() {
       if (emp.currentStatus === 'LUNCH') statusColor = 'var(--warning)';
 
       const tr = document.createElement('tr');
+      const displayName = emp.payroll_name || emp.name;
       tr.innerHTML = `
-        <td>${emp.name}</td>
+        <td>${displayName}</td>
         <td><span style="color: ${statusColor}; font-weight: bold;">${emp.currentStatus}</span></td>
         ${daysStr}
         <td style="font-weight: bold; color: ${totalColor};">${totalWeekHrs}</td>
         <td style="color: var(--text-muted);">${totalLastWeekHrs}</td>
-        <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
+        <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${displayName.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
       `;
       timesheetBody.appendChild(tr);
 
       if (biweeklyHistoryBody) {
         const biweeklyTotalHrs = (Number(totalWeekHrs) + Number(totalLastWeekHrs)).toFixed(2);
+        const estBiweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (biweeklyTotalHrs * emp.pay_rate).toFixed(2);
         const trBiweekly = document.createElement('tr');
+        const displayName = emp.payroll_name || emp.name;
         trBiweekly.innerHTML = `
-          <td>${emp.name}</td>
+          <td>${displayName}</td>
           <td>${totalLastWeekHrs}</td>
           <td>${totalWeekHrs}</td>
           <td style="font-weight: bold; color: var(--primary);">${biweeklyTotalHrs}</td>
-          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
+          <td style="font-weight: bold; color: var(--success);">$${estBiweeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem; color:var(--text-muted)">(Fixed)</span>' : ''}</td>
+          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${displayName.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
         `;
         biweeklyHistoryBody.appendChild(trBiweekly);
       }
 
       if (monthlyArchiveBody) {
-        const w2Hrs = (emp.week2Ms / (1000 * 60 * 60)).toFixed(2);
-        const w3Hrs = (emp.week3Ms / (1000 * 60 * 60)).toFixed(2);
-        const w4Hrs = (emp.week4Ms / (1000 * 60 * 60)).toFixed(2);
-        const monthlyTotal = (Number(totalWeekHrs) + Number(totalLastWeekHrs) + Number(w2Hrs) + Number(w3Hrs) + Number(w4Hrs)).toFixed(2);
+        const week2Hrs = (emp.week2Ms / (1000 * 60 * 60)).toFixed(2);
+        const week3Hrs = (emp.week3Ms / (1000 * 60 * 60)).toFixed(2);
+        const week4Hrs = (emp.week4Ms / (1000 * 60 * 60)).toFixed(2);
+        const monthlyTotalHrs = (Number(totalWeekHrs) + Number(totalLastWeekHrs) + Number(week2Hrs) + Number(week3Hrs) + Number(week4Hrs)).toFixed(2);
+        const estMonthlyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (monthlyTotalHrs * emp.pay_rate).toFixed(2);
 
         const trMonthly = document.createElement('tr');
+        const displayName = emp.payroll_name || emp.name;
         trMonthly.innerHTML = `
-          <td>${emp.name}</td>
-          <td>${w4Hrs}</td>
-          <td>${w3Hrs}</td>
-          <td>${w2Hrs}</td>
+          <td>${displayName}</td>
+          <td>${week4Hrs}</td>
+          <td>${week3Hrs}</td>
+          <td>${week2Hrs}</td>
           <td>${totalLastWeekHrs}</td>
           <td>${totalWeekHrs}</td>
-          <td style="font-weight: bold; color: var(--success);">${monthlyTotal}</td>
-          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${emp.name.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
+          <td style="font-weight: bold; color: var(--primary);">${monthlyTotalHrs}</td>
+          <td style="font-weight: bold; color: var(--success);">$${estMonthlyPay}${emp.is_salary ? ' <span style="font-size:0.7rem; color:var(--text-muted)">(Fixed)</span>' : ''}</td>
+          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${displayName.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
         `;
         monthlyArchiveBody.appendChild(trMonthly);
       }
@@ -1552,10 +1708,76 @@ pendingPinsBody.addEventListener('click', async (e) => {
 // --- Manage Logs Logic ---
 window.openManageLogs = async (userId, userName) => {
   selectedEmployeeForLogs = userId;
+  const emp = employeeMap[userId];
+  
+  const editFirstName = document.getElementById('edit-employee-first-name');
+  const editLastName = document.getElementById('edit-employee-last-name');
+  const editLoginName = document.getElementById('edit-employee-login-name');
+  const editPayRate = document.getElementById('edit-employee-pay-rate');
+  const editIsSalary = document.getElementById('edit-employee-is-salary');
+  
+  if (editLoginName) editLoginName.value = emp ? emp.name : '';
+  if (editPayRate) editPayRate.value = emp ? emp.pay_rate : '';
+  if (editIsSalary) editIsSalary.checked = emp ? emp.is_salary : false;
+  
+  if (emp && emp.payroll_name && emp.payroll_name.includes(', ')) {
+    const parts = emp.payroll_name.split(', ');
+    if (editLastName) editLastName.value = parts[0] || '';
+    if (editFirstName) editFirstName.value = parts[1] || '';
+  } else {
+    // Fallback if no payroll name or weird format
+    if (editFirstName) editFirstName.value = emp ? emp.name : '';
+    if (editLastName) editLastName.value = '';
+  }
+  
   manageLogsTitle.textContent = `Manage Logs: ${userName}`;
   modalManageLogs.classList.remove('hidden');
   await loadEmployeeLogs();
 };
+
+const btnSaveEmployeeDetails = document.getElementById('btn-save-employee-details');
+if (btnSaveEmployeeDetails) {
+  btnSaveEmployeeDetails.addEventListener('click', async () => {
+    if (!selectedEmployeeForLogs) return;
+    const firstName = document.getElementById('edit-employee-first-name').value.trim();
+    const lastName = document.getElementById('edit-employee-last-name').value.trim();
+    const loginName = document.getElementById('edit-employee-login-name').value.trim();
+    const payRate = parseFloat(document.getElementById('edit-employee-pay-rate').value) || 0;
+    const isSalary = document.getElementById('edit-employee-is-salary').checked;
+    
+    if (!firstName || !lastName || !loginName) {
+      showToast('All fields are required', 'error');
+      return;
+    }
+    
+    const payrollName = `${lastName}, ${firstName}`;
+    
+    try {
+      const { error } = await window.supabaseClient.from('users')
+        .update({ 
+          name: loginName,
+          payroll_name: payrollName,
+          pay_rate: payRate,
+          is_salary: isSalary
+        })
+        .eq('id', selectedEmployeeForLogs);
+        
+      if (error) throw error;
+      showToast('Employee details updated!', 'success');
+      
+      // Update local map
+      if (employeeMap[selectedEmployeeForLogs]) {
+        employeeMap[selectedEmployeeForLogs].name = loginName;
+        employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
+        employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
+        employeeMap[selectedEmployeeForLogs].is_salary = isSalary;
+      }
+      loadTimesheets();
+    } catch (err) {
+      showToast('Error updating details.', 'error');
+    }
+  });
+}
 
 btnCloseManage.addEventListener('click', () => {
   modalManageLogs.classList.add('hidden');
@@ -1752,25 +1974,31 @@ btnShowCreateUser.addEventListener('click', () => {
 
 btnCancelCreate.addEventListener('click', () => {
   modalCreateUser.classList.add('hidden');
-  newUserName.value = '';
+  if (newUserFirstName) newUserFirstName.value = '';
+  if (newUserLastName) newUserLastName.value = '';
+  if (newUserLoginName) newUserLoginName.value = '';
   newUserPin.value = '';
   newUserPassword.value = '';
 });
 
 btnConfirmCreate.addEventListener('click', async () => {
-  const name = newUserName.value;
+  const firstName = newUserFirstName.value.trim();
+  const lastName = newUserLastName.value.trim();
+  const name = newUserLoginName.value.trim();
   const pin = newUserPin.value;
   const role = document.querySelector('input[name="new-user-role"]:checked').value;
   const password = newUserPassword.value;
 
-  if (!name || pin.length !== 4) {
-    showToast('Please enter a valid name and 4-digit PIN', 'error');
+  if (!firstName || !lastName || !name || pin.length !== 4) {
+    showToast('Please fill in all fields (First Name, Last Name, Username) and enter a 4-digit PIN', 'error');
     return;
   }
   if (role === 'Manager' && !password) {
     showToast('Managers must have a dashboard password', 'error');
     return;
   }
+
+  const payrollName = `${lastName}, ${firstName}`;
 
   try {
     // Check if PIN already exists
@@ -1787,18 +2015,27 @@ btnConfirmCreate.addEventListener('click', async () => {
 
     const { error } = await window.supabaseClient
       .from('users')
-      .insert([{ name, pin, role, password: role === 'Manager' ? password : null, is_approved: false }]);
+      .insert([{ 
+        name, 
+        payroll_name: payrollName,
+        pin, 
+        role, 
+        password: role === 'Manager' ? password : null, 
+        is_approved: false 
+      }]);
 
     if (error) throw error;
 
-    showToast(`Account request for ${name} submitted for approval.`);
-    newUserName.value = '';
+    showToast(`Account request for ${firstName} ${lastName} submitted for approval.`);
+    if (newUserFirstName) newUserFirstName.value = '';
+    if (newUserLastName) newUserLastName.value = '';
+    if (newUserLoginName) newUserLoginName.value = '';
     newUserPin.value = '';
     newUserPassword.value = '';
     modalCreateUser.classList.add('hidden');
     loadTimesheets();
   } catch (err) {
-    showToast('Failed to create user.', 'error');
+    showToast('Failed to create user. Make sure "payroll_name" column exists.', 'error');
   }
 });
 
@@ -2131,10 +2368,16 @@ if (btnDownloadPayroll) {
       if (customPayrollFormat.current) currentLabel = customPayrollFormat.current;
       if (customPayrollFormat.next) nextLabel = customPayrollFormat.next;
 
-      let csvContent = `Employee Name,${currentLabel},${nextLabel}\n`;
+      let csvContent = `#,Employee Name,${currentLabel},${nextLabel}\n`;
+      let count = 1;
       Object.values(employeeMap).forEach(emp => {
-        const twHrs = (emp.thisWeekMs / (1000 * 60 * 60)).toFixed(2);
-        csvContent += `"${emp.name}",${twHrs},0.00\n`;
+        const twHrsVal = (emp.thisWeekMs / (1000 * 60 * 60));
+        // Skip 0 hours
+        if (twHrsVal === 0) return;
+
+        const twHrs = twHrsVal.toFixed(2);
+        const formattedName = formatNameLastFirst(emp.name);
+        csvContent += `"${count++}","${formattedName}",${twHrs},0.00\n`;
       });
 
       // Download it
@@ -2199,18 +2442,6 @@ async function performMidnightSweep() {
 setInterval(performMidnightSweep, 3600000);
 performMidnightSweep();
 
-// --- Initialize Admin ---
-async function initAdmin() {
-  try {
-    const { data } = await window.supabaseClient.from('users').select('id').eq('name', 'Admin').single();
-    if (!data) {
-      await window.supabaseClient.from('users').insert([{ name: 'Admin', pin: '0000', password: 'Longhornadmin', role: 'Manager', is_approved: true }]);
-    }
-  } catch (e) {
-    console.log('Admin check failed', e);
-  }
-}
-initAdmin();
 
 // --- Schedule Logic ---
 async function loadSchedules() {
