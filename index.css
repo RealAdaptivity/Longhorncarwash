@@ -427,18 +427,23 @@ nav {
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
   .brand {
-    padding: 15px;
+    padding: 10px 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
+    border-bottom: none;
   }
   
-  .brand h1 { font-size: 1.5rem; margin-bottom: 0; }
+  .brand h1 { font-size: 1.3rem; margin-bottom: 0; }
   .brand p { display: none; }
+  .logo-box { width: 40px; height: 40px; margin: 0; }
 
   nav {
     flex-direction: row;
@@ -446,24 +451,28 @@ nav {
     overflow-x: auto;
     white-space: nowrap;
     border-top: 1px solid var(--border);
+    scrollbar-width: none; /* Hide scrollbar for clean look */
   }
+  nav::-webkit-scrollbar { display: none; }
 
   .nav-btn {
-    padding: 15px;
+    padding: 12px 20px;
     text-align: center;
     border-left: none;
     border-bottom: 3px solid transparent;
     flex: 1;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    min-width: 100px;
   }
 
   .nav-btn.active {
     border-left-color: transparent;
     border-bottom-color: var(--primary);
+    background-color: rgba(169, 59, 47, 0.05);
   }
 
   .view {
-    padding: 20px;
+    padding: 20px 15px;
   }
 
   #clock-display {
@@ -473,24 +482,39 @@ nav {
   .pin-pad-container, .modal-content {
     width: 100%;
     max-width: 100%;
-    padding: 20px;
+    padding: 25px 20px;
     margin-top: 2vh !important;
+    border-radius: 15px;
   }
 
   .pin-pad {
-    gap: 10px;
+    gap: 12px;
   }
 
   .pin-btn {
-    padding: 15px;
+    padding: 18px;
+    font-size: 1.4rem;
   }
   
   .table-container {
-    border-radius: 8px;
+    border-radius: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.5); /* Shadow indicator for scroll */
   }
   
+  /* Sticky first column for tables on mobile */
+  .data-table th:first-child,
+  .data-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: var(--card);
+    box-shadow: 2px 0 4px rgba(0,0,0,0.3);
+  }
+
   #manager-auth {
-    padding: 30px;
+    padding: 30px 20px;
     margin-top: 20px;
   }
 
@@ -499,31 +523,72 @@ nav {
     grid-template-columns: 1fr !important;
   }
   
+  /* Quick Actions Grid Adjustment */
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .action-card {
+    padding: 20px 10px;
+  }
+
+  .action-icon {
+    font-size: 2rem;
+  }
+
+  .action-label {
+    font-size: 0.9rem;
+  }
+  
   #manager-anti-buddy {
-    grid-column: span 1 !important;
+    grid-column: span 2 !important;
   }
 
   /* Optimize Modals for mobile */
   .modal-content {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    padding: 15px !important;
+    width: 92vw !important;
+    max-width: 92vw !important;
+    padding: 20px !important;
     margin: auto !important;
   }
 
   /* Optimize Data Tables for mobile */
   .data-table th, .data-table td {
-    padding: 10px 5px !important;
-    font-size: 0.8rem !important;
+    padding: 12px 8px !important;
+    font-size: 0.85rem !important;
   }
 
   .data-table th {
     white-space: nowrap;
   }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .view {
+    padding: 15px 10px;
+  }
   
-  .table-container {
-    overflow-x: auto;
-    width: 100%;
+  #clock-display {
+    font-size: 2.8rem;
+  }
+  
+  .quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+  
+  #manager-anti-buddy {
+    grid-column: span 1 !important;
+  }
+  
+  .nav-btn {
+    padding: 10px 15px;
+    min-width: 80px;
+  }
+  
+  .pin-pad-container {
+    padding: 20px 15px;
   }
 }
 
