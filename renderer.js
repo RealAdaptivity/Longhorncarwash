@@ -2557,8 +2557,27 @@ performMidnightSweep();
 // --- Schedule Logic ---
 async function loadSchedules() {
   try {
-    const { data, error } = await window.supabaseClient.from('schedules').select('*').order('created_at', { ascending: false });
+    const { data: rawData, error } = await window.supabaseClient.from('schedules').select('*');
     if (error) throw error;
+
+    // Sort by actual week start date
+    const data = rawData.sort((a, b) => {
+      const getStartDate = (sched) => {
+        try {
+          const content = JSON.parse(sched.content);
+          const range = content.weekRange || '';
+          const match = range.match(/(\d+)\/(\d+)/);
+          if (match) {
+            const m = parseInt(match[1]) - 1;
+            const d = parseInt(match[2]);
+            const year = new Date(sched.created_at).getFullYear();
+            return new Date(year, m, d);
+          }
+        } catch (e) {}
+        return new Date(sched.created_at); // Fallback
+      };
+      return getStartDate(a) - getStartDate(b); // Oldest to Newest (Calendar Order)
+    });
 
     const scheduleSelector = document.getElementById('schedule-selector');
     if (scheduleSelector) scheduleSelector.innerHTML = '';
@@ -2597,8 +2616,8 @@ async function loadSchedules() {
         };
         scheduleSelector.appendChild(btn);
         
-        // Initial highlight for the first one
-        if (index === 0) {
+        // Initial highlight for the most recent one (last in ASC sort)
+        if (index === data.length - 1) {
           btn.style.borderColor = 'var(--primary)';
           btn.style.background = 'rgba(169, 59, 47, 0.1)';
         }
@@ -2606,7 +2625,7 @@ async function loadSchedules() {
 
       const div = document.createElement('div');
       div.id = `schedule-card-${sched.id}`;
-      div.className = 'schedule-card' + (index === 0 ? '' : ' hidden');
+      div.className = 'schedule-card' + (index === data.length - 1 ? '' : ' hidden');
       div.style = 'background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px;';
       const time = new Date(sched.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
