@@ -2549,9 +2549,31 @@ async function performMidnightSweep() {
   }
 }
 
+async function purgeOldChecklists() {
+  try {
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    const { error } = await window.supabaseClient
+      .from('checklist_completions')
+      .delete()
+      .lt('created_at', twoDaysAgo.toISOString());
+
+    if (error) throw error;
+    console.log('Old checklists purged (48h retention policy applied).');
+  } catch (e) {
+    console.error('Checklist purge failed:', e);
+  }
+}
+
 // Run sweep every hour
-setInterval(performMidnightSweep, 3600000);
+setInterval(() => {
+  performMidnightSweep();
+  purgeOldChecklists();
+}, 3600000);
+
 performMidnightSweep();
+purgeOldChecklists();
 
 
 // --- Schedule Logic ---
