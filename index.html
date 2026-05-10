@@ -16,6 +16,7 @@
 
   <link rel="stylesheet" href="index.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -37,10 +38,11 @@
       </div>
       <nav>
         <button id="nav-timeclock" class="nav-btn active">Timeclock</button>
-        <button id="nav-employee" class="nav-btn">My Hours</button>
+        <button id="nav-employee" class="nav-btn">Employee Dashboard</button>
         <button id="nav-manager" class="nav-btn">Manager</button>
         <button id="nav-payroll" class="nav-btn">Payroll</button>
         <button id="nav-schedule" class="nav-btn">Schedule</button>
+        <button id="nav-ops" class="nav-btn">Digital Ops</button>
       </nav>
     </aside>
 
@@ -240,14 +242,13 @@
             style="margin-bottom: 15px;" />
           <input type="password" id="employee-pin-input" placeholder="4-Digit PIN" maxlength="4" class="input-field"
             style="margin-bottom: 20px;" />
-          <button id="btn-employee-login" class="btn-primary btn-action" style="padding: 15px; font-size: 1.1rem;">View
-            My Hours</button>
+          <button id="btn-employee-login" class="btn-primary btn-action" style="padding: 15px; font-size: 1.1rem;">Login to Dashboard</button>
         </div>
 
         <!-- Employee Dashboard -->
         <div id="employee-dashboard" class="hidden" style="margin-top: 5vh;">
           <div class="dashboard-header" style="justify-content: center; margin-bottom: 40px; border-bottom: none;">
-            <h2 id="employee-portal-welcome">Welcome, Employee</h2>
+            <h2 id="employee-portal-welcome">Employee Dashboard</h2>
           </div>
 
           <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 40px; flex-wrap: wrap;">
@@ -268,6 +269,16 @@
           <div id="new-schedule-alert" class="hidden"
             style="max-width: 600px; margin: 0 auto 20px auto; background: var(--primary); color: white; padding: 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.4);">
             <span>🔔</span> New Schedule Posted! Tap to sync to your phone.
+          </div>
+
+          <div id="emp-checklists-section" style="margin-bottom: 40px; text-align: center;">
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 25px; max-width: 600px; margin: 0 auto;">
+              <h3 style="color: var(--primary); margin-bottom: 20px; text-align: left;">Your Checklists</h3>
+              <div id="emp-checklists-container" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Populated by JS -->
+                <p style="color: var(--text-muted);">No checklists assigned to you.</p>
+              </div>
+            </div>
           </div>
 
           <div id="emp-schedule-section" class="hidden" style="margin-bottom: 40px; text-align: center;">
@@ -427,6 +438,47 @@
               <div id="weather-temp" class="action-label" style="font-size: 1.2rem; font-weight: 800;">--°F</div>
               <div id="weather-desc" style="font-size: 0.8rem; opacity: 0.9;">Loading weather...</div>
             </div>
+            <div id="btn-show-analytics" class="action-card" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white;">
+              <div class="action-icon">📊</div>
+              <div class="action-label">Business Insights</div>
+            </div>
+          </div>
+
+          <div id="manager-analytics-section" class="hidden" style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h3 style="color: var(--primary); margin: 0;">Business Analytics</h3>
+              <button id="btn-close-analytics" class="btn-ghost" style="padding: 5px 15px; border: 1px solid var(--border);">Close Insights</button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 15px; color: var(--text-muted);">Labor Hours (This Week)</h4>
+                <div style="height: 300px;">
+                  <canvas id="labor-hours-chart"></canvas>
+                </div>
+              </div>
+              <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 15px; color: var(--text-muted);">Clock-In Status</h4>
+                <div style="height: 300px;">
+                  <canvas id="status-distribution-chart"></canvas>
+                </div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+              <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Est. Labor Cost</h4>
+                <h2 id="analytics-labor-cost" style="color: var(--primary);">$0.00</h2>
+              </div>
+              <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Labor % of Revenue</h4>
+                <h2 id="analytics-labor-percent" style="color: var(--warning);">0%</h2>
+              </div>
+              <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
+                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Net Profit (Est.)</h4>
+                <h2 id="analytics-net-profit" style="color: var(--success);">$0.00</h2>
+              </div>
+            </div>
           </div>
 
           <div class="table-container">
@@ -505,6 +557,27 @@
                     <span id="anti-buddy-status-text" style="font-weight: bold; color: var(--success);">Enabled</span>
                     <button id="btn-toggle-anti-buddy" class="btn-danger"
                       style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem;">Disable</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Revenue & Goals Setting -->
+              <div id="manager-revenue-goals"
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">Revenue & Labor Goals</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Set your labor cost targets and daily revenue to track business health.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                  <div>
+                    <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Daily Revenue ($)</label>
+                    <input type="number" id="daily-revenue-input" class="input-field" placeholder="e.g. 2500" style="margin-bottom: 0;" />
+                  </div>
+                  <div>
+                    <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Labor Goal (%)</label>
+                    <input type="number" id="labor-goal-input" class="input-field" placeholder="e.g. 25" style="margin-bottom: 0;" />
+                  </div>
+                  <div style="display: flex; align-items: flex-end;">
+                    <button id="btn-save-revenue-goals" class="btn-primary" style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; width: 100%;">Save Metrics</button>
                   </div>
                 </div>
               </div>
@@ -937,7 +1010,15 @@
             <div style="display: flex; gap: 10px; margin-top: 15px;">
               <button id="btn-submit-schedule" class="btn-success"
                 style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Post Schedule</button>
+              <button id="btn-save-schedule-template" class="btn-ghost"
+                style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px;">Save as Template</button>
+              <button id="btn-load-schedule-template" class="btn-ghost"
+                style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px;">Load Template</button>
             </div>
+          </div>
+
+          <div id="schedule-selector" style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center;">
+            <!-- Buttons for each schedule will be injected here -->
           </div>
 
           <div id="schedule-list" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
@@ -963,6 +1044,177 @@
           </div>
         </div>
       </section>
+
+      <!-- DIGITAL OPS VIEW -->
+      <section id="view-ops" class="view">
+        <div style="width: 100%; max-width: 1100px; margin: 0 auto;">
+          <header class="dash-header">
+            <h2>Digital Operations Hub</h2>
+            <div id="ops-manager-controls" class="hidden" style="display: flex; gap: 10px;">
+              <button id="btn-create-checklist" class="btn-primary" style="padding: 10px 20px; border-radius: 8px;">+ New Checklist</button>
+            </div>
+          </header>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <!-- Checklists Section -->
+            <div id="ops-checklists-section">
+              <h3 style="color: var(--primary); margin-bottom: 20px;">Active Checklists</h3>
+              <div id="checklists-container" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px;">
+                <!-- Populated by JS -->
+                <div style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; color: var(--text-muted);">
+                  Loading checklists...
+                </div>
+              </div>
+
+              <h3 style="color: var(--primary); margin-bottom: 20px;">Checklist History</h3>
+              <div id="checklist-history-container" style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto;">
+                <!-- Populated by JS -->
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No completed checklists yet.</div>
+              </div>
+            </div>
+
+            <!-- Reporting Section -->
+            <div id="ops-reporting-section">
+              <h3 style="color: var(--primary); margin-bottom: 20px;">Site Reporting</h3>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <button id="btn-show-maintenance-form" class="btn-action" style="background: #fb8c00; color: white;">
+                  <span style="font-size: 1.5rem; margin-bottom: 5px;">🔧</span>
+                  Maintenance Issue
+                </button>
+                <button id="btn-show-incident-form" class="btn-action" style="background: #e53935; color: white;">
+                  <span style="font-size: 1.5rem; margin-bottom: 5px;">⚠️</span>
+                  Customer Incident
+                </button>
+              </div>
+
+              <h3 style="color: var(--primary); margin-bottom: 15px;">Recent Logs</h3>
+              <div id="site-logs-container" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                <!-- Populated by JS -->
+                <div style="text-align: center; padding: 20px; color: var(--text-muted);">No recent reports.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Maintenance Form Modal -->
+        <div id="modal-maintenance" class="modal hidden">
+          <div class="modal-content" style="width: 500px;">
+            <h3>Report Maintenance Issue</h3>
+            <input type="text" id="maint-equipment" placeholder="Equipment Name (e.g. Vacuum 4, Bay 1 Pump)" class="input-field" />
+            <textarea id="maint-desc" placeholder="Describe the problem..." class="input-field" style="min-height: 100px;"></textarea>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Attach Photo (Optional)</label>
+              <input type="file" id="maint-photo" accept="image/*" class="input-field" />
+            </div>
+            <div class="modal-actions">
+              <button id="btn-cancel-maint" class="btn-ghost">Cancel</button>
+              <button id="btn-submit-maint" class="btn-primary" style="padding: 10px 20px;">Submit Report</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Incident Form Modal -->
+        <div id="modal-incident" class="modal hidden">
+          <div class="modal-content" style="width: 500px;">
+            <h3>Report Customer Incident</h3>
+            <input type="text" id="incident-customer" placeholder="Customer Name / Vehicle Info" class="input-field" />
+            <textarea id="incident-desc" placeholder="Describe what happened..." class="input-field" style="min-height: 100px;"></textarea>
+            <div style="margin-bottom: 15px;">
+              <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Attach Photo (Optional)</label>
+              <input type="file" id="incident-photo" accept="image/*" class="input-field" />
+            </div>
+            <div class="modal-actions">
+              <button id="btn-cancel-incident" class="btn-ghost">Cancel</button>
+              <button id="btn-submit-incident" class="btn-primary" style="background: #e53935; border: none; padding: 10px 20px;">Submit Incident</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shift Swap Modal -->
+      <div id="modal-shift-swap" class="modal hidden">
+        <div class="modal-content" style="width: 450px;">
+          <h3>Request Shift Swap</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Select a teammate to request a swap with for this week.</p>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Teammate</label>
+            <select id="swap-target-employee" class="input-field" style="width: 100%;"></select>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Your Shift(s) to swap</label>
+            <input type="text" id="swap-details" placeholder="e.g. My Monday shift for your Tuesday" class="input-field" />
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-cancel-swap" class="btn-ghost">Cancel</button>
+            <button id="btn-submit-swap" class="btn-primary" style="padding: 10px 20px;">Send Request</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Checklist Modal -->
+      <div id="modal-create-checklist" class="modal hidden">
+        <div class="modal-content" style="width: 450px;">
+          <h3>Create New Checklist</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Add a new recurring checklist for your team.</p>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Title</label>
+            <input type="text" id="checklist-title" placeholder="e.g. Morning Opening" class="input-field" />
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Description</label>
+            <textarea id="checklist-desc" placeholder="What needs to be done?" class="input-field" style="min-height: 80px;"></textarea>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Role Required</label>
+            <select id="checklist-role" class="input-field">
+              <option value="Employee">Employee</option>
+              <option value="Manager">Manager</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Tasks</label>
+            <div id="checklist-tasks-input-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+              <input type="text" class="input-field checklist-task-item-input" placeholder="Task 1 (e.g. Check soap levels)" style="margin-bottom: 0;" />
+            </div>
+            <button id="btn-add-task-row" class="btn-ghost" style="width: 100%; padding: 5px; font-size: 0.8rem; border-style: dashed;">+ Add Another Task</button>
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-cancel-create-checklist" class="btn-ghost">Cancel</button>
+            <button id="btn-save-checklist" class="btn-primary" style="padding: 10px 20px;">Create Checklist</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Execute Checklist Modal -->
+      <div id="modal-execute-checklist" class="modal hidden">
+        <div class="modal-content" style="width: 500px;">
+          <h3 id="execute-checklist-title">Checklist Title</h3>
+          <p id="execute-checklist-desc" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;"></p>
+          
+          <div id="execute-checklist-tasks" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+            <!-- Tasks with checkboxes populated here -->
+          </div>
+
+          <div style="margin-bottom: 25px;">
+            <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Closers Names</label>
+            <input type="text" id="execute-closers-names" placeholder="e.g. John D., Sarah M." class="input-field" />
+          </div>
+
+          <div class="modal-actions">
+            <button id="btn-cancel-execute" class="btn-ghost">Cancel</button>
+            <button id="btn-submit-completion" class="btn-success" style="padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;">Complete Checklist</button>
+          </div>
+        </div>
+      </div>
 
       <!-- AI Assistant FAB -->
       <div id="ai-fab" class="hidden"

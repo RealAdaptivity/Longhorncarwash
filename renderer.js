@@ -253,6 +253,60 @@ const modal2FAVerify = document.getElementById('modal-2fa-verify');
 const verify2FAPin = document.getElementById('verify-2fa-pin');
 const btnSubmit2FA = document.getElementById('btn-submit-2fa');
 
+// --- Analytics DOM ---
+const btnShowAnalytics = document.getElementById('btn-show-analytics');
+const btnCloseAnalytics = document.getElementById('btn-close-analytics');
+const managerAnalyticsSection = document.getElementById('manager-analytics-section');
+const dailyRevenueInput = document.getElementById('daily-revenue-input');
+const laborGoalInput = document.getElementById('labor-goal-input');
+const btnSaveRevenueGoals = document.getElementById('btn-save-revenue-goals');
+const analyticsLaborCost = document.getElementById('analytics-labor-cost');
+const analyticsLaborPercent = document.getElementById('analytics-labor-percent');
+const analyticsNetProfit = document.getElementById('analytics-net-profit');
+
+// --- Digital Ops DOM ---
+const navOps = document.getElementById('nav-ops');
+const viewOps = document.getElementById('view-ops');
+const checklistsContainer = document.getElementById('checklists-container');
+const siteLogsContainer = document.getElementById('site-logs-container');
+const btnShowMaintenanceForm = document.getElementById('btn-show-maintenance-form');
+const btnShowIncidentForm = document.getElementById('btn-show-incident-form');
+const modalMaintenance = document.getElementById('modal-maintenance');
+const modalIncident = document.getElementById('modal-incident');
+const btnSubmitMaint = document.getElementById('btn-submit-maint');
+const btnSubmitIncident = document.getElementById('btn-submit-incident');
+const btnCancelMaint = document.getElementById('btn-cancel-maint');
+const btnCancelIncident = document.getElementById('btn-cancel-incident');
+const maintPhotoInput = document.getElementById('maint-photo');
+const incidentPhotoInput = document.getElementById('incident-photo');
+
+// --- Create Checklist DOM ---
+const btnCreateChecklist = document.getElementById('btn-create-checklist');
+const modalCreateChecklist = document.getElementById('modal-create-checklist');
+const btnCancelCreateChecklist = document.getElementById('btn-cancel-create-checklist');
+const btnSaveChecklist = document.getElementById('btn-save-checklist');
+const checklistTitleInput = document.getElementById('checklist-title');
+const checklistDescInput = document.getElementById('checklist-desc');
+const checklistRoleInput = document.getElementById('checklist-role');
+const btnAddTaskRow = document.getElementById('btn-add-task-row');
+const checklistTasksInputContainer = document.getElementById('checklist-tasks-input-container');
+
+let editingChecklistId = null;
+
+// --- Execute Checklist DOM ---
+const modalExecuteChecklist = document.getElementById('modal-execute-checklist');
+const executeChecklistTitle = document.getElementById('execute-checklist-title');
+const executeChecklistDesc = document.getElementById('execute-checklist-desc');
+const executeChecklistTasks = document.getElementById('execute-checklist-tasks');
+const btnCancelExecute = document.getElementById('btn-cancel-execute');
+const btnSubmitCompletion = document.getElementById('btn-submit-completion');
+const checklistHistoryContainer = document.getElementById('checklist-history-container');
+
+let laborHoursChart = null;
+let statusDistributionChart = null;
+let dailyRevenueGoal = 0;
+let laborCostGoalPercent = 25;
+
 // --- Geofencing Configuration ---
 // TO DO: Replace these with the actual Latitude and Longitude of the Car Wash building
 let CAR_WASH_LAT = 33.06734; // Longhorn Car Wash Latitude
@@ -335,11 +389,13 @@ function switchView(view) {
   viewEmployee.classList.remove('active');
   viewPayroll.classList.remove('active');
   viewSchedule.classList.remove('active');
+  viewOps.classList.remove('active');
   navTimeclock.classList.remove('active');
   navManager.classList.remove('active');
   navEmployee.classList.remove('active');
   navPayroll.classList.remove('active');
   navSchedule.classList.remove('active');
+  navOps.classList.remove('active');
 
   if (view === 'timeclock') {
     viewTimeclock.classList.add('active');
@@ -379,6 +435,10 @@ function switchView(view) {
     viewSchedule.classList.add('active');
     navSchedule.classList.add('active');
     loadSchedules();
+  } else if (view === 'ops') {
+    viewOps.classList.add('active');
+    navOps.classList.add('active');
+    loadOps();
   }
 }
 
@@ -393,6 +453,7 @@ navPayroll.addEventListener('click', () => {
   switchView('payroll');
 });
 navSchedule.addEventListener('click', () => switchView('schedule'));
+navOps.addEventListener('click', () => switchView('ops'));
 
 // --- Toast Utility ---
 function showToast(msg, type = 'success') {
@@ -1068,6 +1129,38 @@ async function loadEmployeePortal(userId, name) {
       });
     }
 
+    // Load Checklists for Employee Dashboard
+    const empChecklistsContainer = document.getElementById('emp-checklists-container');
+    if (empChecklistsContainer) {
+      try {
+        const { data: checklists, error: checkError } = await window.supabaseClient.from('checklists').select('*').order('created_at', { ascending: true });
+        if (!checkError && checklists) {
+          empChecklistsContainer.innerHTML = '';
+          const myChecklists = checklists.filter(c => c.role_required === 'Employee');
+          
+          if (myChecklists.length === 0) {
+            empChecklistsContainer.innerHTML = '<p style="color: var(--text-muted);">No checklists assigned to you.</p>';
+          } else {
+            myChecklists.forEach(list => {
+              const div = document.createElement('div');
+              div.style = 'background: var(--surface); padding: 15px; border-radius: 10px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: transform 0.2s;';
+              div.innerHTML = `
+                <div style="text-align: left;">
+                  <strong style="color: var(--primary); display: block;">${list.title}</strong>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">${list.description || 'No description'}</span>
+                </div>
+                <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem; border-radius: 6px; border: none;">Start</button>
+              `;
+              div.onmouseover = () => div.style.transform = 'translateY(-2px)';
+              div.onmouseout = () => div.style.transform = 'translateY(0)';
+              div.onclick = () => showChecklistExecution(list);
+              empChecklistsContainer.appendChild(div);
+            });
+          }
+        }
+      } catch (e) { }
+    }
+
   } catch (err) {
     showToast('Failed to load portal data', 'error');
   }
@@ -1624,6 +1717,11 @@ async function loadTimesheets() {
       pendingTimeoffSection.classList.add('hidden');
     }
 
+    if (managerAnalyticsSection && !managerAnalyticsSection.classList.contains('hidden')) {
+      calculateAnalytics();
+      initCharts();
+    }
+
   } catch (err) {
     showToast('Error: ' + (err.message || 'Failed to load timesheets'), 'error');
   }
@@ -2087,6 +2185,19 @@ async function fetchSettings() {
       ANTI_BUDDY_ENABLED = abData[0].value === 'true';
     }
     updateAntiBuddyUI();
+
+    // Fetch Revenue & Goals
+    const { data: revData } = await window.supabaseClient.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
+    if (revData && revData.length > 0) {
+      dailyRevenueGoal = parseFloat(revData[0].value) || 0;
+      if (dailyRevenueInput) dailyRevenueInput.value = dailyRevenueGoal;
+    }
+    const { data: goalData } = await window.supabaseClient.from('settings').select('value').eq('id', 'labor_cost_goal_percent').limit(1);
+    if (goalData && goalData.length > 0) {
+      laborCostGoalPercent = parseFloat(goalData[0].value) || 25;
+      if (laborGoalInput) laborGoalInput.value = laborCostGoalPercent;
+    }
+
   } catch (e) { }
 
   loadWeather(); // Load weather based on coordinates
@@ -2449,15 +2560,54 @@ async function loadSchedules() {
     const { data, error } = await window.supabaseClient.from('schedules').select('*').order('created_at', { ascending: false });
     if (error) throw error;
 
+    const scheduleSelector = document.getElementById('schedule-selector');
+    if (scheduleSelector) scheduleSelector.innerHTML = '';
     scheduleList.innerHTML = '';
+
     if (!data || data.length === 0) {
       scheduleList.innerHTML = '<div style="background: var(--card); padding: 30px; border-radius: 15px; text-align: center; color: var(--text-muted);">No schedules posted yet.</div>';
       return;
     }
 
-    data.forEach(sched => {
+    data.forEach((sched, index) => {
+      const parsed = JSON.parse(sched.content);
+      const weekRange = parsed.weekRange || 'Weekly Schedule';
+      
+      // Add Selector Button
+      if (scheduleSelector) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-ghost';
+        btn.style = 'padding: 8px 15px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;';
+        btn.textContent = weekRange;
+        btn.onclick = () => {
+          // Hide all cards
+          document.querySelectorAll('.schedule-card').forEach(card => card.classList.add('hidden'));
+          
+          // Show target card
+          const target = document.getElementById(`schedule-card-${sched.id}`);
+          if (target) target.classList.remove('hidden');
+          
+          // Highlight active button
+          Array.from(scheduleSelector.children).forEach(b => {
+            b.style.borderColor = 'var(--border)';
+            b.style.background = 'none';
+          });
+          btn.style.borderColor = 'var(--primary)';
+          btn.style.background = 'rgba(169, 59, 47, 0.1)';
+        };
+        scheduleSelector.appendChild(btn);
+        
+        // Initial highlight for the first one
+        if (index === 0) {
+          btn.style.borderColor = 'var(--primary)';
+          btn.style.background = 'rgba(169, 59, 47, 0.1)';
+        }
+      }
+
       const div = document.createElement('div');
-      div.style = 'background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto;';
+      div.id = `schedule-card-${sched.id}`;
+      div.className = 'schedule-card' + (index === 0 ? '' : ' hidden');
+      div.style = 'background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto; margin-bottom: 20px;';
       const time = new Date(sched.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
       let contentHtml = '';
@@ -2488,7 +2638,12 @@ async function loadSchedules() {
                 <td>
                   <div style="display: flex; align-items: center; justify-content: space-between;">
                     <strong>${r.employee}</strong>
-                    <button onclick="downloadCalendar('${rowData}')" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px;" title="Add to Calendar">📅</button>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                      <button onclick="downloadCalendar('${rowData}')" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px;" title="Add to Calendar">📅</button>
+                      ${(currentPortalEmployee && r.employee.toLowerCase().includes(currentPortalEmployee.name.toLowerCase().split(' ')[0])) 
+                        ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding: 2px 5px; font-size: 0.7rem; border: 1px solid var(--border); border-radius: 4px;">Request Swap</button>` 
+                        : ''}
+                    </div>
                   </div>
                 </td>
                 ${cellsHtml}
@@ -2632,6 +2787,38 @@ btnSubmitSchedule.addEventListener('click', async () => {
   });
 
   const scheduleData = { weekRange, headers, rows };
+
+  // --- Conflict Detection ---
+  try {
+    const { data: timeoffs } = await window.supabaseClient.from('time_off_requests').select('*').eq('status', 'Approved');
+    const conflicts = [];
+    
+    rows.forEach(row => {
+      // Find employee in employeeMap
+      const emp = Object.values(employeeMap).find(e => 
+        e.name.toLowerCase() === row.employee.toLowerCase() || 
+        (e.payroll_name && e.payroll_name.toLowerCase() === row.employee.toLowerCase())
+      );
+      
+      if (emp) {
+        const empTimeoffs = timeoffs.filter(to => to.user_id === emp.id);
+        if (empTimeoffs.length > 0) {
+          const hasShifts = row.shifts.some(s => s && s !== '-' && s.trim() !== '');
+          if (hasShifts) {
+            conflicts.push(row.employee);
+          }
+        }
+      }
+    });
+
+    if (conflicts.length > 0) {
+      if (!confirm(`Warning: The following employees have approved time-off requests: ${conflicts.join(', ')}. Proceed?`)) {
+        btnSubmitSchedule.disabled = false;
+        btnSubmitSchedule.style.opacity = '1';
+        return;
+      }
+    }
+  } catch (e) { }
 
   try {
     let error;
@@ -3013,7 +3200,7 @@ btnSaveSecurity.addEventListener('click', async () => {
 
 // --- Personal Schedule Logic ---
 async function loadMySchedule() {
-  if (!currentUser) return;
+  if (!currentPortalEmployee) return;
 
   const empScheduleSection = document.getElementById('emp-schedule-section');
   const empScheduleContainer = document.getElementById('emp-schedule-container');
@@ -3047,7 +3234,7 @@ async function loadMySchedule() {
     }
 
     const parsed = JSON.parse(data.content);
-    const myRow = parsed.rows.find(r => r.employee === currentUser.name);
+    const myRow = parsed.rows.find(r => r.employee === currentPortalEmployee.name);
 
     if (!myRow) {
       empScheduleSection.classList.add('hidden');
@@ -3223,4 +3410,656 @@ window.downloadCalendar = (encodedData) => {
   }
 };
 
+// --- Analytics Logic ---
+if (btnShowAnalytics) {
+  btnShowAnalytics.addEventListener('click', () => {
+    managerAnalyticsSection.classList.remove('hidden');
+    initCharts();
+    calculateAnalytics();
+  });
+}
 
+if (btnCloseAnalytics) {
+  btnCloseAnalytics.addEventListener('click', () => {
+    managerAnalyticsSection.classList.add('hidden');
+  });
+}
+
+if (btnSaveRevenueGoals) {
+  btnSaveRevenueGoals.addEventListener('click', async () => {
+    const rev = parseFloat(dailyRevenueInput.value) || 0;
+    const goal = parseFloat(laborGoalInput.value) || 25;
+    
+    try {
+      await saveSettingRobust('daily_revenue_goal', rev.toString());
+      await saveSettingRobust('labor_cost_goal_percent', goal.toString());
+      dailyRevenueGoal = rev;
+      laborCostGoalPercent = goal;
+      showToast('Revenue metrics saved!', 'success');
+      calculateAnalytics();
+    } catch (e) {
+      showToast('Failed to save metrics', 'error');
+    }
+  });
+}
+
+function initCharts() {
+  if (!window.Chart) return;
+  
+  // 1. Labor Hours Chart
+  const ctxLabor = document.getElementById('labor-hours-chart').getContext('2d');
+  if (laborHoursChart) laborHoursChart.destroy();
+  
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dailyTotals = [0, 0, 0, 0, 0, 0, 0];
+  
+  Object.values(employeeMap).forEach(emp => {
+    emp.weekMs.forEach((ms, i) => {
+      dailyTotals[i] += ms / (1000 * 60 * 60);
+    });
+  });
+
+  laborHoursChart = new Chart(ctxLabor, {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Total Hours',
+        data: dailyTotals,
+        backgroundColor: 'rgba(169, 59, 47, 0.6)',
+        borderColor: 'rgba(169, 59, 47, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  // 2. Status Distribution Chart
+  const ctxStatus = document.getElementById('status-distribution-chart').getContext('2d');
+  if (statusDistributionChart) statusDistributionChart.destroy();
+  
+  let inCount = 0, outCount = 0, lunchCount = 0;
+  Object.values(employeeMap).forEach(emp => {
+    if (emp.currentStatus === 'IN') inCount++;
+    else if (emp.currentStatus === 'LUNCH') lunchCount++;
+    else outCount++;
+  });
+
+  statusDistributionChart = new Chart(ctxStatus, {
+    type: 'doughnut',
+    data: {
+      labels: ['Clocked In', 'On Lunch', 'Clocked Out'],
+      datasets: [{
+        data: [inCount, lunchCount, outCount],
+        backgroundColor: ['#2e7d32', '#ffa000', '#c62828'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+function calculateAnalytics() {
+  let totalLaborCost = 0;
+  Object.values(employeeMap).forEach(emp => {
+    const totalMs = emp.weekMs.reduce((a, b) => a + b, 0);
+    const hrs = totalMs / (1000 * 60 * 60);
+    if (emp.is_salary) {
+      totalLaborCost += emp.pay_rate / 2; // Est. weekly share of salary
+    } else {
+      totalLaborCost += hrs * emp.pay_rate;
+    }
+  });
+
+  analyticsLaborCost.textContent = `$${totalLaborCost.toFixed(2)}`;
+  
+  if (dailyRevenueGoal > 0) {
+    // Est. weekly revenue (daily * 7 for this simple view)
+    const weeklyRevenue = dailyRevenueGoal * 7;
+    const laborPercent = (totalLaborCost / weeklyRevenue) * 100;
+    analyticsLaborPercent.textContent = `${laborPercent.toFixed(1)}%`;
+    
+    if (laborPercent > laborCostGoalPercent) {
+      analyticsLaborPercent.style.color = 'var(--danger)';
+    } else {
+      analyticsLaborPercent.style.color = 'var(--success)';
+    }
+    
+    const netProfit = weeklyRevenue - totalLaborCost;
+    analyticsNetProfit.textContent = `$${netProfit.toFixed(2)}`;
+  } else {
+    analyticsLaborPercent.textContent = '--%';
+    analyticsNetProfit.textContent = '--';
+  }
+}
+
+
+
+// --- Digital Ops Logic ---
+if (btnShowMaintenanceForm) {
+  btnShowMaintenanceForm.addEventListener('click', () => modalMaintenance.classList.remove('hidden'));
+}
+if (btnShowIncidentForm) {
+  btnShowIncidentForm.addEventListener('click', () => modalIncident.classList.remove('hidden'));
+}
+if (btnCancelMaint) {
+  btnCancelMaint.addEventListener('click', () => modalMaintenance.classList.add('hidden'));
+}
+if (btnCancelIncident) {
+  btnCancelIncident.addEventListener('click', () => modalIncident.classList.add('hidden'));
+}
+
+if (btnCreateChecklist) {
+  btnCreateChecklist.addEventListener('click', () => {
+    editingChecklistId = null;
+    checklistTitleInput.value = '';
+    checklistDescInput.value = '';
+    checklistRoleInput.value = 'Employee';
+    checklistTasksInputContainer.innerHTML = '<input type="text" class="input-field checklist-task-item-input" placeholder="Task 1" style="margin-bottom: 0;" />';
+    document.querySelector('#modal-create-checklist h3').textContent = 'Create New Checklist';
+    btnSaveChecklist.textContent = 'Create Checklist';
+    modalCreateChecklist.classList.remove('hidden');
+  });
+}
+if (btnCancelCreateChecklist) {
+  btnCancelCreateChecklist.addEventListener('click', () => modalCreateChecklist.classList.add('hidden'));
+}
+
+if (btnAddTaskRow) {
+  btnAddTaskRow.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'input-field checklist-task-item-input';
+    input.placeholder = `Task ${document.querySelectorAll('.checklist-task-item-input').length + 1}`;
+    input.style = 'margin-bottom: 0;';
+    checklistTasksInputContainer.appendChild(input);
+  });
+}
+
+if (btnSaveChecklist) {
+  btnSaveChecklist.addEventListener('click', async () => {
+    const title = checklistTitleInput.value.trim();
+    const desc = checklistDescInput.value.trim();
+    const role = checklistRoleInput.value;
+    
+    const taskInputs = document.querySelectorAll('.checklist-task-item-input');
+    const tasks = Array.from(taskInputs).map(inp => inp.value.trim()).filter(t => t !== '');
+    
+    if (!title) {
+      showToast('Please enter a title', 'error');
+      return;
+    }
+    
+    try {
+      let error;
+      const payload = {
+        title,
+        description: desc,
+        role_required: role,
+        tasks: tasks
+      };
+
+      if (editingChecklistId) {
+        const res = await window.supabaseClient.from('checklists').update(payload).eq('id', editingChecklistId);
+        error = res.error;
+      } else {
+        const res = await window.supabaseClient.from('checklists').insert([payload]);
+        error = res.error;
+      }
+
+      if (error) throw error;
+      showToast(editingChecklistId ? 'Checklist updated!' : 'Checklist created!', 'success');
+      modalCreateChecklist.classList.add('hidden');
+      editingChecklistId = null;
+      loadChecklists();
+    } catch (e) {
+      showToast('Failed to save checklist', 'error');
+    }
+  });
+}
+
+async function deleteChecklist(id, title) {
+  if (!confirm(`Are you sure you want to delete the "${title}" checklist?`)) return;
+  try {
+    const { error } = await window.supabaseClient.from('checklists').delete().eq('id', id);
+    if (error) throw error;
+    showToast('Checklist deleted', 'success');
+    loadChecklists();
+  } catch (e) {
+    showToast('Failed to delete checklist', 'error');
+  }
+}
+
+function editChecklist(list) {
+  editingChecklistId = list.id;
+  checklistTitleInput.value = list.title;
+  checklistDescInput.value = list.description || '';
+  checklistRoleInput.value = list.role_required;
+  
+  checklistTasksInputContainer.innerHTML = '';
+  const tasks = list.tasks || [];
+  if (tasks.length === 0) {
+    checklistTasksInputContainer.innerHTML = '<input type="text" class="input-field checklist-task-item-input" placeholder="Task 1" style="margin-bottom: 0;" />';
+  } else {
+    tasks.forEach((task, idx) => {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'input-field checklist-task-item-input';
+      input.value = task;
+      input.style = 'margin-bottom: 0;';
+      checklistTasksInputContainer.appendChild(input);
+    });
+  }
+  
+  document.querySelector('#modal-create-checklist h3').textContent = 'Edit Checklist';
+  btnSaveChecklist.textContent = 'Update Checklist';
+  modalCreateChecklist.classList.remove('hidden');
+}
+
+
+if (btnSubmitMaint) {
+  btnSubmitMaint.addEventListener('click', async () => {
+    const equipment = document.getElementById('maint-equipment').value.trim();
+    const desc = document.getElementById('maint-desc').value.trim();
+    if (!equipment || !desc) {
+      showToast('Please fill in both fields', 'error');
+      return;
+    }
+    
+    const photo = await getBase64(maintPhotoInput.files[0]);
+    await submitSiteLog('Maintenance', { equipment_name: equipment, description: desc, photo_base64: photo });
+    modalMaintenance.classList.add('hidden');
+    document.getElementById('maint-equipment').value = '';
+    document.getElementById('maint-desc').value = '';
+    maintPhotoInput.value = '';
+  });
+}
+
+if (btnSubmitIncident) {
+  btnSubmitIncident.addEventListener('click', async () => {
+    const customer = document.getElementById('incident-customer').value.trim();
+    const desc = document.getElementById('incident-desc').value.trim();
+    if (!customer || !desc) {
+      showToast('Please fill in both fields', 'error');
+      return;
+    }
+    
+    const photo = await getBase64(incidentPhotoInput.files[0]);
+    await submitSiteLog('Incident', { customer_name: customer, description: desc, photo_base64: photo });
+    modalIncident.classList.add('hidden');
+    document.getElementById('incident-customer').value = '';
+    document.getElementById('incident-desc').value = '';
+    incidentPhotoInput.value = '';
+  });
+}
+
+async function getBase64(file) {
+  if (!file) return null;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+async function submitSiteLog(type, data) {
+  try {
+    const payload = {
+      type: type,
+      description: data.description,
+      equipment_name: data.equipment_name || null,
+      photo_base64: data.photo_base64 || null,
+      user_id: currentUser ? currentUser.id : (currentManager ? currentManager.id : null)
+    };
+    
+    const { error } = await window.supabaseClient.from('site_logs').insert([payload]);
+    if (error) throw error;
+    showToast(`${type} reported successfully!`, 'success');
+    loadSiteLogs();
+  } catch (e) {
+    showToast(`Failed to submit report. (Does "site_logs" table exist?)`, 'error');
+  }
+}
+
+async function loadOps() {
+  // Show/Hide manager controls
+  const opsManagerControls = document.getElementById('ops-manager-controls');
+  if (opsManagerControls) {
+    opsManagerControls.classList.toggle('hidden', !managerLoggedIn);
+  }
+  
+  loadChecklists();
+  loadSiteLogs();
+  loadChecklistHistory();
+}
+
+async function loadChecklists() {
+  try {
+    const { data: checklists, error } = await window.supabaseClient.from('checklists').select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    
+    checklistsContainer.innerHTML = '';
+    if (checklists.length === 0) {
+      checklistsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No checklists available.</div>';
+      return;
+    }
+    
+    checklists.forEach(list => {
+      const div = document.createElement('div');
+      div.className = 'action-card';
+      div.style = 'background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; flex-direction: column; align-items: flex-start; position: relative;';
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;">
+          <h4 style="margin: 0; color: var(--primary);">${list.title}</h4>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="font-size: 0.8rem; background: var(--surface); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border);">${list.role_required}</span>
+            ${managerLoggedIn ? `
+              <button class="btn-edit-checklist" style="background: none; border: none; cursor: pointer; font-size: 1rem;" title="Edit">✏️</button>
+              <button class="btn-delete-checklist" style="background: none; border: none; cursor: pointer; font-size: 1rem;" title="Delete">🗑️</button>
+            ` : ''}
+          </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">${list.description || 'No description'}</p>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">Tasks: ${Array.isArray(list.tasks) ? list.tasks.length : 0}</p>
+      `;
+      
+      div.onclick = (e) => {
+        if (e.target.closest('.btn-edit-checklist')) {
+          editChecklist(list);
+        } else if (e.target.closest('.btn-delete-checklist')) {
+          deleteChecklist(list.id, list.title);
+        } else {
+          showChecklistExecution(list);
+        }
+      };
+      checklistsContainer.appendChild(div);
+    });
+  } catch (e) {
+    checklistsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--danger);">Failed to load checklists.</div>';
+  }
+}
+
+async function loadSiteLogs() {
+  try {
+    const { data: logs, error } = await window.supabaseClient.from('site_logs').select('*').order('created_at', { ascending: false }).limit(20);
+    if (error) throw error;
+    
+    siteLogsContainer.innerHTML = '';
+    if (logs.length === 0) {
+      siteLogsContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No reports yet.</div>';
+      return;
+    }
+    
+    logs.forEach(log => {
+      const date = new Date(log.created_at).toLocaleString();
+      const typeColor = log.type === 'Maintenance' ? '#fb8c00' : '#e53935';
+      const div = document.createElement('div');
+      div.style = 'background: var(--surface); padding: 15px; border-radius: 10px; border-left: 4px solid ' + typeColor + ';';
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <strong style="color: ${typeColor}">${log.type}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">${date}</span>
+        </div>
+        <p style="font-size: 0.9rem; margin-bottom: 5px;">${log.equipment_name ? `<strong>${log.equipment_name}:</strong> ` : ''}${log.description}</p>
+        ${log.photo_base64 ? `<img src="${log.photo_base64}" style="width: 100px; height: 60px; object-fit: cover; border-radius: 4px; margin-top: 5px; cursor: pointer;" onclick="window.openFullPhoto('${log.photo_base64}')" />` : ''}
+      `;
+      siteLogsContainer.appendChild(div);
+    });
+  } catch (e) { }
+}
+
+window.openFullPhoto = (src) => {
+  const modal = document.getElementById('modal-view-photo');
+  const fullImg = document.getElementById('full-size-photo');
+  if (modal && fullImg) {
+    fullImg.src = src;
+    modal.classList.remove('hidden');
+  }
+};
+
+function showChecklistExecution(list) {
+  executeChecklistTitle.textContent = list.title;
+  executeChecklistDesc.textContent = list.description || '';
+  executeChecklistTasks.innerHTML = '';
+  
+  const tasks = list.tasks || [];
+  if (tasks.length === 0) {
+    executeChecklistTasks.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No tasks in this checklist.</p>';
+  } else {
+    tasks.forEach((task, idx) => {
+      const div = document.createElement('div');
+      div.style = 'display: flex; align-items: center; gap: 12px; background: var(--surface); padding: 12px; border-radius: 8px; border: 1px solid var(--border); transition: background 0.2s;';
+      div.innerHTML = `
+        <input type="checkbox" id="task-${idx}" class="checklist-checkbox" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary);" />
+        <label for="task-${idx}" style="cursor: pointer; flex: 1; font-size: 0.95rem;">${task}</label>
+      `;
+      
+      // Toggle background on check
+      const cb = div.querySelector('input');
+      cb.onchange = () => {
+        div.style.background = cb.checked ? 'rgba(46, 204, 113, 0.1)' : 'var(--surface)';
+      };
+      
+      executeChecklistTasks.appendChild(div);
+    });
+  }
+  
+  modalExecuteChecklist.dataset.listId = list.id;
+  document.getElementById('execute-closers-names').value = '';
+  modalExecuteChecklist.classList.remove('hidden');
+}
+
+if (btnCancelExecute) {
+  btnCancelExecute.addEventListener('click', () => modalExecuteChecklist.classList.add('hidden'));
+}
+
+if (btnSubmitCompletion) {
+  btnSubmitCompletion.addEventListener('click', async () => {
+    const listId = modalExecuteChecklist.dataset.listId;
+    const closers = document.getElementById('execute-closers-names').value.trim();
+    const checkboxes = document.querySelectorAll('.checklist-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    if (!closers) {
+      showToast('Please enter the names of the closers', 'error');
+      return;
+    }
+
+    if (!allChecked) {
+      if (!confirm('Not all tasks are checked. Complete anyway?')) return;
+    }
+    
+    try {
+      const payload = {
+        checklist_id: listId,
+        user_id: currentUser ? currentUser.id : (currentManager ? currentManager.id : (currentPortalEmployee ? currentPortalEmployee.id : null)),
+        completed_at: new Date().toISOString(),
+        closers_names: closers
+      };
+      
+      const { error } = await window.supabaseClient.from('checklist_completions').insert([payload]);
+      if (error) throw error;
+      
+      showToast('Checklist completed!', 'success');
+      modalExecuteChecklist.classList.add('hidden');
+      loadChecklistHistory();
+    } catch (e) {
+      showToast('Failed to save completion.', 'error');
+    }
+  });
+}
+
+ // --- Advanced Scheduling Logic ---
+const scheduleListContainer = document.getElementById('schedule-list');
+const modalShiftSwap = document.getElementById('modal-shift-swap');
+const btnCancelSwap = document.getElementById('btn-cancel-swap');
+const btnSubmitSwap = document.getElementById('btn-submit-swap');
+const swapTargetEmployee = document.getElementById('swap-target-employee');
+const swapDetails = document.getElementById('swap-details');
+
+if (scheduleListContainer) {
+  scheduleListContainer.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('btn-request-swap')) {
+      const emp = e.target.dataset.employee;
+      const week = e.target.dataset.week;
+      
+      // Populate target employees (everyone except current)
+      const { data: users } = await window.supabaseClient.from('users').select('payroll_name').eq('is_approved', true);
+      swapTargetEmployee.innerHTML = '<option value="">Select a teammate...</option>';
+      users.forEach(u => {
+        if (u.payroll_name !== emp) {
+          const opt = document.createElement('option');
+          opt.value = u.payroll_name;
+          opt.textContent = u.payroll_name;
+          swapTargetEmployee.appendChild(opt);
+        }
+      });
+      
+      modalShiftSwap.dataset.originator = emp;
+      modalShiftSwap.dataset.week = week;
+      modalShiftSwap.classList.remove('hidden');
+    }
+  });
+}
+
+if (btnCancelSwap) {
+  btnCancelSwap.addEventListener('click', () => modalShiftSwap.classList.add('hidden'));
+}
+
+if (btnSubmitSwap) {
+  btnSubmitSwap.addEventListener('click', async () => {
+    const target = swapTargetEmployee.value;
+    const details = swapDetails.value.trim();
+    if (!target || !details) {
+      showToast('Please select a teammate and provide details.', 'error');
+      return;
+    }
+    
+    try {
+      const { error } = await window.supabaseClient.from('shift_swaps').insert([{
+        original_user_id: currentPortalEmployee.id,
+        target_user_id: null, // We'll look up by name or just store the name for now
+        shift_date: new Date(), // Simplified for now
+        status: 'Pending',
+        created_at: new Date().toISOString()
+      }]);
+      
+      if (error) throw error;
+      showToast('Swap request sent to manager!', 'success');
+      modalShiftSwap.classList.add('hidden');
+    } catch (e) {
+      showToast('Failed to send swap request.', 'error');
+    }
+  });
+}
+
+// --- Schedule Templates ---
+const btnSaveTemplate = document.getElementById('btn-save-schedule-template');
+const btnLoadTemplate = document.getElementById('btn-load-schedule-template');
+
+if (btnSaveTemplate) {
+  btnSaveTemplate.addEventListener('click', async () => {
+    const rows = [];
+    document.querySelectorAll('#schedule-editor-table tbody tr').forEach(tr => {
+      const empName = tr.cells[0].textContent;
+      const shifts = [];
+      tr.querySelectorAll('.schedule-shift-input').forEach(input => {
+        shifts.push(input.value);
+      });
+      rows.push({ employee: empName, shifts });
+    });
+    
+    try {
+      const template = JSON.stringify(rows);
+      await saveSettingRobust('schedule_template_standard', template);
+      showToast('Schedule saved as standard template!', 'success');
+    } catch (e) {
+      showToast('Failed to save template', 'error');
+    }
+  });
+}
+
+if (btnLoadTemplate) {
+  btnLoadTemplate.addEventListener('click', async () => {
+    try {
+      const { data, error } = await window.supabaseClient.from('settings').select('value').eq('id', 'schedule_template_standard').limit(1);
+      if (error || !data || data.length === 0) {
+        showToast('No template found.', 'error');
+        return;
+      }
+      
+      const rows = JSON.parse(data[0].value);
+      const tbody = document.querySelector('#schedule-editor-table tbody');
+      tbody.innerHTML = '';
+      
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const cells = r.shifts.map(s => `<td><input type="text" class="input-field schedule-shift-input" value="${s}" style="width: 70px; margin-bottom: 0; text-align: center;" /></td>`).join('');
+        tr.innerHTML = `<td>${r.employee}</td>${cells}`;
+        tbody.appendChild(tr);
+      });
+      showToast('Template loaded!', 'success');
+    } catch (e) {
+      showToast('Failed to load template', 'error');
+    }
+  });
+}
+
+async function loadChecklistHistory() {
+  if (!checklistHistoryContainer) return;
+  try {
+    const { data: completions, error } = await window.supabaseClient
+      .from('checklist_completions')
+      .select(`
+        *,
+        checklists (title),
+        users (name)
+      `)
+      .order('completed_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+
+    checklistHistoryContainer.innerHTML = '';
+    if (completions.length === 0) {
+      checklistHistoryContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">No completed checklists yet.</div>';
+      return;
+    }
+
+    completions.forEach(comp => {
+      const date = new Date(comp.completed_at).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+      const title = comp.checklists ? comp.checklists.title : 'Deleted Checklist';
+      const completedBy = comp.users ? comp.users.name : (comp.closers_names ? comp.closers_names.split(',')[0] : 'Unknown');
+      
+      const div = document.createElement('div');
+      div.style = 'background: var(--surface); padding: 12px; border-radius: 10px; border: 1px solid var(--border);';
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px;">
+          <strong style="color: var(--primary); font-size: 0.9rem;">${title}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">${date}</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text);">
+          Completed by: <span style="font-weight: 600;">${completedBy}</span>
+        </div>
+        ${comp.closers_names ? `<div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Closers: ${comp.closers_names}</div>` : ''}
+      `;
+      checklistHistoryContainer.appendChild(div);
+    });
+  } catch (e) {
+    console.error('History Error:', e);
+  }
+}
