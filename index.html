@@ -930,14 +930,13 @@
                   <span>📊</span> Export Biweekly CSV
                 </button>
               </div>
-              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for Last Week
-                + This Week (for Wednesday Payroll)</p>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the current biweekly pay period (resets Thursday every 2 weeks)</p>
               <table class="data-table">
                 <thead>
                   <tr>
                     <th>Employee</th>
-                    <th>Last Week (Hrs)</th>
-                    <th>This Week (Hrs)</th>
+                    <th id="biweekly-header-w1">Last Week (Hrs)</th>
+                    <th id="biweekly-header-w2">This Week (Hrs)</th>
                     <th>Biweekly Total (Hrs)</th>
                     <th>Est. Pay ($)</th>
                     <th>Actions</th>

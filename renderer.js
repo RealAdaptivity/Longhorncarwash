@@ -1175,6 +1175,29 @@ function getStartOfWeek() {
   return wednesday;
 }
 
+function getBiweeklyWeeks(date) {
+  const anchor = new Date(2026, 4, 21); // Thursday, May 21, 2026
+  anchor.setHours(0, 0, 0, 0);
+
+  const diffTime = date.getTime() - anchor.getTime();
+  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+  const cycleIndex = Math.floor(diffDays / 14);
+
+  const resetThursday = new Date(anchor.getTime() + cycleIndex * 14 * 24 * 60 * 60 * 1000);
+
+  // Week 1 starts on the Wednesday before resetThursday
+  const week1Start = new Date(resetThursday);
+  week1Start.setDate(resetThursday.getDate() - 1);
+  week1Start.setHours(0, 0, 0, 0);
+
+  // Week 2 starts on the Wednesday after resetThursday
+  const week2Start = new Date(resetThursday);
+  week2Start.setDate(resetThursday.getDate() + 6);
+  week2Start.setHours(0, 0, 0, 0);
+
+  return { week1Start, week2Start };
+}
+
 function formatNameLastFirst(fullName) {
   if (!fullName) return '';
   // If already has a comma, assume it's already "Last, First"
@@ -1268,6 +1291,23 @@ async function loadTimesheets() {
     const startOf2WeeksAgo = startOfWeek - (14 * 24 * 60 * 60 * 1000);
     const startOf3WeeksAgo = startOfWeek - (21 * 24 * 60 * 60 * 1000);
     const startOf4WeeksAgo = startOfWeek - (28 * 24 * 60 * 60 * 1000);
+
+    const { week1Start, week2Start } = getBiweeklyWeeks(new Date());
+    const biweeklyW1 = week1Start.getTime();
+    const biweeklyW2 = week2Start.getTime();
+    const biweeklyNextW = biweeklyW2 + (7 * 24 * 60 * 60 * 1000);
+
+    const formatDateSimple = (dObj) => {
+      return `${dObj.getMonth() + 1}/${dObj.getDate()}`;
+    };
+    const w1Range = `${formatDateSimple(week1Start)} - ${formatDateSimple(new Date(biweeklyW2 - 24*60*60*1000))}`;
+    const w2Range = `${formatDateSimple(week2Start)} - ${formatDateSimple(new Date(biweeklyNextW - 24*60*60*1000))}`;
+
+    const headerW1 = document.getElementById('biweekly-header-w1');
+    const headerW2 = document.getElementById('biweekly-header-w2');
+    if (headerW1) headerW1.textContent = `Week 1 (${w1Range}) (Hrs)`;
+    if (headerW2) headerW2.textContent = `Week 2 (${w2Range}) (Hrs)`;
+
     employeeMap = {};
 
     // Perform automated 30-day purge in the background
@@ -1351,7 +1391,7 @@ async function loadTimesheets() {
           return;
         }
 
-        let csv = "#,Employee,Last Week (Hrs),This Week (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n";
+        let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n`;
         let count = 1;
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
@@ -1466,6 +1506,8 @@ async function loadTimesheets() {
         week2Ms: 0,
         week3Ms: 0,
         week4Ms: 0,
+        biweeklyWeek1Ms: 0,
+        biweeklyWeek2Ms: 0,
         currentStatus: 'OUT', lastIn: null 
       };
     });
@@ -1496,6 +1538,12 @@ async function loadTimesheets() {
           } else if (time >= startOfWeek) {
             emp.weekMs[0] += (time - startOfWeek);
           }
+
+          if (emp.lastIn >= biweeklyW1 && emp.lastIn < biweeklyW2) {
+            emp.biweeklyWeek1Ms += duration;
+          } else if (emp.lastIn >= biweeklyW2 && emp.lastIn < biweeklyNextW) {
+            emp.biweeklyWeek2Ms += duration;
+          }
         }
         emp.currentStatus = log.action === 'START_LUNCH' ? 'LUNCH' : 'OUT';
         emp.lastIn = null;
@@ -1522,6 +1570,12 @@ async function loadTimesheets() {
           emp.week4Ms += activeMs;
         } else {
           emp.weekMs[0] += (Date.now() - startOfWeek);
+        }
+
+        if (emp.lastIn >= biweeklyW1 && emp.lastIn < biweeklyW2) {
+          emp.biweeklyWeek1Ms += activeMs;
+        } else if (emp.lastIn >= biweeklyW2 && emp.lastIn < biweeklyNextW) {
+          emp.biweeklyWeek2Ms += activeMs;
         }
       }
 
@@ -1561,14 +1615,16 @@ async function loadTimesheets() {
       timesheetBody.appendChild(tr);
 
       if (biweeklyHistoryBody) {
-        const biweeklyTotalHrs = (Number(totalWeekHrs) + Number(totalLastWeekHrs)).toFixed(2);
+        const w1Hrs = (emp.biweeklyWeek1Ms / (1000 * 60 * 60)).toFixed(2);
+        const w2Hrs = (emp.biweeklyWeek2Ms / (1000 * 60 * 60)).toFixed(2);
+        const biweeklyTotalHrs = (Number(w1Hrs) + Number(w2Hrs)).toFixed(2);
         const estBiweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (biweeklyTotalHrs * emp.pay_rate).toFixed(2);
         const trBiweekly = document.createElement('tr');
         const displayName = emp.payroll_name || emp.name;
         trBiweekly.innerHTML = `
           <td>${displayName}</td>
-          <td>${totalLastWeekHrs}</td>
-          <td>${totalWeekHrs}</td>
+          <td>${w1Hrs}</td>
+          <td>${w2Hrs}</td>
           <td style="font-weight: bold; color: var(--primary);">${biweeklyTotalHrs}</td>
           <td style="font-weight: bold; color: var(--success);">$${estBiweeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem; color:var(--text-muted)">(Fixed)</span>' : ''}</td>
           <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${displayName.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
