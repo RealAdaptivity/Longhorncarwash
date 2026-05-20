@@ -1353,8 +1353,12 @@ async function loadTimesheets() {
             const lastWeek = parseFloat(rowData[12] ? rowData[12].replace(/"/g, '') : 0) || 0;
             const biweeklyTotalVal = thisWeek + lastWeek;
             
-            // Skip if Biweekly Total is 0
-            if (biweeklyTotalVal === 0) return;
+            const manageBtn = row.querySelector('.btn-manage-logs');
+            const empId = manageBtn ? manageBtn.dataset.id : null;
+            const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+
+            // Skip if Biweekly Total is 0, unless they are salaried
+            if (biweeklyTotalVal === 0 && !emp.is_salary) return;
 
             const biweeklyTotal = biweeklyTotalVal.toFixed(2);
             rowData.push(`"${biweeklyTotal}"`);
@@ -1397,10 +1401,14 @@ async function loadTimesheets() {
           const cols = row.querySelectorAll('td');
           if (cols.length < 4) return;
 
+          const manageBtn = row.querySelector('.btn-manage-logs');
+          const empId = manageBtn ? manageBtn.dataset.id : null;
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+
           // Check Biweekly Total (index 3)
           const biweeklyTotalText = cols[3].textContent.trim();
           const biweeklyTotal = parseFloat(biweeklyTotalText) || 0;
-          if (biweeklyTotal === 0) return;
+          if (biweeklyTotal === 0 && !emp.is_salary) return;
 
           let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
@@ -1411,9 +1419,6 @@ async function loadTimesheets() {
             rowData.push(`"${text}"`);
           });
 
-          const manageBtn = row.querySelector('.btn-manage-logs');
-          const empId = manageBtn ? manageBtn.dataset.id : null;
-          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
           const totalHrs = parseFloat(cols[3].textContent) || 0;
           const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
           
@@ -1455,10 +1460,14 @@ async function loadTimesheets() {
           const cols = row.querySelectorAll('td');
           if (cols.length < 7) return;
 
+          const manageBtn = row.querySelector('.btn-manage-logs');
+          const empId = manageBtn ? manageBtn.dataset.id : null;
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+
           // Check Monthly Total (index 6)
           const monthlyTotalText = cols[6].textContent.trim();
           const monthlyTotal = parseFloat(monthlyTotalText) || 0;
-          if (monthlyTotal === 0) return;
+          if (monthlyTotal === 0 && !emp.is_salary) return;
 
           let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
@@ -1469,9 +1478,6 @@ async function loadTimesheets() {
             rowData.push(`"${text}"`);
           });
 
-          const manageBtn = row.querySelector('.btn-manage-logs');
-          const empId = manageBtn ? manageBtn.dataset.id : null;
-          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
           const totalHrs = parseFloat(cols[6].textContent) || 0;
           const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
           
@@ -2512,7 +2518,7 @@ if (btnDownloadPayroll) {
 
       const employeeMap = {};
       usersData.forEach(u => {
-        employeeMap[u.id] = { name: u.name, thisWeekMs: 0, lastWeekMs: 0, currentStatus: 'OUT', lastIn: null };
+        employeeMap[u.id] = { name: u.name, thisWeekMs: 0, lastWeekMs: 0, currentStatus: 'OUT', lastIn: null, is_salary: u.is_salary || false };
       });
 
       logsData.forEach(log => {
@@ -2574,8 +2580,8 @@ if (btnDownloadPayroll) {
       let count = 1;
       Object.values(employeeMap).forEach(emp => {
         const twHrsVal = (emp.thisWeekMs / (1000 * 60 * 60));
-        // Skip 0 hours
-        if (twHrsVal === 0) return;
+        // Skip 0 hours, unless they are salaried
+        if (twHrsVal === 0 && !emp.is_salary) return;
 
         const twHrs = twHrsVal.toFixed(2);
         const formattedName = formatNameLastFirst(emp.name);
@@ -3641,17 +3647,42 @@ function initCharts() {
 
 function calculateAnalytics() {
   let totalLaborCost = 0;
+  let activeLaborCost = 0;
+  let completedLaborCost = 0;
+  let activeCount = 0;
+  let offlineCount = 0;
+
   Object.values(employeeMap).forEach(emp => {
     const totalMs = emp.weekMs.reduce((a, b) => a + b, 0);
     const hrs = totalMs / (1000 * 60 * 60);
+    let cost = 0;
     if (emp.is_salary) {
-      totalLaborCost += emp.pay_rate / 2; // Est. weekly share of salary
+      cost = emp.pay_rate / 2; // Est. weekly share of salary
     } else {
-      totalLaborCost += hrs * emp.pay_rate;
+      cost = hrs * emp.pay_rate;
+    }
+
+    totalLaborCost += cost;
+
+    if (emp.currentStatus === 'IN' || emp.currentStatus === 'LUNCH') {
+      activeLaborCost += cost;
+      activeCount++;
+    } else {
+      completedLaborCost += cost;
+      offlineCount++;
     }
   });
 
   analyticsLaborCost.textContent = `$${totalLaborCost.toFixed(2)}`;
+
+  const activeCostEl = document.getElementById('analytics-active-labor-cost');
+  const completedCostEl = document.getElementById('analytics-completed-labor-cost');
+  if (activeCostEl) {
+    activeCostEl.textContent = `$${activeLaborCost.toFixed(2)} (${activeCount} Active)`;
+  }
+  if (completedCostEl) {
+    completedCostEl.textContent = `$${completedLaborCost.toFixed(2)} (${offlineCount} Offline)`;
+  }
   
   if (dailyRevenueGoal > 0) {
     // Est. weekly revenue (daily * 7 for this simple view)
