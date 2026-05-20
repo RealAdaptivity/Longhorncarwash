@@ -49,6 +49,10 @@
           <span class="mobile-hide">Digital Ops</span>
           <span class="mobile-only">Ops</span>
         </button>
+        <button id="nav-settings" class="nav-btn">
+          <span class="mobile-hide">Settings</span>
+          <span class="mobile-only">Settings</span>
+        </button>
       </nav>
     </aside>
 
@@ -1177,6 +1181,35 @@
               <button id="btn-submit-incident" class="btn-primary"
                 style="background: #e53935; border: none; padding: 10px 20px;">Submit Incident</button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS VIEW -->
+      <section id="view-settings" class="view">
+        <div style="width: 100%; max-width: 600px; margin: 0 auto; text-align: center;">
+          <header class="dash-header" style="justify-content: center; margin-bottom: 30px;">
+            <h2>System Settings</h2>
+          </header>
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 40px 30px; text-align: left; box-shadow: 0 10px 30px var(--shadow-strong); position: relative; overflow: hidden; transition: all 0.3s ease;">
+            <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); z-index: 1;"></div>
+            <h3 style="color: var(--primary); margin-bottom: 10px; font-weight: 800; font-size: 1.3rem;">Display Theme</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">
+              Choose your preferred interface appearance. Switch between Dark Mode for reduced eye strain or Light Mode for a clean, classic look.
+            </p>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px;">
+              <button id="btn-theme-dark" class="btn-action btn-primary" style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.15); border: 2px solid transparent;">
+                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));">🌙</span>
+                <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">DARK MODE</span>
+              </button>
+              <button id="btn-theme-light" class="btn-action btn-ghost" style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text);">
+                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">☀️</span>
+                <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">LIGHT MODE</span>
+              </button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 20px; font-weight: 500;">
+              Preference will be saved locally on this device.
+            </p>
           </div>
         </div>
       </section>

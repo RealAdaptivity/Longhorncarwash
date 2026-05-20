@@ -9,6 +9,21 @@
   --success: #2E7D32;
   --danger: #C62828;
   --border: #333333;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --shadow-strong: rgba(0, 0, 0, 0.5);
+  --modal-backdrop: rgba(0, 0, 0, 0.8);
+}
+
+:root.light-mode {
+  --bg: #F4F4F6;
+  --sidebar-bg: #FFFFFF;
+  --card: #FFFFFF;
+  --text: #1C1C1E;
+  --text-muted: #6C6C70;
+  --border: #E5E5EA;
+  --hover-bg: rgba(0, 0, 0, 0.04);
+  --shadow-strong: rgba(0, 0, 0, 0.08);
+  --modal-backdrop: rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -24,6 +39,10 @@ body {
   color: var(--text);
   height: 100vh;
   overflow: hidden;
+}
+
+body, .sidebar, .brand, .nav-btn, .content, .view, .pin-pad-container, .modal-content, .action-card, .data-table, .data-table th, .data-table td, .input-field, .pin-btn {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
 }
 
 #app {
@@ -96,7 +115,7 @@ nav {
 }
 
 .nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--hover-bg);
   color: var(--text);
 }
 
@@ -161,7 +180,7 @@ nav {
   background-color: var(--card);
   padding: 40px;
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px var(--shadow-strong);
   text-align: center;
   width: 100%;
   max-width: 400px;
@@ -386,7 +405,7 @@ nav {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -716,7 +735,7 @@ nav {
   }
 
   #nav-manager::before {
-    content: "⚙️";
+    content: "🔒";
   }
 
   #nav-payroll::before {
@@ -725,6 +744,10 @@ nav {
 
   #nav-schedule::before {
     content: "📅";
+  }
+
+  #nav-settings::before {
+    content: "⚙️";
   }
 
   .content {

@@ -267,6 +267,12 @@ const analyticsNetProfit = document.getElementById('analytics-net-profit');
 // --- Digital Ops DOM ---
 const navOps = document.getElementById('nav-ops');
 const viewOps = document.getElementById('view-ops');
+
+// --- Settings DOM ---
+const navSettings = document.getElementById('nav-settings');
+const viewSettings = document.getElementById('view-settings');
+const btnThemeDark = document.getElementById('btn-theme-dark');
+const btnThemeLight = document.getElementById('btn-theme-light');
 const checklistsContainer = document.getElementById('checklists-container');
 const siteLogsContainer = document.getElementById('site-logs-container');
 const btnShowMaintenanceForm = document.getElementById('btn-show-maintenance-form');
@@ -390,12 +396,14 @@ function switchView(view) {
   viewPayroll.classList.remove('active');
   viewSchedule.classList.remove('active');
   viewOps.classList.remove('active');
+  if (viewSettings) viewSettings.classList.remove('active');
   navTimeclock.classList.remove('active');
   navManager.classList.remove('active');
   navEmployee.classList.remove('active');
   navPayroll.classList.remove('active');
   navSchedule.classList.remove('active');
   navOps.classList.remove('active');
+  if (navSettings) navSettings.classList.remove('active');
 
   if (view === 'timeclock') {
     viewTimeclock.classList.add('active');
@@ -439,6 +447,9 @@ function switchView(view) {
     viewOps.classList.add('active');
     navOps.classList.add('active');
     loadOps();
+  } else if (view === 'settings') {
+    if (viewSettings) viewSettings.classList.add('active');
+    if (navSettings) navSettings.classList.add('active');
   }
 }
 
@@ -454,6 +465,7 @@ navPayroll.addEventListener('click', () => {
 });
 navSchedule.addEventListener('click', () => switchView('schedule'));
 navOps.addEventListener('click', () => switchView('ops'));
+if (navSettings) navSettings.addEventListener('click', () => switchView('settings'));
 
 // --- Toast Utility ---
 function showToast(msg, type = 'success') {
@@ -1355,10 +1367,16 @@ async function loadTimesheets() {
             
             const manageBtn = row.querySelector('.btn-manage-logs');
             const empId = manageBtn ? manageBtn.dataset.id : null;
-            const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+            const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : null;
+
+            const isSalary = (row.dataset.isSalary === 'true') || 
+                             (cols[11] && cols[11].textContent.includes('(Fixed)')) || 
+                             (cols[10] && cols[10].textContent.includes('(Salary)')) ||
+                             (emp && emp.is_salary) || 
+                             false;
 
             // Skip if Biweekly Total is 0, unless they are salaried
-            if (biweeklyTotalVal === 0 && !emp.is_salary) return;
+            if (biweeklyTotalVal === 0 && !isSalary) return;
 
             const biweeklyTotal = biweeklyTotalVal.toFixed(2);
             rowData.push(`"${biweeklyTotal}"`);
@@ -1403,12 +1421,20 @@ async function loadTimesheets() {
 
           const manageBtn = row.querySelector('.btn-manage-logs');
           const empId = manageBtn ? manageBtn.dataset.id : null;
-          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : null;
+
+          const isSalary = (row.dataset.isSalary === 'true') || 
+                           (cols[4] && cols[4].textContent.includes('(Fixed)')) || 
+                           (emp && emp.is_salary) || 
+                           false;
+
+          const payRate = parseFloat(row.dataset.payRate) || 
+                          (emp ? emp.pay_rate : 0);
 
           // Check Biweekly Total (index 3)
           const biweeklyTotalText = cols[3].textContent.trim();
           const biweeklyTotal = parseFloat(biweeklyTotalText) || 0;
-          if (biweeklyTotal === 0 && !emp.is_salary) return;
+          if (biweeklyTotal === 0 && !isSalary) return;
 
           let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
@@ -1420,10 +1446,10 @@ async function loadTimesheets() {
           });
 
           const totalHrs = parseFloat(cols[3].textContent) || 0;
-          const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
+          const estPay = isSalary ? payRate.toFixed(2) : (totalHrs * payRate).toFixed(2);
           
-          rowData.push(`"${emp.is_salary ? 'Salary' : 'Hourly'}"`);
-          rowData.push(`"${emp.pay_rate}"`);
+          rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`);
+          rowData.push(`"${payRate}"`);
           rowData.push(`"${estPay}"`);
 
           csv += rowData.join(",") + "\n";
@@ -1462,12 +1488,20 @@ async function loadTimesheets() {
 
           const manageBtn = row.querySelector('.btn-manage-logs');
           const empId = manageBtn ? manageBtn.dataset.id : null;
-          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : { pay_rate: 0, is_salary: false };
+          const emp = (empId && employeeMap[empId]) ? employeeMap[empId] : null;
+
+          const isSalary = (row.dataset.isSalary === 'true') || 
+                           (cols[7] && cols[7].textContent.includes('(Fixed)')) || 
+                           (emp && emp.is_salary) || 
+                           false;
+
+          const payRate = parseFloat(row.dataset.payRate) || 
+                          (emp ? emp.pay_rate : 0);
 
           // Check Monthly Total (index 6)
           const monthlyTotalText = cols[6].textContent.trim();
           const monthlyTotal = parseFloat(monthlyTotalText) || 0;
-          if (monthlyTotal === 0 && !emp.is_salary) return;
+          if (monthlyTotal === 0 && !isSalary) return;
 
           let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
@@ -1479,10 +1513,10 @@ async function loadTimesheets() {
           });
 
           const totalHrs = parseFloat(cols[6].textContent) || 0;
-          const estPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (totalHrs * emp.pay_rate).toFixed(2);
+          const estPay = isSalary ? payRate.toFixed(2) : (totalHrs * payRate).toFixed(2);
           
-          rowData.push(`"${emp.is_salary ? 'Salary' : 'Hourly'}"`);
-          rowData.push(`"${emp.pay_rate}"`);
+          rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`);
+          rowData.push(`"${payRate}"`);
           rowData.push(`"${estPay}"`);
 
           csv += rowData.join(",") + "\n";
@@ -1609,6 +1643,9 @@ async function loadTimesheets() {
       if (emp.currentStatus === 'LUNCH') statusColor = 'var(--warning)';
 
       const tr = document.createElement('tr');
+      tr.dataset.id = emp.id;
+      tr.dataset.isSalary = emp.is_salary;
+      tr.dataset.payRate = emp.pay_rate;
       const displayName = emp.payroll_name || emp.name;
       
       const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : (totalWeekHrsVal * emp.pay_rate).toFixed(2);
@@ -1633,6 +1670,9 @@ async function loadTimesheets() {
         const biweeklyTotalHrs = (Number(w1Hrs) + Number(w2Hrs)).toFixed(2);
         const estBiweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (biweeklyTotalHrs * emp.pay_rate).toFixed(2);
         const trBiweekly = document.createElement('tr');
+        trBiweekly.dataset.id = emp.id;
+        trBiweekly.dataset.isSalary = emp.is_salary;
+        trBiweekly.dataset.payRate = emp.pay_rate;
         const displayName = emp.payroll_name || emp.name;
         trBiweekly.innerHTML = `
           <td>${displayName}</td>
@@ -1653,6 +1693,9 @@ async function loadTimesheets() {
         const estMonthlyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (monthlyTotalHrs * emp.pay_rate).toFixed(2);
 
         const trMonthly = document.createElement('tr');
+        trMonthly.dataset.id = emp.id;
+        trMonthly.dataset.isSalary = emp.is_salary;
+        trMonthly.dataset.payRate = emp.pay_rate;
         const displayName = emp.payroll_name || emp.name;
         trMonthly.innerHTML = `
           <td>${displayName}</td>
@@ -4226,3 +4269,59 @@ async function loadChecklistHistory() {
     console.error('History Error:', e);
   }
 }
+
+// --- Theme Controller ---
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.classList.add('light-mode');
+    if (btnThemeLight) {
+      btnThemeLight.className = 'btn-action btn-primary';
+      btnThemeLight.style.background = 'var(--primary)';
+      btnThemeLight.style.color = 'white';
+      btnThemeLight.style.borderColor = 'transparent';
+      btnThemeLight.style.boxShadow = '0 4px 15px rgba(169, 59, 47, 0.15)';
+    }
+    if (btnThemeDark) {
+      btnThemeDark.className = 'btn-action btn-ghost';
+      btnThemeDark.style.background = 'var(--bg)';
+      btnThemeDark.style.color = 'var(--text)';
+      btnThemeDark.style.borderColor = 'var(--border)';
+      btnThemeDark.style.boxShadow = 'none';
+    }
+  } else {
+    document.documentElement.classList.remove('light-mode');
+    if (btnThemeDark) {
+      btnThemeDark.className = 'btn-action btn-primary';
+      btnThemeDark.style.background = 'var(--primary)';
+      btnThemeDark.style.color = 'white';
+      btnThemeDark.style.borderColor = 'transparent';
+      btnThemeDark.style.boxShadow = '0 4px 15px rgba(169, 59, 47, 0.15)';
+    }
+    if (btnThemeLight) {
+      btnThemeLight.className = 'btn-action btn-ghost';
+      btnThemeLight.style.background = 'var(--bg)';
+      btnThemeLight.style.color = 'var(--text)';
+      btnThemeLight.style.borderColor = 'var(--border)';
+      btnThemeLight.style.boxShadow = 'none';
+    }
+  }
+}
+
+if (btnThemeDark) {
+  btnThemeDark.addEventListener('click', () => {
+    localStorage.setItem('theme', 'dark');
+    applyTheme('dark');
+    showToast('Dark theme applied!');
+  });
+}
+if (btnThemeLight) {
+  btnThemeLight.addEventListener('click', () => {
+    localStorage.setItem('theme', 'light');
+    applyTheme('light');
+    showToast('Light theme applied!');
+  });
+}
+
+// Initialize Saved Theme on launch
+const savedTheme = localStorage.getItem('theme') || 'dark';
+applyTheme(savedTheme);
