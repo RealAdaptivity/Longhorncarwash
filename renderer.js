@@ -263,6 +263,7 @@ const btnSaveRevenueGoals = document.getElementById('btn-save-revenue-goals');
 const analyticsLaborCost = document.getElementById('analytics-labor-cost');
 const analyticsLaborPercent = document.getElementById('analytics-labor-percent');
 const analyticsNetProfit = document.getElementById('analytics-net-profit');
+const analyticsRevenueInput = document.getElementById('analytics-revenue-input');
 
 // --- Digital Ops DOM ---
 const navOps = document.getElementById('nav-ops');
@@ -1034,7 +1035,7 @@ btnEmployeeLogin.addEventListener('click', async () => {
 
   try {
     const { data: user, error } = await window.supabaseClient.from('users')
-      .select('id, name').eq('name', username).eq('pin', pin).single();
+      .select('id, name, pay_rate, is_salary').eq('name', username).eq('pin', pin).single();
 
     if (error || !user) {
       showToast('Invalid Name or PIN', 'error');
@@ -1116,6 +1117,87 @@ async function loadEmployeePortal(userId, name) {
 
     empThisWeek.textContent = (thisWeekMs / (1000 * 60 * 60)).toFixed(2);
     empLastWeek.textContent = (lastWeekMs / (1000 * 60 * 60)).toFixed(2);
+
+    // --- EST PAYOUT & PAYDAY CALCULATION ---
+    let isSalary = false;
+    let payRate = 0;
+
+    if (currentPortalEmployee && currentPortalEmployee.id === userId && ('is_salary' in currentPortalEmployee)) {
+      isSalary = currentPortalEmployee.is_salary;
+      payRate = currentPortalEmployee.pay_rate || 0;
+    } else {
+      try {
+        const { data: uData } = await window.supabaseClient.from('users')
+          .select('pay_rate, is_salary').eq('id', userId).single();
+        if (uData) {
+          isSalary = uData.is_salary || false;
+          payRate = uData.pay_rate || 0;
+        }
+      } catch (e) {
+        console.error('Error fetching fallback employee pay rate', e);
+      }
+    }
+
+    const { week1Start, week2Start } = getBiweeklyWeeks(new Date());
+    const biweeklyW1 = week1Start.getTime();
+    const biweeklyW2 = week2Start.getTime();
+    const biweeklyNextW = biweeklyW2 + (7 * 24 * 60 * 60 * 1000);
+
+    let biweeklyWeek1Ms = 0;
+    let biweeklyWeek2Ms = 0;
+    let biweeklyStatus = 'OUT';
+    let biweeklyLastIn = null;
+
+    logsData.forEach(log => {
+      const time = new Date(log.created_at).getTime();
+      if (log.action === 'IN' || log.action === 'END_LUNCH') {
+        biweeklyStatus = 'IN';
+        biweeklyLastIn = time;
+      } else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
+        if (biweeklyStatus === 'IN' && biweeklyLastIn) {
+          const duration = time - biweeklyLastIn;
+          if (biweeklyLastIn >= biweeklyW1 && biweeklyLastIn < biweeklyW2) {
+            biweeklyWeek1Ms += duration;
+          } else if (biweeklyLastIn >= biweeklyW2 && biweeklyLastIn < biweeklyNextW) {
+            biweeklyWeek2Ms += duration;
+          }
+        }
+        biweeklyStatus = log.action === 'START_LUNCH' ? 'LUNCH' : 'OUT';
+        biweeklyLastIn = null;
+      }
+    });
+
+    if (biweeklyStatus === 'IN' && biweeklyLastIn) {
+      const activeMs = Date.now() - biweeklyLastIn;
+      if (biweeklyLastIn >= biweeklyW1 && biweeklyLastIn < biweeklyW2) {
+        biweeklyWeek1Ms += activeMs;
+      } else if (biweeklyLastIn >= biweeklyW2 && biweeklyLastIn < biweeklyNextW) {
+        biweeklyWeek2Ms += activeMs;
+      }
+    }
+
+    const biweeklyW1Hrs = biweeklyWeek1Ms / (1000 * 60 * 60);
+    const biweeklyW2Hrs = biweeklyWeek2Ms / (1000 * 60 * 60);
+    const totalBiweeklyHrs = biweeklyW1Hrs + biweeklyW2Hrs;
+
+    const empEstPay = document.getElementById('emp-est-pay');
+    const empEstPayDesc = document.getElementById('emp-est-pay-desc');
+    if (empEstPay) {
+      const estPay = isSalary ? payRate : (totalBiweeklyHrs * payRate);
+      empEstPay.textContent = `$${estPay.toFixed(2)}`;
+      if (empEstPayDesc) {
+        empEstPayDesc.textContent = isSalary ? 'Biweekly salary' : `Biweekly payout ($${payRate.toFixed(2)}/hr)`;
+      }
+    }
+
+    const empNextPayday = document.getElementById('emp-next-payday');
+    if (empNextPayday) {
+      const paydayFriday = new Date(biweeklyNextW);
+      paydayFriday.setDate(paydayFriday.getDate() + 2);
+      const options = { month: '2-digit', day: '2-digit', year: '2-digit' };
+      const formattedDate = paydayFriday.toLocaleDateString('en-US', options);
+      empNextPayday.innerHTML = `Friday<br>${formattedDate}`;
+    }
 
     // Load Time Off requests
     const { data: timeoffs, error: toError } = await window.supabaseClient.from('time_off_requests')
@@ -3390,24 +3472,90 @@ async function loadMySchedule() {
   const newScheduleAlert = document.getElementById('new-schedule-alert');
 
   try {
-    // Fetch latest schedule
-    const { data, error } = await window.supabaseClient
+    // Fetch recent schedules
+    const { data: schedules, error } = await window.supabaseClient
       .from('schedules')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(10);
 
-    if (error || !data) {
+    if (error || !schedules || schedules.length === 0) {
       empScheduleSection.classList.add('hidden');
       if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
       return;
     }
 
+    const latestSchedule = schedules[0];
+    const now = new Date();
+    let data = null;
+
+    // Helper to parse weekRange (e.g. "5/19-5/25" or "May 19 - May 25")
+    function parseWeekRange(weekRange) {
+      if (!weekRange) return null;
+      const parts = weekRange.split('-').map(p => p.trim());
+      if (parts.length < 2) return null;
+      const startPart = parts[0];
+      const endPart = parts[1];
+
+      const year = new Date().getFullYear();
+      let startDate = null;
+      let endDate = null;
+
+      function parseSingleDate(str) {
+        if (str.includes('/')) {
+          const mParts = str.split('/').map(Number);
+          if (mParts.length >= 2) {
+            const m = mParts[0];
+            const d = mParts[1];
+            if (!isNaN(m) && !isNaN(d)) {
+              return new Date(year, m - 1, d);
+            }
+          }
+        } else {
+          const parsed = new Date(`${str}, ${year}`);
+          if (!isNaN(parsed.getTime())) {
+            return parsed;
+          }
+        }
+        return null;
+      }
+
+      startDate = parseSingleDate(startPart);
+      endDate = parseSingleDate(endPart);
+
+      if (startDate && endDate) {
+        if (endDate.getMonth() < startDate.getMonth()) {
+          endDate.setFullYear(year + 1);
+        }
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        return { startDate, endDate };
+      }
+      return null;
+    }
+
+    for (const sched of schedules) {
+      try {
+        const parsed = JSON.parse(sched.content);
+        const range = parseWeekRange(parsed.weekRange);
+        if (range && now >= range.startDate && now <= range.endDate) {
+          data = sched;
+          break;
+        }
+      } catch (e) {
+        console.error('Error matching schedule range', e);
+      }
+    }
+
+    // Fallback to the latest created schedule
+    if (!data) {
+      data = latestSchedule;
+    }
+
     // Check if this is a "new" schedule the user hasn't synced yet
     const lastSeenId = localStorage.getItem('last_seen_schedule_id');
     if (newScheduleAlert) {
-      if (lastSeenId !== data.id) {
+      if (lastSeenId !== latestSchedule.id) {
         newScheduleAlert.classList.remove('hidden');
       } else {
         newScheduleAlert.classList.add('hidden');
@@ -3447,7 +3595,7 @@ async function loadMySchedule() {
       window.downloadCalendar(rowData);
 
       // Mark as seen
-      localStorage.setItem('last_seen_schedule_id', data.id);
+      localStorage.setItem('last_seen_schedule_id', latestSchedule.id);
       if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
     };
 
@@ -3624,6 +3772,12 @@ if (btnSaveRevenueGoals) {
   });
 }
 
+if (analyticsRevenueInput) {
+  analyticsRevenueInput.addEventListener('input', () => {
+    calculateAnalytics();
+  });
+}
+
 function initCharts() {
   if (!window.Chart) return;
   
@@ -3727,20 +3881,43 @@ function calculateAnalytics() {
     completedCostEl.textContent = `$${completedLaborCost.toFixed(2)} (${offlineCount} Offline)`;
   }
   
-  if (dailyRevenueGoal > 0) {
-    // Est. weekly revenue (daily * 7 for this simple view)
-    const weeklyRevenue = dailyRevenueGoal * 7;
-    const laborPercent = (totalLaborCost / weeklyRevenue) * 100;
-    analyticsLaborPercent.textContent = `${laborPercent.toFixed(1)}%`;
-    
-    if (laborPercent > laborCostGoalPercent) {
-      analyticsLaborPercent.style.color = 'var(--danger)';
+  // Update target labor goal display in the card footer
+  const goalDisplay = document.getElementById('analytics-labor-goal-display');
+  if (goalDisplay) {
+    goalDisplay.textContent = `${laborCostGoalPercent}%`;
+  }
+
+  // Determine the revenue to use for calculations
+  let weeklyRevenue = 0;
+  let hasRevenue = false;
+
+  const customRevVal = analyticsRevenueInput ? parseFloat(analyticsRevenueInput.value.trim()) : NaN;
+  if (!isNaN(customRevVal) && customRevVal >= 0) {
+    weeklyRevenue = customRevVal;
+    hasRevenue = true;
+  } else if (dailyRevenueGoal > 0) {
+    weeklyRevenue = dailyRevenueGoal * 7;
+    hasRevenue = true;
+  }
+
+  if (hasRevenue) {
+    if (weeklyRevenue > 0) {
+      const laborPercent = (totalLaborCost / weeklyRevenue) * 100;
+      analyticsLaborPercent.textContent = `${laborPercent.toFixed(1)}%`;
+      
+      if (laborPercent > laborCostGoalPercent) {
+        analyticsLaborPercent.style.color = 'var(--danger)';
+      } else {
+        analyticsLaborPercent.style.color = 'var(--success)';
+      }
     } else {
-      analyticsLaborPercent.style.color = 'var(--success)';
+      analyticsLaborPercent.textContent = totalLaborCost > 0 ? '--%' : '0.0%';
+      analyticsLaborPercent.style.color = totalLaborCost > 0 ? 'var(--danger)' : 'var(--success)';
     }
     
     const netProfit = weeklyRevenue - totalLaborCost;
-    analyticsNetProfit.textContent = `$${netProfit.toFixed(2)}`;
+    // Format negative numbers gracefully as -$X.XX instead of $-X.XX
+    analyticsNetProfit.textContent = netProfit < 0 ? `-$${Math.abs(netProfit).toFixed(2)}` : `$${netProfit.toFixed(2)}`;
   } else {
     analyticsLaborPercent.textContent = '--%';
     analyticsNetProfit.textContent = '--';

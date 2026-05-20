@@ -275,6 +275,18 @@
               <h1 id="emp-last-week" style="color: var(--text); font-size: 3.5rem;">0.00</h1>
               <p style="color: var(--text-muted);">Hours</p>
             </div>
+            <div
+              style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
+              <h3 style="color: var(--text-muted); margin-bottom: 10px;">Est. Payout</h3>
+              <h1 id="emp-est-pay" style="color: var(--success); font-size: 3.5rem;">$0.00</h1>
+              <p id="emp-est-pay-desc" style="color: var(--text-muted);">Biweekly paycheck</p>
+            </div>
+            <div
+              style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
+              <h3 style="color: var(--text-muted); margin-bottom: 10px;">Next Payday</h3>
+              <h1 id="emp-next-payday" style="color: var(--primary); font-size: 1.8rem; margin: 20px 0; line-height: 1.3;">Friday<br>--/--/--</h1>
+              <p style="color: var(--text-muted);">Biweekly Friday</p>
+            </div>
           </div>
 
           <div id="new-schedule-alert" class="hidden"
@@ -483,9 +495,11 @@
 
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
               <div
-                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
-                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Est. Labor Cost</h4>
-                <h2 id="analytics-labor-cost" style="color: var(--primary);">$0.00</h2>
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h4 style="color: var(--text-muted); margin-bottom: 10px;">Est. Labor Cost</h4>
+                  <h2 id="analytics-labor-cost" style="color: var(--primary);">$0.00</h2>
+                </div>
                 <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; font-size: 0.8rem; color: var(--text-muted); gap: 10px;">
                   <div>
                     <span style="display: block; color: var(--success); font-weight: bold; font-size: 0.95rem; margin-bottom: 3px;" id="analytics-active-labor-cost">$0.00</span>
@@ -498,14 +512,28 @@
                 </div>
               </div>
               <div
-                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
-                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Labor % of Revenue</h4>
-                <h2 id="analytics-labor-percent" style="color: var(--warning);">0%</h2>
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h4 style="color: var(--text-muted); margin-bottom: 10px;">Labor % of Revenue</h4>
+                  <h2 id="analytics-labor-percent" style="color: var(--warning);">0%</h2>
+                </div>
+                <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-size: 0.85rem; color: var(--text-muted); height: 50px;">
+                  <span>Target Labor Goal: <span id="analytics-labor-goal-display" style="font-weight: bold; color: var(--text);">25%</span></span>
+                </div>
               </div>
               <div
-                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center;">
-                <h4 style="color: var(--text-muted); margin-bottom: 10px;">Net Profit (Est.)</h4>
-                <h2 id="analytics-net-profit" style="color: var(--success);">$0.00</h2>
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                  <h4 style="color: var(--text-muted); margin-bottom: 10px;">Net Profit (Est.)</h4>
+                  <h2 id="analytics-net-profit" style="color: var(--success);">$0.00</h2>
+                </div>
+                <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); width: 100%; height: 50px; display: flex; align-items: center; gap: 10px;">
+                  <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                    <span style="position: absolute; left: 10px; color: var(--text-muted); font-size: 0.8rem; pointer-events: none;">$</span>
+                    <input type="number" id="analytics-revenue-input" class="input-field" placeholder="Enter amount made" 
+                      style="margin: 0; padding: 6px 12px 6px 20px; font-size: 0.8rem; border-radius: 6px; width: 100%; outline: none;" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
