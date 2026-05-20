@@ -1335,7 +1335,7 @@ async function loadTimesheets() {
             return;
           }
 
-          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Last Week Total,Biweekly Total\n";
+          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Rate,Est. Weekly Pay ($),Last Week Total,Biweekly Total\n";
           let count = 1;
           rows.forEach(row => {
             const cols = row.querySelectorAll('td');
@@ -1350,7 +1350,7 @@ async function loadTimesheets() {
 
             // Calculate and append Biweekly Total
             const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
-            const lastWeek = parseFloat(rowData[10] ? rowData[10].replace(/"/g, '') : 0) || 0;
+            const lastWeek = parseFloat(rowData[12] ? rowData[12].replace(/"/g, '') : 0) || 0;
             const biweeklyTotalVal = thisWeek + lastWeek;
             
             // Skip if Biweekly Total is 0
@@ -1604,11 +1604,18 @@ async function loadTimesheets() {
 
       const tr = document.createElement('tr');
       const displayName = emp.payroll_name || emp.name;
+      
+      const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : (totalWeekHrsVal * emp.pay_rate).toFixed(2);
+      const rateText = emp.is_salary ? `$${emp.pay_rate.toFixed(2)} (Salary)` : `$${emp.pay_rate.toFixed(2)}/hr`;
+      const estPayText = `$${estWeeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem; color:var(--text-muted)">(Fixed)</span>' : ''}`;
+
       tr.innerHTML = `
         <td>${displayName}</td>
         <td><span style="color: ${statusColor}; font-weight: bold;">${emp.currentStatus}</span></td>
         ${daysStr}
         <td style="font-weight: bold; color: ${totalColor};">${totalWeekHrs}</td>
+        <td style="font-weight: bold; color: var(--success);">${rateText}</td>
+        <td style="font-weight: bold; color: var(--success);">${estPayText}</td>
         <td style="color: var(--text-muted);">${totalLastWeekHrs}</td>
         <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${displayName.replace(/"/g, '&quot;')}" style="padding: 5px 10px; font-size: 0.8rem; cursor: pointer; border-radius: 4px; border: none;">Manage</button></td>
       `;
@@ -1773,9 +1780,11 @@ async function loadTimesheets() {
       pendingTimeoffSection.classList.add('hidden');
     }
 
-    if (managerAnalyticsSection && !managerAnalyticsSection.classList.contains('hidden')) {
+    if (managerAnalyticsSection) {
       calculateAnalytics();
-      initCharts();
+      if (!managerAnalyticsSection.classList.contains('hidden')) {
+        initCharts();
+      }
     }
 
   } catch (err) {
@@ -1907,6 +1916,7 @@ if (btnSaveEmployeeDetails) {
     const payrollName = `${lastName}, ${firstName}`;
     
     try {
+      // First attempt: try to update including is_salary column
       const { error } = await window.supabaseClient.from('users')
         .update({ 
           name: loginName,
@@ -1916,15 +1926,40 @@ if (btnSaveEmployeeDetails) {
         })
         .eq('id', selectedEmployeeForLogs);
         
-      if (error) throw error;
-      showToast('Employee details updated!', 'success');
-      
-      // Update local map
-      if (employeeMap[selectedEmployeeForLogs]) {
-        employeeMap[selectedEmployeeForLogs].name = loginName;
-        employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
-        employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
-        employeeMap[selectedEmployeeForLogs].is_salary = isSalary;
+      if (error) {
+        console.warn("Update with is_salary failed, trying without it...", error);
+        
+        // Second attempt: try to update without is_salary
+        const { error: retryError } = await window.supabaseClient.from('users')
+          .update({ 
+            name: loginName,
+            payroll_name: payrollName,
+            pay_rate: payRate
+          })
+          .eq('id', selectedEmployeeForLogs);
+          
+        if (retryError) throw retryError;
+        
+        showToast('Saved (Salary flag skipped)', 'warning');
+        alert("Employee details updated successfully!\n\nNOTE: The 'Salary' setting could not be saved because the 'is_salary' column does not exist in your Supabase 'users' table.\n\nTo enable the Salary feature, please run this SQL in your Supabase SQL Editor:\nALTER TABLE users ADD COLUMN is_salary BOOLEAN DEFAULT false;");
+        
+        // Update local map (fallback: set is_salary to false since DB doesn't support it)
+        if (employeeMap[selectedEmployeeForLogs]) {
+          employeeMap[selectedEmployeeForLogs].name = loginName;
+          employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
+          employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
+          employeeMap[selectedEmployeeForLogs].is_salary = false;
+        }
+      } else {
+        showToast('Employee details updated!', 'success');
+        
+        // Update local map
+        if (employeeMap[selectedEmployeeForLogs]) {
+          employeeMap[selectedEmployeeForLogs].name = loginName;
+          employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
+          employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
+          employeeMap[selectedEmployeeForLogs].is_salary = isSalary;
+        }
       }
       loadTimesheets();
     } catch (err) {
