@@ -1064,6 +1064,71 @@ function logoutEmployeePortal() {
   employeeUsernameInput.value = '';
   employeePinInput.value = '';
 }
+function calculateEstimatedTaxes(grossPay, taxStatus, isSalary, payPeriod = 26) {
+  if (!grossPay || grossPay <= 0) return 0;
+  // Calculate annualized salary
+  const annualGross = isSalary ? grossPay : (grossPay * payPeriod);
+  
+  // 1. FICA Tax (Social Security 6.2% + Medicare 1.45% = 7.65%)
+  const ficaTaxAnnual = annualGross * 0.0765;
+  
+  // 2. Federal Income Tax (2024 Brackets)
+  let standardDeduction = 14600; // Single or MFS default
+  let brackets = [
+    { limit: 11600, rate: 0.10 },
+    { limit: 47150, rate: 0.12 },
+    { limit: 100525, rate: 0.22 },
+    { limit: 191950, rate: 0.24 },
+    { limit: 243725, rate: 0.32 },
+    { limit: 609350, rate: 0.35 },
+    { limit: Infinity, rate: 0.37 }
+  ];
+
+  if (taxStatus === 'Married Filing Jointly') {
+    standardDeduction = 29200;
+    brackets = [
+      { limit: 23200, rate: 0.10 },
+      { limit: 94300, rate: 0.12 },
+      { limit: 201050, rate: 0.22 },
+      { limit: 383900, rate: 0.24 },
+      { limit: 487450, rate: 0.32 },
+      { limit: 731200, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 }
+    ];
+  } else if (taxStatus === 'Head of Household') {
+    standardDeduction = 21900;
+    brackets = [
+      { limit: 16550, rate: 0.10 },
+      { limit: 63100, rate: 0.12 },
+      { limit: 100500, rate: 0.22 },
+      { limit: 191950, rate: 0.24 },
+      { limit: 243700, rate: 0.32 },
+      { limit: 609350, rate: 0.35 },
+      { limit: Infinity, rate: 0.37 }
+    ];
+  }
+
+  // Calculate taxable income
+  const taxableIncome = Math.max(0, annualGross - standardDeduction);
+  
+  // Calculate federal tax based on brackets
+  let federalTaxAnnual = 0;
+  let previousLimit = 0;
+  for (const bracket of brackets) {
+    if (taxableIncome > previousLimit) {
+      const taxableAmountInBracket = Math.min(taxableIncome - previousLimit, bracket.limit - previousLimit);
+      federalTaxAnnual += taxableAmountInBracket * bracket.rate;
+    } else {
+      break;
+    }
+    previousLimit = bracket.limit;
+  }
+
+  const totalAnnualTax = ficaTaxAnnual + federalTaxAnnual;
+  
+  // Return the tax for the current pay period
+  return isSalary ? totalAnnualTax : (totalAnnualTax / payPeriod);
+}
 
 async function loadEmployeePortal(userId, name) {
   employeePortalWelcome.textContent = `Welcome, ${name}`;
@@ -1121,17 +1186,20 @@ async function loadEmployeePortal(userId, name) {
     // --- EST PAYOUT & PAYDAY CALCULATION ---
     let isSalary = false;
     let payRate = 0;
+    let taxStatus = 'Single';
 
     if (currentPortalEmployee && currentPortalEmployee.id === userId && ('is_salary' in currentPortalEmployee)) {
       isSalary = currentPortalEmployee.is_salary;
       payRate = currentPortalEmployee.pay_rate || 0;
+      taxStatus = currentPortalEmployee.tax_status || 'Single';
     } else {
       try {
         const { data: uData } = await window.supabaseClient.from('users')
-          .select('pay_rate, is_salary').eq('id', userId).single();
+          .select('pay_rate, is_salary, tax_status').eq('id', userId).single();
         if (uData) {
           isSalary = uData.is_salary || false;
           payRate = uData.pay_rate || 0;
+          taxStatus = uData.tax_status || 'Single';
         }
       } catch (e) {
         console.error('Error fetching fallback employee pay rate', e);
@@ -1194,6 +1262,10 @@ async function loadEmployeePortal(userId, name) {
     const breakdownRegular = document.getElementById('breakdown-regular');
     const breakdownOvertime = document.getElementById('breakdown-overtime');
 
+    const breakdownGross = document.getElementById('breakdown-gross');
+    const breakdownTaxes = document.getElementById('breakdown-taxes');
+    const breakdownNet = document.getElementById('breakdown-net');
+
     if (empEstPay) {
       let estPay = 0;
       let regPay = 0;
@@ -1207,15 +1279,27 @@ async function loadEmployeePortal(userId, name) {
         estPay = regPay + otPay;
       }
 
-      empEstPay.textContent = `$${estPay.toFixed(2)}`;
+      const estimatedTaxes = calculateEstimatedTaxes(estPay, taxStatus, isSalary, 26);
+      const netPay = Math.max(0, estPay - estimatedTaxes);
+
+      empEstPay.textContent = `$${netPay.toFixed(2)}`;
       if (empEstPayDesc) {
-        empEstPayDesc.textContent = isSalary ? 'Biweekly salary' : `Biweekly payout ($${payRate.toFixed(2)}/hr)`;
+        empEstPayDesc.textContent = isSalary ? 'Biweekly salary' : `Biweekly payout (Net)`;
       }
       if (breakdownRegular) {
         breakdownRegular.textContent = `${totalRegularHrs.toFixed(2)} hrs`;
       }
       if (breakdownOvertime) {
         breakdownOvertime.textContent = `${totalOvertimeHrs.toFixed(2)} hrs`;
+      }
+      if (breakdownGross) {
+        breakdownGross.textContent = `$${estPay.toFixed(2)}`;
+      }
+      if (breakdownTaxes) {
+        breakdownTaxes.textContent = `-$${estimatedTaxes.toFixed(2)}`;
+      }
+      if (breakdownNet) {
+        breakdownNet.textContent = `$${netPay.toFixed(2)}`;
       }
     }
 
@@ -1458,7 +1542,7 @@ async function loadTimesheets() {
             return;
           }
 
-          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Rate,Est. Weekly Pay ($),Last Week Total,Biweekly Total\n";
+          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total,Biweekly Total\n";
           let count = 1;
           rows.forEach(row => {
             const cols = row.querySelectorAll('td');
@@ -1471,10 +1555,16 @@ async function loadTimesheets() {
               rowData.push(`"${text}"`);
             });
 
-            // Calculate and append Biweekly Total
-            const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
-            const lastWeek = parseFloat(rowData[12] ? rowData[12].replace(/"/g, '') : 0) || 0;
-            const biweeklyTotalVal = thisWeek + lastWeek;
+            // Re-order and calculate taxes
+            const rateCol = rowData[10];
+            const estGrossCol = rowData[11];
+            const lastWeekCol = rowData[12];
+            
+            // Re-build rowData without the original estGross, rate, lastWeek to insert them properly
+            rowData = rowData.slice(0, 10);
+            rowData.push(rateCol);
+            
+            const estGrossPay = parseFloat(estGrossCol ? estGrossCol.replace(/[^0-9.-]+/g, "") : "0") || 0;
             
             const manageBtn = row.querySelector('.btn-manage-logs');
             const empId = manageBtn ? manageBtn.dataset.id : null;
@@ -1486,6 +1576,21 @@ async function loadTimesheets() {
                              (emp && emp.is_salary) || 
                              false;
 
+            const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
+            const estTaxes = calculateEstimatedTaxes(estGrossPay, taxStatus, isSalary, 52); // Weekly is 52 periods
+            const estNetPay = Math.max(0, estGrossPay - estTaxes);
+
+            rowData.push(`"${estGrossPay.toFixed(2)}"`);
+            rowData.push(`"${taxStatus}"`);
+            rowData.push(`"${estTaxes.toFixed(2)}"`);
+            rowData.push(`"${estNetPay.toFixed(2)}"`);
+            rowData.push(lastWeekCol);
+
+            // Calculate and append Biweekly Total
+            const thisWeek = parseFloat(rowData[9] ? rowData[9].replace(/"/g, '') : 0) || 0;
+            const lastWeek = parseFloat(lastWeekCol ? lastWeekCol.replace(/"/g, '') : 0) || 0;
+            const biweeklyTotalVal = thisWeek + lastWeek;
+            
             // Skip if Biweekly Total is 0, unless they are salaried
             if (biweeklyTotalVal === 0 && !isSalary) return;
 
@@ -1524,7 +1629,7 @@ async function loadTimesheets() {
           return;
         }
 
-        let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n`;
+        let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n`;
         let count = 1;
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
@@ -1549,19 +1654,26 @@ async function loadTimesheets() {
 
           let rowData = [`"${count++}"`];
           cols.forEach((col, index) => {
-            if (index >= 4) return; // Skip Actions column
+            if (index >= 4) return; // Skip Actions column and Pay column to do custom extraction
             let text = col.textContent.replace(/(\r\n|\n|\r)/gm, "").trim();
             if (index === 0) text = formatNameLastFirst(text); // Format name
             text = text.replace(/"/g, '""');
             rowData.push(`"${text}"`);
           });
 
-          const totalHrs = parseFloat(cols[3].textContent) || 0;
-          const estPay = isSalary ? payRate.toFixed(2) : (totalHrs * payRate).toFixed(2);
+          const estGrossPayText = cols[4] ? cols[4].textContent.replace(/[^0-9.-]+/g,"") : "0";
+          const estGrossPay = parseFloat(estGrossPayText) || 0;
           
+          const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
+          const estTaxes = calculateEstimatedTaxes(estGrossPay, taxStatus, isSalary, 26);
+          const estNetPay = Math.max(0, estGrossPay - estTaxes);
+
           rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`);
           rowData.push(`"${payRate}"`);
-          rowData.push(`"${estPay}"`);
+          rowData.push(`"${estGrossPay.toFixed(2)}"`);
+          rowData.push(`"${taxStatus}"`);
+          rowData.push(`"${estTaxes.toFixed(2)}"`);
+          rowData.push(`"${estNetPay.toFixed(2)}"`);
 
           csv += rowData.join(",") + "\n";
         });
@@ -1591,7 +1703,7 @@ async function loadTimesheets() {
           return;
         }
 
-        let csv = "#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay\n";
+        let csv = "#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n";
         let count = 1;
         rows.forEach(row => {
           const cols = row.querySelectorAll('td');
@@ -1623,12 +1735,19 @@ async function loadTimesheets() {
             rowData.push(`"${text}"`);
           });
 
-          const totalHrs = parseFloat(cols[6].textContent) || 0;
-          const estPay = isSalary ? payRate.toFixed(2) : (totalHrs * payRate).toFixed(2);
+          const estGrossPayText = cols[7] ? cols[7].textContent.replace(/[^0-9.-]+/g,"") : "0";
+          const estGrossPay = parseFloat(estGrossPayText) || 0;
+          
+          const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
+          const estTaxes = calculateEstimatedTaxes(estGrossPay, taxStatus, isSalary, 12); // Monthly = 12 periods
+          const estNetPay = Math.max(0, estGrossPay - estTaxes);
           
           rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`);
           rowData.push(`"${payRate}"`);
-          rowData.push(`"${estPay}"`);
+          rowData.push(`"${estGrossPay.toFixed(2)}"`);
+          rowData.push(`"${taxStatus}"`);
+          rowData.push(`"${estTaxes.toFixed(2)}"`);
+          rowData.push(`"${estNetPay.toFixed(2)}"`);
 
           csv += rowData.join(",") + "\n";
         });
