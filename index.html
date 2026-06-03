@@ -279,12 +279,29 @@
               style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
               <h3 style="color: var(--text-muted); margin-bottom: 10px;">Est. Payout</h3>
               <h1 id="emp-est-pay" style="color: var(--success); font-size: 3.5rem;">$0.00</h1>
-              <p id="emp-est-pay-desc" style="color: var(--text-muted);">Biweekly paycheck</p>
+              <p id="emp-est-pay-desc" style="color: var(--text-muted); margin-bottom: 10px;">Biweekly paycheck</p>
+              <details
+                style="text-align: left; margin-top: 10px; font-size: 0.85rem; background: var(--bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border);">
+                <summary style="cursor: pointer; color: var(--primary); font-weight: bold; outline: none;">Pay Breakdown
+                </summary>
+                <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 5px; color: var(--text);">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Regular:</span>
+                    <span id="breakdown-regular" style="font-weight: bold;">0 hrs</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Overtime (1.5x):</span>
+                    <span id="breakdown-overtime" style="font-weight: bold; color: var(--warning);">0 hrs</span>
+                  </div>
+                </div>
+              </details>
             </div>
             <div
               style="background: var(--surface); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 250px; text-align: center;">
               <h3 style="color: var(--text-muted); margin-bottom: 10px;">Next Payday</h3>
-              <h1 id="emp-next-payday" style="color: var(--primary); font-size: 1.8rem; margin: 20px 0; line-height: 1.3;">Friday<br>--/--/--</h1>
+              <h1 id="emp-next-payday"
+                style="color: var(--primary); font-size: 1.8rem; margin: 20px 0; line-height: 1.3;">Friday<br>--/--/--
+              </h1>
               <p style="color: var(--text-muted);">Biweekly Friday</p>
             </div>
           </div>
@@ -500,13 +517,18 @@
                   <h4 style="color: var(--text-muted); margin-bottom: 10px;">Est. Labor Cost</h4>
                   <h2 id="analytics-labor-cost" style="color: var(--primary);">$0.00</h2>
                 </div>
-                <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; font-size: 0.8rem; color: var(--text-muted); gap: 10px;">
+                <div
+                  style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; font-size: 0.8rem; color: var(--text-muted); gap: 10px;">
                   <div>
-                    <span style="display: block; color: var(--success); font-weight: bold; font-size: 0.95rem; margin-bottom: 3px;" id="analytics-active-labor-cost">$0.00</span>
+                    <span
+                      style="display: block; color: var(--success); font-weight: bold; font-size: 0.95rem; margin-bottom: 3px;"
+                      id="analytics-active-labor-cost">$0.00</span>
                     Active (Clocked In)
                   </div>
                   <div style="border-left: 1px solid var(--border); padding-left: 10px;">
-                    <span style="display: block; color: var(--text-muted); font-weight: bold; font-size: 0.95rem; margin-bottom: 3px;" id="analytics-completed-labor-cost">$0.00</span>
+                    <span
+                      style="display: block; color: var(--text-muted); font-weight: bold; font-size: 0.95rem; margin-bottom: 3px;"
+                      id="analytics-completed-labor-cost">$0.00</span>
                     Completed (Clocked Out)
                   </div>
                 </div>
@@ -517,8 +539,10 @@
                   <h4 style="color: var(--text-muted); margin-bottom: 10px;">Labor % of Revenue</h4>
                   <h2 id="analytics-labor-percent" style="color: var(--warning);">0%</h2>
                 </div>
-                <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-size: 0.85rem; color: var(--text-muted); height: 50px;">
-                  <span>Target Labor Goal: <span id="analytics-labor-goal-display" style="font-weight: bold; color: var(--text);">25%</span></span>
+                <div
+                  style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: center; align-items: center; font-size: 0.85rem; color: var(--text-muted); height: 50px;">
+                  <span>Target Labor Goal: <span id="analytics-labor-goal-display"
+                      style="font-weight: bold; color: var(--text);">25%</span></span>
                 </div>
               </div>
               <div
@@ -527,10 +551,13 @@
                   <h4 style="color: var(--text-muted); margin-bottom: 10px;">Net Profit (Est.)</h4>
                   <h2 id="analytics-net-profit" style="color: var(--success);">$0.00</h2>
                 </div>
-                <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); width: 100%; height: 50px; display: flex; align-items: center; gap: 10px;">
+                <div
+                  style="margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border); width: 100%; height: 50px; display: flex; align-items: center; gap: 10px;">
                   <div style="position: relative; display: flex; align-items: center; width: 100%;">
-                    <span style="position: absolute; left: 10px; color: var(--text-muted); font-size: 0.8rem; pointer-events: none;">$</span>
-                    <input type="number" id="analytics-revenue-input" class="input-field" placeholder="Enter amount made" 
+                    <span
+                      style="position: absolute; left: 10px; color: var(--text-muted); font-size: 0.8rem; pointer-events: none;">$</span>
+                    <input type="number" id="analytics-revenue-input" class="input-field"
+                      placeholder="Enter amount made"
                       style="margin: 0; padding: 6px 12px 6px 20px; font-size: 0.8rem; border-radius: 6px; width: 100%; outline: none;" />
                   </div>
                 </div>
@@ -717,6 +744,16 @@
                     <label style="font-size: 0.8rem; color: var(--text-muted);">Rate / Salary ($)</label>
                     <input type="number" id="edit-employee-pay-rate" step="0.01" class="input-field"
                       style="padding: 8px; font-size: 0.9rem;" placeholder="0.00" />
+                  </div>
+                  <div style="flex: 0.6;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Tax Filing Status</label>
+                    <select id="edit-employee-tax-status" class="input-field" style="padding: 8px; font-size: 0.9rem;">
+                      <option value="">None</option>
+                      <option value="Single">Single</option>
+                      <option value="Married Filing Jointly">Married Filing Jointly</option>
+                      <option value="Married Filing Separately">Married Filing Separately</option>
+                      <option value="Head of Household">Head of Household</option>
+                    </select>
                   </div>
                   <div
                     style="flex: 0.3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px;">
@@ -974,7 +1011,8 @@
                   <span>📊</span> Export Biweekly CSV
                 </button>
               </div>
-              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the current biweekly pay period (resets Thursday every 2 weeks)</p>
+              <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the
+                current biweekly pay period (resets Thursday every 2 weeks)</p>
               <table class="data-table">
                 <thead>
                   <tr>
@@ -1219,23 +1257,31 @@
           <header class="dash-header" style="justify-content: center; margin-bottom: 30px;">
             <h2>System Settings</h2>
           </header>
-          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 40px 30px; text-align: left; box-shadow: 0 10px 30px var(--shadow-strong); position: relative; overflow: hidden; transition: all 0.3s ease;">
-            <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); z-index: 1;"></div>
-            <h3 style="color: var(--primary); margin-bottom: 10px; font-weight: 800; font-size: 1.3rem;">Display Theme</h3>
+          <div
+            style="background: var(--card); border: 1px solid var(--border); border-radius: 15px; padding: 40px 30px; text-align: left; box-shadow: 0 10px 30px var(--shadow-strong); position: relative; overflow: hidden; transition: all 0.3s ease;">
+            <div
+              style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); z-index: 1;">
+            </div>
+            <h3 style="color: var(--primary); margin-bottom: 10px; font-weight: 800; font-size: 1.3rem;">Display Theme
+            </h3>
             <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">
-              Choose your preferred interface appearance. Switch between Dark Mode for reduced eye strain or Light Mode for a clean, classic look.
+              Choose your preferred interface appearance. Switch between Dark Mode for reduced eye strain or Light Mode
+              for a clean, classic look.
             </p>
             <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px;">
-              <button id="btn-theme-dark" class="btn-action btn-primary" style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.15); border: 2px solid transparent;">
+              <button id="btn-theme-dark" class="btn-action btn-primary"
+                style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.15); border: 2px solid transparent;">
                 <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));">🌙</span>
                 <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">DARK MODE</span>
               </button>
-              <button id="btn-theme-light" class="btn-action btn-ghost" style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text);">
+              <button id="btn-theme-light" class="btn-action btn-ghost"
+                style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text);">
                 <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">☀️</span>
                 <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">LIGHT MODE</span>
               </button>
             </div>
-            <p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 20px; font-weight: 500;">
+            <p
+              style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 20px; font-weight: 500;">
               Preference will be saved locally on this device.
             </p>
           </div>

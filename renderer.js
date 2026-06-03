@@ -1180,13 +1180,42 @@ async function loadEmployeePortal(userId, name) {
     const biweeklyW2Hrs = biweeklyWeek2Ms / (1000 * 60 * 60);
     const totalBiweeklyHrs = biweeklyW1Hrs + biweeklyW2Hrs;
 
+    // Overtime Calculation
+    const regularHrsW1 = Math.min(40, biweeklyW1Hrs);
+    const overtimeHrsW1 = Math.max(0, biweeklyW1Hrs - 40);
+    const regularHrsW2 = Math.min(40, biweeklyW2Hrs);
+    const overtimeHrsW2 = Math.max(0, biweeklyW2Hrs - 40);
+
+    const totalRegularHrs = regularHrsW1 + regularHrsW2;
+    const totalOvertimeHrs = overtimeHrsW1 + overtimeHrsW2;
+
     const empEstPay = document.getElementById('emp-est-pay');
     const empEstPayDesc = document.getElementById('emp-est-pay-desc');
+    const breakdownRegular = document.getElementById('breakdown-regular');
+    const breakdownOvertime = document.getElementById('breakdown-overtime');
+
     if (empEstPay) {
-      const estPay = isSalary ? payRate : (totalBiweeklyHrs * payRate);
+      let estPay = 0;
+      let regPay = 0;
+      let otPay = 0;
+
+      if (isSalary) {
+        estPay = payRate;
+      } else {
+        regPay = totalRegularHrs * payRate;
+        otPay = totalOvertimeHrs * payRate * 1.5;
+        estPay = regPay + otPay;
+      }
+
       empEstPay.textContent = `$${estPay.toFixed(2)}`;
       if (empEstPayDesc) {
         empEstPayDesc.textContent = isSalary ? 'Biweekly salary' : `Biweekly payout ($${payRate.toFixed(2)}/hr)`;
+      }
+      if (breakdownRegular) {
+        breakdownRegular.textContent = `${totalRegularHrs.toFixed(2)} hrs`;
+      }
+      if (breakdownOvertime) {
+        breakdownOvertime.textContent = `${totalOvertimeHrs.toFixed(2)} hrs`;
       }
     }
 
@@ -1730,7 +1759,18 @@ async function loadTimesheets() {
       tr.dataset.payRate = emp.pay_rate;
       const displayName = emp.payroll_name || emp.name;
       
-      const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : (totalWeekHrsVal * emp.pay_rate).toFixed(2);
+      function calculatePayWithOvertime(weeksHrsArray, rate) {
+        let totalPay = 0;
+        for (let hrs of weeksHrsArray) {
+          const regHrs = Math.min(40, hrs);
+          const otHrs = Math.max(0, hrs - 40);
+          totalPay += (regHrs * rate) + (otHrs * rate * 1.5);
+        }
+        return totalPay;
+      }
+
+      const weeklyPayVal = calculatePayWithOvertime([totalWeekHrsVal], emp.pay_rate);
+      const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : weeklyPayVal.toFixed(2);
       const rateText = emp.is_salary ? `$${emp.pay_rate.toFixed(2)} (Salary)` : `$${emp.pay_rate.toFixed(2)}/hr`;
       const estPayText = `$${estWeeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem; color:var(--text-muted)">(Fixed)</span>' : ''}`;
 
@@ -1750,7 +1790,8 @@ async function loadTimesheets() {
         const w1Hrs = (emp.biweeklyWeek1Ms / (1000 * 60 * 60)).toFixed(2);
         const w2Hrs = (emp.biweeklyWeek2Ms / (1000 * 60 * 60)).toFixed(2);
         const biweeklyTotalHrs = (Number(w1Hrs) + Number(w2Hrs)).toFixed(2);
-        const estBiweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (biweeklyTotalHrs * emp.pay_rate).toFixed(2);
+        const biweeklyPayVal = calculatePayWithOvertime([Number(w1Hrs), Number(w2Hrs)], emp.pay_rate);
+        const estBiweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : biweeklyPayVal.toFixed(2);
         const trBiweekly = document.createElement('tr');
         trBiweekly.dataset.id = emp.id;
         trBiweekly.dataset.isSalary = emp.is_salary;
@@ -1772,7 +1813,8 @@ async function loadTimesheets() {
         const week3Hrs = (emp.week3Ms / (1000 * 60 * 60)).toFixed(2);
         const week4Hrs = (emp.week4Ms / (1000 * 60 * 60)).toFixed(2);
         const monthlyTotalHrs = (Number(totalWeekHrs) + Number(totalLastWeekHrs) + Number(week2Hrs) + Number(week3Hrs) + Number(week4Hrs)).toFixed(2);
-        const estMonthlyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : (monthlyTotalHrs * emp.pay_rate).toFixed(2);
+        const monthlyPayVal = calculatePayWithOvertime([Number(totalWeekHrs), Number(totalLastWeekHrs), Number(week2Hrs), Number(week3Hrs), Number(week4Hrs)], emp.pay_rate);
+        const estMonthlyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : monthlyPayVal.toFixed(2);
 
         const trMonthly = document.createElement('tr');
         trMonthly.dataset.id = emp.id;
@@ -2009,10 +2051,12 @@ window.openManageLogs = async (userId, userName) => {
   const editLoginName = document.getElementById('edit-employee-login-name');
   const editPayRate = document.getElementById('edit-employee-pay-rate');
   const editIsSalary = document.getElementById('edit-employee-is-salary');
+  const editTaxStatus = document.getElementById('edit-employee-tax-status');
   
   if (editLoginName) editLoginName.value = emp ? emp.name : '';
   if (editPayRate) editPayRate.value = emp ? emp.pay_rate : '';
   if (editIsSalary) editIsSalary.checked = emp ? emp.is_salary : false;
+  if (editTaxStatus) editTaxStatus.value = emp ? (emp.tax_status || '') : '';
   
   if (emp && emp.payroll_name && emp.payroll_name.includes(', ')) {
     const parts = emp.payroll_name.split(', ');
@@ -2038,6 +2082,7 @@ if (btnSaveEmployeeDetails) {
     const loginName = document.getElementById('edit-employee-login-name').value.trim();
     const payRate = parseFloat(document.getElementById('edit-employee-pay-rate').value) || 0;
     const isSalary = document.getElementById('edit-employee-is-salary').checked;
+    const taxStatus = document.getElementById('edit-employee-tax-status') ? document.getElementById('edit-employee-tax-status').value : null;
     
     if (!firstName || !lastName || !loginName) {
       showToast('All fields are required', 'error');
@@ -2047,20 +2092,23 @@ if (btnSaveEmployeeDetails) {
     const payrollName = `${lastName}, ${firstName}`;
     
     try {
-      // First attempt: try to update including is_salary column
+      // First attempt: try to update including is_salary and tax_status columns
+      const updatePayload = { 
+        name: loginName,
+        payroll_name: payrollName,
+        pay_rate: payRate,
+        is_salary: isSalary
+      };
+      if (taxStatus !== null) updatePayload.tax_status = taxStatus;
+
       const { error } = await window.supabaseClient.from('users')
-        .update({ 
-          name: loginName,
-          payroll_name: payrollName,
-          pay_rate: payRate,
-          is_salary: isSalary
-        })
+        .update(updatePayload)
         .eq('id', selectedEmployeeForLogs);
         
       if (error) {
-        console.warn("Update with is_salary failed, trying without it...", error);
+        console.warn("Update with extra columns failed, trying without them...", error);
         
-        // Second attempt: try to update without is_salary
+        // Second attempt: try to update without is_salary and tax_status
         const { error: retryError } = await window.supabaseClient.from('users')
           .update({ 
             name: loginName,
@@ -2071,15 +2119,16 @@ if (btnSaveEmployeeDetails) {
           
         if (retryError) throw retryError;
         
-        showToast('Saved (Salary flag skipped)', 'warning');
-        alert("Employee details updated successfully!\n\nNOTE: The 'Salary' setting could not be saved because the 'is_salary' column does not exist in your Supabase 'users' table.\n\nTo enable the Salary feature, please run this SQL in your Supabase SQL Editor:\nALTER TABLE users ADD COLUMN is_salary BOOLEAN DEFAULT false;");
+        showToast('Saved (Extra settings skipped)', 'warning');
+        alert("Employee details updated successfully!\n\nNOTE: The 'Salary' or 'Tax Filing Status' settings could not be saved because the columns do not exist in your Supabase 'users' table.\n\nTo enable these features, please run this SQL in your Supabase SQL Editor:\nALTER TABLE users ADD COLUMN is_salary BOOLEAN DEFAULT false;\nALTER TABLE users ADD COLUMN tax_status TEXT;");
         
-        // Update local map (fallback: set is_salary to false since DB doesn't support it)
+        // Update local map (fallback: set is_salary and tax_status to false/null since DB doesn't support it)
         if (employeeMap[selectedEmployeeForLogs]) {
           employeeMap[selectedEmployeeForLogs].name = loginName;
           employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
           employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
           employeeMap[selectedEmployeeForLogs].is_salary = false;
+          employeeMap[selectedEmployeeForLogs].tax_status = null;
         }
       } else {
         showToast('Employee details updated!', 'success');
@@ -2090,6 +2139,7 @@ if (btnSaveEmployeeDetails) {
           employeeMap[selectedEmployeeForLogs].payroll_name = payrollName;
           employeeMap[selectedEmployeeForLogs].pay_rate = payRate;
           employeeMap[selectedEmployeeForLogs].is_salary = isSalary;
+          employeeMap[selectedEmployeeForLogs].tax_status = taxStatus;
         }
       }
       loadTimesheets();
