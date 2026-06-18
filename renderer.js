@@ -1465,20 +1465,40 @@ function parseShiftHours(shiftStr) {
   const parts = s.split('-');
   if (parts.length !== 2) return 0;
 
-  function toDecimal(time) {
-    let [h, m] = time.split(':').map(Number);
+  function toDecimal(timeStr) {
+    let t = timeStr.toLowerCase().replace(/\s+/g, '');
+    let isPM = t.includes('pm') || t.includes('p');
+    let isAM = t.includes('am') || t.includes('a');
+    t = t.replace(/[a-z]/g, ''); // remove all letters
+    
+    let [h, m] = t.split(':').map(Number);
+    if (isNaN(h)) h = 0;
     if (isNaN(m)) m = 0;
-    return h + (m / 60);
+    
+    if (isPM && h !== 12) h += 12;
+    if (isAM && h === 12) h -= 12;
+
+    return { val: h + (m / 60), explicitAmPm: isAM || isPM };
   }
 
   try {
-    let start = toDecimal(parts[0].trim());
-    let end = toDecimal(parts[1].trim());
+    let startObj = toDecimal(parts[0]);
+    let endObj = toDecimal(parts[1]);
 
-    // If end time is same or numerically smaller than start (e.g. 7-7 or 8-5),
-    // assume the end time is in the afternoon (add 12 hours).
-    if (end <= start) {
-      end += 12;
+    let start = startObj.val;
+    let end = endObj.val;
+
+    // If AM/PM was not explicitly provided for the end time
+    if (!endObj.explicitAmPm) {
+      // If end time is numerically smaller or equal to start (e.g. 8-5 -> 5<=8), assume it's in the afternoon
+      if (end <= start) {
+        end += 12;
+      } else if (end > start && (end - start) <= 5 && end <= 11) {
+        // Special case for things like "7-8" (1 hour diff) or "7-9" (2 hour diff).
+        // If the calculated shift is very short (<= 5 hours) and the end time is <= 11,
+        // it's highly likely they meant PM. For example, 7-8 meaning 7 AM to 8 PM (13 hours).
+        end += 12;
+      }
     }
 
     return Math.max(0, end - start);
