@@ -4,10 +4,12 @@
   --bg: #111111;
   --sidebar-bg: #1A1A1A;
   --card: #222222;
+  --surface: #2A2A2A;
   --text: #F4F4F4;
   --text-muted: #A0A0A0;
   --success: #2E7D32;
   --danger: #C62828;
+  --warning: #D4820A;
   --border: #333333;
   --hover-bg: rgba(255, 255, 255, 0.05);
   --shadow-strong: rgba(0, 0, 0, 0.5);
@@ -18,8 +20,12 @@
   --bg: #F4F4F6;
   --sidebar-bg: #FFFFFF;
   --card: #FFFFFF;
+  --surface: #EBEBEF;
   --text: #1C1C1E;
   --text-muted: #6C6C70;
+  --success: #1B5E20;
+  --danger: #B71C1C;
+  --warning: #B45309;
   --border: #E5E5EA;
   --hover-bg: rgba(0, 0, 0, 0.04);
   --shadow-strong: rgba(0, 0, 0, 0.08);
@@ -716,39 +722,6 @@ nav {
     color: var(--primary);
   }
 
-  /* Icons for mobile nav using emoji as placeholders */
-  .nav-btn::before {
-    font-size: 1.4rem;
-    margin-bottom: 2px;
-  }
-
-  #nav-timeclock::before {
-    content: "🕒";
-  }
-
-  #nav-employee::before {
-    content: "👤";
-  }
-
-  #nav-ops::before {
-    content: "📋";
-  }
-
-  #nav-manager::before {
-    content: "🔒";
-  }
-
-  #nav-payroll::before {
-    content: "💰";
-  }
-
-  #nav-schedule::before {
-    content: "📅";
-  }
-
-  #nav-settings::before {
-    content: "⚙️";
-  }
 
   .content {
     margin-bottom: 75px;

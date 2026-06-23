@@ -1,6 +1,6 @@
 import { state } from './modules/utils.js';
 import { init as initTimeclock, resetTimeclockState } from './modules/timeclock.js';
-import { init as initManager, logoutManager, loadTimesheets, completeManagerLogin } from './modules/manager.js';
+import { init as initManager, logoutManager, loadTimesheets } from './modules/manager.js';
 import { init as initEmployee, loadEmployeePortal } from './modules/employee.js';
 import { init as initSchedule, loadSchedules } from './modules/schedule.js';
 import { init as initOps, loadOps } from './modules/ops.js';
