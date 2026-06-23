@@ -56,18 +56,22 @@ export function getStartOfWeek() {
 }
 
 export function getBiweeklyWeeks(date) {
-  const anchor = new Date(2026, 4, 21);
+  // Anchor on Tuesday May 19, 2026 (start of first bi-weekly cycle)
+  const anchor = new Date(2026, 4, 19);
   anchor.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor((date.getTime() - anchor.getTime()) / (24 * 60 * 60 * 1000));
-  const cycleIndex = Math.floor(diffDays / 14);
-  const resetThursday = new Date(anchor.getTime() + cycleIndex * 14 * 24 * 60 * 60 * 1000);
 
-  const week1Start = new Date(resetThursday);
-  week1Start.setDate(resetThursday.getDate() - 1);
+  // Use UTC day arithmetic to avoid DST drift
+  const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const utcAnchor = Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  const diffDays = Math.floor((utcDate - utcAnchor) / (24 * 60 * 60 * 1000));
+  const cycleIndex = Math.floor(diffDays / 14);
+
+  const week1Start = new Date(anchor);
+  week1Start.setDate(anchor.getDate() + cycleIndex * 14);
   week1Start.setHours(0, 0, 0, 0);
 
-  const week2Start = new Date(resetThursday);
-  week2Start.setDate(resetThursday.getDate() + 6);
+  const week2Start = new Date(week1Start);
+  week2Start.setDate(week1Start.getDate() + 7);
   week2Start.setHours(0, 0, 0, 0);
 
   return { week1Start, week2Start };
