@@ -37,9 +37,6 @@ export function logoutManager() {
   state.currentManager = null;
   state.pending2FAUser = null;
 
-  const ids = ['btn-show-post-schedule', 'post-schedule-section', 'manager-dashboard'];
-  const shows = ['btn-schedule-manager-login', 'manager-auth'];
-
   document.getElementById('btn-show-post-schedule')?.classList.add('hidden');
   document.getElementById('post-schedule-section')?.classList.add('hidden');
   document.getElementById('btn-schedule-manager-login')?.classList.remove('hidden');
@@ -510,7 +507,7 @@ async function loadEmployeeLogs() {
       const colors = { IN: 'var(--success)', CLOCK_IN: 'var(--success)', OUT: 'var(--danger)', CLOCK_OUT: 'var(--danger)', START_LUNCH: 'var(--warning)', END_LUNCH: 'var(--primary)', TIMESHEET_APPROVED: '#00BCD4' };
       const color = colors[log.action] || 'var(--text)';
       const editedBy = log.edited_by_manager
-        ? `<span style="font-size:0.8rem;color:var(--warning);">✏️ ${log.edited_by_manager}</span>` : '-';
+        ? `<span style="font-size:0.8rem;color:var(--warning);">[Edited] ${log.edited_by_manager}</span>` : '-';
 
       const tr = document.createElement('tr');
       if (log.photo_base64) {

@@ -79,7 +79,7 @@ export async function loadChecklists() {
   try {
     const { data: checklists, error } = await window.supabaseClient
       .from('checklists')
-      .select('*')
+      .select('id, title, description, role_required, tasks')
       .order('created_at', { ascending: true });
     if (error) throw error;
 
@@ -117,13 +117,13 @@ export async function loadChecklists() {
         editBtn.className = 'btn-edit-checklist';
         editBtn.style = 'background: none; border: none; cursor: pointer; font-size: 1rem;';
         editBtn.title = 'Edit';
-        editBtn.textContent = '✏️';
+        editBtn.textContent = 'Edit';
 
         const delBtn = document.createElement('button');
         delBtn.className = 'btn-delete-checklist';
         delBtn.style = 'background: none; border: none; cursor: pointer; font-size: 1rem;';
         delBtn.title = 'Delete';
-        delBtn.textContent = '🗑️';
+        delBtn.textContent = 'Del';
 
         btnGroup.appendChild(editBtn);
         btnGroup.appendChild(delBtn);
@@ -205,7 +205,7 @@ export async function loadSiteLogs() {
   try {
     const { data: logs, error } = await window.supabaseClient
       .from('site_logs')
-      .select('*')
+      .select('id, type, description, equipment_name, photo_base64, created_at')
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) throw error;

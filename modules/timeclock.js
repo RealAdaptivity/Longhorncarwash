@@ -181,7 +181,7 @@ function initTimesheetSigning() {
         const { getStartOfWeek } = await import('./utils.js');
         const weekStart = getStartOfWeek();
         const { data, error } = await window.supabaseClient.from('time_logs')
-          .select('*').eq('user_id', state.currentUser.id)
+          .select('id, user_id, action, created_at, edited_by_manager').eq('user_id', state.currentUser.id)
           .gte('created_at', weekStart.toISOString())
           .order('created_at', { ascending: true });
 
@@ -234,7 +234,7 @@ function initTimesheetSigning() {
         showToast('Failed to sign timesheet.', 'error');
       } finally {
         btnApproveSign.disabled = false;
-        btnApproveSign.innerHTML = '<span>✍️</span> Digitally Sign & Approve';
+        btnApproveSign.textContent = 'Digitally Sign & Approve';
       }
     });
   }
@@ -294,6 +294,13 @@ export function init() {
 
         if (error || !data) {
           showToast('Invalid PIN', 'error');
+          state.currentPin = '';
+          if (pinDisplay) pinDisplay.value = '';
+          return;
+        }
+
+        if (!data.is_approved) {
+          showToast('Account not approved. Contact a manager.', 'error');
           state.currentPin = '';
           if (pinDisplay) pinDisplay.value = '';
           return;
@@ -432,7 +439,7 @@ export function init() {
       if (uErr || !users) return;
       for (const u of users) {
         const { data: latestLog, error: logErr } = await window.supabaseClient.from('time_logs')
-          .select('*').eq('user_id', u.id).order('created_at', { ascending: false }).limit(1);
+          .select('action, created_at').eq('user_id', u.id).order('created_at', { ascending: false }).limit(1);
         if (!logErr && latestLog && latestLog.length > 0) {
           const log = latestLog[0];
           if (log.action === 'IN' || log.action === 'START_LUNCH') {

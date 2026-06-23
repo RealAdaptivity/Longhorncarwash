@@ -10,7 +10,7 @@ export async function loadEmployeePortal(userId, name) {
 
   try {
     const { data: logsData, error } = await window.supabaseClient.from('time_logs')
-      .select('*').eq('user_id', userId).order('created_at', { ascending: true });
+      .select('id, user_id, action, created_at').eq('user_id', userId).order('created_at', { ascending: true });
     if (error) throw error;
 
     const startOfWeek = getStartOfWeek().getTime();
@@ -109,13 +109,22 @@ export async function loadEmployeePortal(userId, name) {
     // Time off requests
     if (empTimeoffBody) {
       const { data: timeoffs, error: toError } = await window.supabaseClient.from('time_off_requests')
-        .select('*').eq('user_id', userId).order('created_at', { ascending: false });
+        .select('id, start_date, end_date, reason, status').eq('user_id', userId).order('created_at', { ascending: false });
       if (!toError && timeoffs) {
         empTimeoffBody.innerHTML = '';
         timeoffs.forEach(req => {
           const colors = { Approved: 'var(--success)', Denied: 'var(--danger)', Pending: 'var(--warning)' };
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${req.start_date} to ${req.end_date}</td><td>${req.reason}</td><td style="color:${colors[req.status] || 'var(--text-muted)'};font-weight:bold;">${req.status}</td>`;
+          const td1 = document.createElement('td');
+          td1.textContent = `${req.start_date} to ${req.end_date}`;
+          const td2 = document.createElement('td');
+          td2.textContent = req.reason;
+          const td3 = document.createElement('td');
+          td3.style.cssText = `color:${colors[req.status] || 'var(--text-muted)'};font-weight:bold;`;
+          td3.textContent = req.status;
+          tr.appendChild(td1);
+          tr.appendChild(td2);
+          tr.appendChild(td3);
           empTimeoffBody.appendChild(tr);
         });
       }
@@ -125,7 +134,7 @@ export async function loadEmployeePortal(userId, name) {
     const empChecklistsContainer = document.getElementById('emp-checklists-container');
     if (empChecklistsContainer) {
       try {
-        const { data: checklists, error: checkError } = await window.supabaseClient.from('checklists').select('*').order('created_at', { ascending: true });
+        const { data: checklists, error: checkError } = await window.supabaseClient.from('checklists').select('id, title, description, role_required, tasks').order('created_at', { ascending: true });
         if (!checkError && checklists) {
           empChecklistsContainer.innerHTML = '';
           const myChecklists = checklists.filter(c => c.role_required === 'Employee');
@@ -163,7 +172,7 @@ export async function loadMySchedule() {
 
   try {
     const { data: schedules, error } = await window.supabaseClient.from('schedules')
-      .select('*').order('created_at', { ascending: false }).limit(10);
+      .select('id, content, created_at').order('created_at', { ascending: false }).limit(10);
 
     if (error || !schedules || schedules.length === 0) {
       if (empScheduleSection) empScheduleSection.classList.add('hidden');
