@@ -104,11 +104,13 @@ export async function logTime(action, tips = 0) {
       }
     }
 
-    await checkLocation();
+    const location = await checkLocation();
 
     if (!navigator.onLine) {
       const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
-      offlineLogs.push({ user_id: state.currentUser.id, action, created_at: new Date().toISOString() });
+      const offlineEntry = { user_id: state.currentUser.id, action, created_at: new Date().toISOString() };
+      if (location) { offlineEntry.punch_lat = location.lat; offlineEntry.punch_lon = location.lon; offlineEntry.punch_accuracy = location.accuracy; }
+      offlineLogs.push(offlineEntry);
       localStorage.setItem('offlineLogs', JSON.stringify(offlineLogs));
       showToast(`Offline: Saved ${action.replace('_', ' ')} locally.`);
       resetTimeclockState();
@@ -118,6 +120,7 @@ export async function logTime(action, tips = 0) {
     const photoData = capturePhoto();
     const payload = { user_id: state.currentUser.id, action };
     if (photoData) payload.photo_base64 = photoData;
+    if (location) { payload.punch_lat = location.lat; payload.punch_lon = location.lon; payload.punch_accuracy = location.accuracy; }
     if (action === 'OUT' && tips > 0) payload.tips_declared = tips;
 
     const { error } = await window.supabaseClient.from('time_logs').insert([payload]);
@@ -181,7 +184,7 @@ function initTimesheetSigning() {
         const { getStartOfWeek } = await import('./utils.js');
         const weekStart = getStartOfWeek();
         const { data, error } = await window.supabaseClient.from('time_logs')
-          .select('id, user_id, action, created_at, edited_by_manager').eq('user_id', state.currentUser.id)
+          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id)
           .gte('created_at', weekStart.toISOString())
           .order('created_at', { ascending: true });
 

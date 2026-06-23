@@ -169,7 +169,7 @@ export function getDistanceInMeters(lat1, lon1, lat2, lon2) {
 
 export function checkLocation() {
   return new Promise((resolve, reject) => {
-    if (!state.GEOFENCE_ENABLED) { resolve(true); return; }
+    if (!state.GEOFENCE_ENABLED) { resolve(null); return; }
     if (!navigator.geolocation) {
       reject(new Error('Geolocation is not supported by your browser.'));
       return;
@@ -177,12 +177,15 @@ export function checkLocation() {
     showToast('Verifying your location...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const dist = getDistanceInMeters(
-          state.CAR_WASH_LAT, state.CAR_WASH_LON,
-          position.coords.latitude, position.coords.longitude
-        );
+        const { latitude, longitude, accuracy } = position.coords;
+        if (accuracy > state.ALLOWED_RADIUS_METERS) {
+          const accFt = Math.round(accuracy * 3.28084);
+          reject(new Error(`GPS signal too weak to verify location (accuracy: ~${accFt} ft). Step outside and try again.`));
+          return;
+        }
+        const dist = getDistanceInMeters(state.CAR_WASH_LAT, state.CAR_WASH_LON, latitude, longitude);
         if (dist <= state.ALLOWED_RADIUS_METERS) {
-          resolve(true);
+          resolve({ lat: latitude, lon: longitude, accuracy });
         } else {
           const feetAway = Math.round(dist * 3.28084);
           reject(new Error(`You are too far away! (${feetAway} feet from the site)`));
@@ -192,7 +195,7 @@ export function checkLocation() {
         const msgs = { 1: 'Please allow location access to clock in.', 2: 'Location unavailable (GPS signal lost).', 3: 'Location request timed out.' };
         reject(new Error(msgs[error.code] || 'Could not get location.'));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   });
 }
