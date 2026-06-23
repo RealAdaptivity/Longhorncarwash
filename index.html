@@ -105,28 +105,24 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
               <button id="btn-clock-in" class="btn-action btn-success"
                 style="margin:0; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);">
-                <span style="font-size: 2rem; margin-bottom: 8px;">📥</span>
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK IN</span>
               </button>
               <button id="btn-clock-out" class="btn-action btn-danger"
                 style="margin:0; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(198, 40, 40, 0.2);">
-                <span style="font-size: 2rem; margin-bottom: 8px;">📤</span>
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK OUT</span>
               </button>
               <button id="btn-start-lunch" class="btn-action"
                 style="margin:0; background: #FFB300; color: #111; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255, 179, 0, 0.2);">
-                <span style="font-size: 2rem; margin-bottom: 8px;">🍔</span>
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">START LUNCH</span>
               </button>
               <button id="btn-end-lunch" class="btn-action"
                 style="margin:0; background: var(--primary); color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.2);">
-                <span style="font-size: 2rem; margin-bottom: 8px;">💼</span>
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">END LUNCH</span>
               </button>
             </div>
             <button id="btn-show-sign-timesheet" class="btn-action"
               style="margin: 0 0 10px 0; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <span style="font-size: 1.2rem;">✍️</span> Review & Sign Timesheet
+              Review & Sign Timesheet
             </button>
             <button id="btn-cancel-action" class="btn-action btn-ghost" style="margin:0;">Cancel / Go Back</button>
           </div>
@@ -223,7 +219,7 @@
               <button id="btn-cancel-sign" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
               <button id="btn-approve-sign" class="btn-success"
                 style="padding: 10px 20px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
-                <span>✍️</span> Digitally Sign & Approve
+                Digitally Sign & Approve
               </button>
             </div>
           </div>
@@ -232,7 +228,7 @@
         <!-- Manager Announcement Modal (Timeclock) -->
         <div id="modal-announcement" class="modal hidden">
           <div class="modal-content" style="width: 450px; text-align: center; border: 2px solid var(--primary);">
-            <h2 style="color: var(--primary); margin-bottom: 15px;">📢 Notice Board</h2>
+            <h2 style="color: var(--primary); margin-bottom: 15px;">Notice Board</h2>
             <p id="announcement-text"
               style="font-size: 1.2rem; line-height: 1.5; margin-bottom: 25px; color: var(--text);"></p>
             <button id="btn-acknowledge-announcement" class="btn-success btn-action" style="margin: 0;">I
@@ -322,7 +318,7 @@
 
           <div id="new-schedule-alert" class="hidden"
             style="max-width: 600px; margin: 0 auto 20px auto; background: var(--primary); color: white; padding: 15px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.4);">
-            <span>🔔</span> New Schedule Posted! Tap to sync to your phone.
+            New Schedule Posted! Tap to sync to your phone.
           </div>
 
           <div id="emp-checklists-section" style="margin-bottom: 40px; text-align: center;">
@@ -343,7 +339,7 @@
                 <h3 id="emp-schedule-week" style="color: var(--primary); margin: 0;">Your Weekly Schedule</h3>
                 <button id="btn-sync-calendar" class="btn-ghost"
                   style="padding: 5px 15px; font-size: 0.9rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
-                  <span>📅</span> Add to Calendar
+                  Add to Calendar
                 </button>
               </div>
               <div id="emp-schedule-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">
@@ -461,7 +457,7 @@
               <button id="btn-edit-payroll-format" class="btn-ghost"
                 style="padding: 10px 15px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;"
                 title="Edit Payroll Format">
-                <span>⚙️</span> Edit Format
+                Edit Format
               </button>
               <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
             </div>
@@ -479,23 +475,23 @@
               <div class="action-label">Pending Approvals</div>
             </div>
             <div id="btn-show-security" class="action-card">
-              <div class="action-icon">🔒</div>
+              <div class="action-icon">SEC</div>
               <div class="action-label">Security Settings</div>
             </div>
             <div class="action-card" id="overtime-alert-card" style="border: 1px solid var(--warning);">
               <div id="overtime-badge" class="badge hidden" style="background: var(--danger);">0</div>
-              <div class="action-icon" style="color: var(--danger);">⚠️</div>
+              <div class="action-icon" style="color: var(--danger);">!</div>
               <div class="action-label" style="color: var(--danger); font-weight: bold;">Overtime Risk</div>
             </div>
             <div id="weather-card" class="action-card"
               style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
-              <div id="weather-icon" class="action-icon">☀️</div>
+              <div id="weather-icon" class="action-icon">--</div>
               <div id="weather-temp" class="action-label" style="font-size: 1.2rem; font-weight: 800;">--°F</div>
               <div id="weather-desc" style="font-size: 0.8rem; opacity: 0.9;">Loading weather...</div>
             </div>
             <div id="btn-show-analytics" class="action-card"
               style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white;">
-              <div class="action-icon">📊</div>
+              <div class="action-icon">Stats</div>
               <div class="action-label">Business Insights</div>
             </div>
           </div>
@@ -622,7 +618,7 @@
                   </div>
                 </div>
                 <button id="btn-get-current-location" class="btn-ghost"
-                  style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px; cursor: pointer; display: flex; align-items: center; gap: 5px;">📍
+                  style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; margin-bottom: 15px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                   Use My Current Location</button>
 
                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -697,7 +693,7 @@
                   style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Tue – Mon)</span></h3>
               <button id="btn-export-csv" class="btn-ghost"
                 style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                <span>📊</span> Export Weekly CSV
+                Export Weekly CSV
               </button>
             </div>
             <table class="data-table">
@@ -1023,7 +1019,7 @@
                 <h3 style="color: var(--primary); margin: 0;">Biweekly Payroll History</h3>
                 <button id="btn-export-biweekly" class="btn-ghost"
                   style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                  <span>📊</span> Export Biweekly CSV
+                  Export Biweekly CSV
                 </button>
               </div>
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the
@@ -1051,7 +1047,7 @@
                 <h3 style="color: var(--primary); margin: 0;">Monthly Payroll Archive (Past 4 Weeks)</h3>
                 <button id="btn-export-monthly" class="btn-ghost"
                   style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                  <span>📊</span> Export Monthly CSV
+                  Export Monthly CSV
                 </button>
               </div>
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4
@@ -1087,7 +1083,7 @@
             <div style="display: flex; gap: 10px;">
               <button id="btn-print-schedule" class="btn-ghost"
                 style="padding: 10px 20px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
-                <span>🖨️</span> Print Schedule
+                Print Schedule
               </button>
               <button id="btn-show-post-schedule" class="btn-primary hidden"
                 style="padding: 10px 20px; border-radius: 8px;">Post Schedule</button>
@@ -1206,11 +1202,9 @@
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
                 <button id="btn-show-maintenance-form" class="btn-action" style="background: #fb8c00; color: white;">
-                  <span style="font-size: 1.5rem; margin-bottom: 5px;">🔧</span>
                   Maintenance Issue
                 </button>
                 <button id="btn-show-incident-form" class="btn-action" style="background: #e53935; color: white;">
-                  <span style="font-size: 1.5rem; margin-bottom: 5px;">⚠️</span>
                   Customer Incident
                 </button>
               </div>
@@ -1286,12 +1280,10 @@
             <div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 10px;">
               <button id="btn-theme-dark" class="btn-action btn-primary"
                 style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.15); border: 2px solid transparent;">
-                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));">🌙</span>
                 <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">DARK MODE</span>
               </button>
               <button id="btn-theme-light" class="btn-action btn-ghost"
                 style="flex: 1; padding: 20px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin: 0; height: 110px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text);">
-                <span style="font-size: 2.2rem; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.1));">☀️</span>
                 <span style="font-size: 0.95rem; font-weight: bold; letter-spacing: 0.5px;">LIGHT MODE</span>
               </button>
             </div>
@@ -1406,7 +1398,7 @@
       <!-- AI Assistant FAB -->
       <div id="ai-fab" class="hidden"
         style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #8e44ad; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 4px 15px rgba(142, 68, 173, 0.4); z-index: 1000; transition: transform 0.2s;">
-        ✨
+        AI
       </div>
 
       <!-- AI Assistant Chat Panel -->
@@ -1414,9 +1406,9 @@
         style="position: fixed; bottom: 100px; right: 30px; width: 350px; height: 500px; background: var(--card); border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; display: flex; flex-direction: column; overflow: hidden;">
         <div
           style="background: #8e44ad; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-          <span>✨ AI Assistant</span>
+          <span>AI Assistant</span>
           <button id="btn-close-ai"
-            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">✖</button>
+            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">X</button>
         </div>
         <div id="ai-chat-history"
           style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
@@ -1431,17 +1423,17 @@
           <span id="ai-image-preview-name"
             style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
           <button id="btn-remove-ai-image"
-            style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem;">✖</button>
+            style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem;">X</button>
         </div>
         <div style="padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
           <input type="file" id="ai-chat-file" accept="image/*" style="display: none;" />
           <button id="btn-upload-ai" class="btn-ghost"
             style="padding: 5px; font-size: 1.2rem; cursor: pointer; border: none; color: var(--text-muted); background: none;"
-            title="Upload Image">📷</button>
+            title="Upload Image">Img</button>
           <input type="text" id="ai-chat-input" class="input-field" placeholder="Ask AI..."
             style="margin: 0; flex: 1; font-size: 0.9rem;" />
           <button id="btn-send-ai" class="btn-primary"
-            style="background: #8e44ad; padding: 0 15px; border-radius: 8px; border: none; cursor: pointer; color: white;">➤</button>
+            style="background: #8e44ad; padding: 0 15px; border-radius: 8px; border: none; cursor: pointer; color: white;">Send</button>
         </div>
       </div>
     </main>
