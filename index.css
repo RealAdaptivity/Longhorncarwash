@@ -404,6 +404,124 @@ nav {
   font-size: 0.85rem;
 }
 
+/* SCHEDULE RESPONSIVE */
+#view-schedule .view-inner {
+  width: 100%;
+}
+
+.sched-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-full-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.schedule-full-table .sched-emp-cell {
+  width: 160px;
+  min-width: 140px;
+}
+
+.schedule-full-table .sched-day-header,
+.schedule-full-table .sched-shift-cell {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-full-table .sched-total-cell {
+  text-align: center;
+  font-weight: bold;
+  background: rgba(169, 59, 47, 0.05);
+  width: 60px;
+}
+
+.sched-off {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Mobile cards — hidden on desktop */
+.schedule-mobile-cards {
+  display: none;
+}
+
+.sched-emp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.sched-emp-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(169, 59, 47, 0.08);
+  border-bottom: 1px solid var(--border);
+}
+
+.sched-emp-total-badge {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--primary);
+  background: rgba(169, 59, 47, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.sched-card-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+
+.sched-card-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-right: 1px solid var(--border);
+  font-size: 0.75rem;
+  gap: 4px;
+}
+
+.sched-card-day:last-child {
+  border-right: none;
+}
+
+.sched-card-day-label {
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.sched-card-shift {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.7rem;
+  text-align: center;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.sched-card-day.sched-off .sched-card-shift {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* MODAL */
 .modal {
   position: absolute;
@@ -660,6 +778,15 @@ nav {
   }
 
   .mobile-only {
+    display: block !important;
+  }
+
+  /* Schedule: swap table for cards on mobile */
+  .schedule-desktop-table {
+    display: none !important;
+  }
+
+  .schedule-mobile-cards {
     display: block !important;
   }
 

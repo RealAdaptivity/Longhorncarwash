@@ -56,40 +56,67 @@ export async function loadSchedules() {
       const div = document.createElement('div');
       div.id = `schedule-card-${sched.id}`;
       div.className = 'schedule-card' + (index === data.length - 1 ? '' : ' hidden');
-      div.style.cssText = 'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);overflow-x:auto;margin-bottom:20px;';
+      div.style.cssText = 'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
 
       const time = new Date(sched.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
       let contentHtml = '';
       if (parsed) {
         try {
-          const headersHtml = parsed.headers.map(h => `<th>${h}</th>`).join('');
-          const rowsHtml = parsed.rows.map(r => {
-            const hasShifts = r.shifts.some(s => s && s !== '-' && s.trim() !== '');
-            if (!hasShifts) return '';
+          const headersHtml = parsed.headers.map(h => `<th class="sched-day-header">${h}</th>`).join('');
+          const activeRows = parsed.rows.filter(r => r.shifts.some(s => s && s !== '-' && s.trim() !== ''));
 
+          const rowsHtml = activeRows.map(r => {
             let rowTotal = 0;
-            const cellsHtml = r.shifts.map(s => { rowTotal += parseShiftHours(s); return `<td style="text-align:center;">${s}</td>`; }).join('');
-
+            const cellsHtml = r.shifts.map(s => {
+              rowTotal += parseShiftHours(s);
+              const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
+              return `<td class="sched-shift-cell${isOff ? ' sched-off' : ''}">${s || '-'}</td>`;
+            }).join('');
             const rowDataEncoded = encodeURIComponent(JSON.stringify({ employee: r.employee, shifts: r.shifts, weekRange: parsed.weekRange, headers: parsed.headers }));
-
             const swapBtn = (state.currentPortalEmployee && r.employee.toLowerCase().includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0]))
               ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:2px 5px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>` : '';
-
             return `<tr>
-              <td><div style="display:flex;align-items:center;justify-content:space-between;"><strong>${r.employee}</strong>
-              <div style="display:flex;gap:5px;align-items:center;">
-                <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1.1rem;padding:2px;" title="Add to Calendar">📅</button>
+              <td class="sched-emp-cell"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px;"><strong>${r.employee}</strong>
+              <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
+                <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
                 ${swapBtn}
               </div></div></td>
               ${cellsHtml}
-              <td style="text-align:center;font-weight:bold;background:rgba(169,59,47,0.05);">${rowTotal.toFixed(1)}</td>
+              <td class="sched-total-cell">${rowTotal.toFixed(1)}</td>
             </tr>`;
           }).join('');
 
+          // Mobile cards — one per employee
+          const cardsHtml = activeRows.map(r => {
+            let rowTotal = 0;
+            const shiftItems = r.shifts.map((s, i) => {
+              rowTotal += parseShiftHours(s);
+              const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
+              return `<div class="sched-card-day${isOff ? ' sched-off' : ''}">
+                <span class="sched-card-day-label">${parsed.headers[i] || ''}</span>
+                <span class="sched-card-shift">${s || '-'}</span>
+              </div>`;
+            }).join('');
+            const rowDataEncoded = encodeURIComponent(JSON.stringify({ employee: r.employee, shifts: r.shifts, weekRange: parsed.weekRange, headers: parsed.headers }));
+            const swapBtn = (state.currentPortalEmployee && r.employee.toLowerCase().includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0]))
+              ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.75rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>` : '';
+            return `<div class="sched-emp-card">
+              <div class="sched-emp-card-header">
+                <strong>${r.employee}</strong>
+                <div style="display:flex;gap:6px;align-items:center;">
+                  <span class="sched-emp-total-badge">${rowTotal.toFixed(1)} hrs</span>
+                  <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
+                  ${swapBtn}
+                </div>
+              </div>
+              <div class="sched-card-days">${shiftItems}</div>
+            </div>`;
+          }).join('');
+
           contentHtml = `<h4 style="margin-bottom:15px;color:var(--primary);">${parsed.weekRange || 'Weekly Schedule'}</h4>
-            <table class="data-table" style="min-width:800px;"><thead><tr><th>Employee</th>${headersHtml}<th>Total</th></tr></thead>
-            <tbody>${rowsHtml}</tbody></table>`;
+            <div class="schedule-desktop-table"><div class="sched-table-scroll"><table class="data-table schedule-full-table"><thead><tr><th>Employee</th>${headersHtml}<th>Total</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>
+            <div class="schedule-mobile-cards">${cardsHtml}</div>`;
         } catch (e) {
           contentHtml = `<div style="white-space:pre-wrap;line-height:1.5;">${sched.content}</div>`;
         }
