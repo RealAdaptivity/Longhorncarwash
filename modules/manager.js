@@ -53,7 +53,7 @@ export function logoutManager() {
 
 async function attemptManagerLogin(username, password) {
   const { data: rawData, error } = await window.supabaseClient
-    .from('users').select('*')
+    .from('users').select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
     .eq('name', username).eq('password', password)
     .eq('role', 'Manager').eq('is_approved', true)
     .not('password', 'is', null).limit(1);
@@ -68,8 +68,11 @@ async function attemptManagerLogin(username, password) {
 // --- Load Timesheets (main data fetch) ---
 export async function loadTimesheets() {
   try {
-    const { data: usersData, error: usersError } = await window.supabaseClient.from('users').select('*');
-    const { data: logsData, error: logsError } = await window.supabaseClient.from('time_logs').select('*').order('created_at', { ascending: true });
+    const { data: usersData, error: usersError } = await window.supabaseClient
+      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved');
+    const { data: logsData, error: logsError } = await window.supabaseClient
+      .from('time_logs').select('id, user_id, action, created_at, edited_by_manager, photo_base64')
+      .order('created_at', { ascending: true });
 
     if (usersError || logsError) throw new Error('Failed to fetch timesheet data');
 
@@ -315,7 +318,7 @@ export async function loadTimesheets() {
 
     // Time off requests
     const { data: timeoffData, error: timeoffError } = await window.supabaseClient
-      .from('time_off_requests').select('*').eq('status', 'Pending');
+      .from('time_off_requests').select('id, user_id, start_date, end_date, reason, status, created_at').eq('status', 'Pending');
     const managerTimeoffBody = document.getElementById('manager-timeoff-body');
     const pendingTimeoffSection = document.getElementById('pending-timeoff-section');
     if (managerTimeoffBody) {
@@ -496,7 +499,8 @@ async function loadEmployeeLogs() {
   if (!state.selectedEmployeeForLogs || !manageLogsBody) return;
   try {
     const { data, error } = await window.supabaseClient.from('time_logs')
-      .select('*').eq('user_id', state.selectedEmployeeForLogs)
+      .select('id, user_id, action, created_at, edited_by_manager, photo_base64')
+      .eq('user_id', state.selectedEmployeeForLogs)
       .order('created_at', { ascending: false });
     if (error) throw error;
 
@@ -1024,8 +1028,10 @@ export function init() {
     btnDownloadPayroll.addEventListener('click', async () => {
       try {
         showToast('Generating Payroll CSV...');
-        const { data: usersData, error: uErr } = await window.supabaseClient.from('users').select('*');
-        const { data: logsData, error: lErr } = await window.supabaseClient.from('time_logs').select('*').order('created_at', { ascending: true });
+        const { data: usersData, error: uErr } = await window.supabaseClient
+          .from('users').select('id, name, is_salary');
+        const { data: logsData, error: lErr } = await window.supabaseClient
+          .from('time_logs').select('user_id, action, created_at').order('created_at', { ascending: true });
         if (uErr || lErr) throw new Error('Fetch failed');
 
         const startOfWeek = getStartOfWeek().getTime();

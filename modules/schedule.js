@@ -17,7 +17,7 @@ export async function loadSchedules() {
             const year = new Date(sched.created_at).getFullYear();
             return new Date(year, parseInt(match[1]) - 1, parseInt(match[2]));
           }
-        } catch (e) {}
+        } catch (e) { console.error('Failed to parse schedule date for sort:', e); }
         return new Date(sched.created_at);
       }
       return getStart(a) - getStart(b);
@@ -131,7 +131,7 @@ window.downloadCalendar = function downloadCalendar(encodedData) {
         const p = new Date(`${startPart}, ${year}`);
         if (!isNaN(p.getTime())) baseDate = p;
       }
-    } catch (e) {}
+    } catch (e) { console.error('Failed to parse week range for calendar:', e); }
 
     let icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Longhorn Car Wash//Timeclock//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
 
@@ -259,7 +259,7 @@ async function sendAiMessage(message) {
           }
         });
         aiText = aiText.replace(/```json\n[\s\S]*?\n```/, "✅ I've populated the schedule editor for you.");
-      } catch (e) {}
+      } catch (e) { console.error('Failed to parse AI schedule JSON:', e); }
     }
 
     typingMsg.innerHTML = aiText.replace(/\n/g, '<br>');
@@ -330,7 +330,7 @@ export function init() {
           d.setDate(startDate.getDate() + idx);
           inp.value = `${['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'][idx]} ${d.getMonth() + 1}/${d.getDate()}`;
         });
-      } catch (e) {}
+      } catch (e) { console.error('Failed to auto-fill schedule date headers:', e); }
     });
   }
 
