@@ -29,8 +29,6 @@ const managerDashboard = document.getElementById('manager-dashboard');
 const payrollAuth = document.getElementById('payroll-auth');
 const payrollDashboard = document.getElementById('payroll-dashboard');
 
-const aiFab = document.getElementById('ai-fab');
-
 function logoutEmployeePortal() {
   state.currentPortalEmployee = null;
   const employeeAuth = document.getElementById('employee-auth');
@@ -40,10 +38,6 @@ function logoutEmployeePortal() {
 }
 
 export function switchView(view) {
-  if (aiFab) {
-    aiFab.classList.toggle('hidden', view !== 'manager' && view !== 'schedule');
-  }
-
   const allViews = [viewTimeclock, viewManager, viewEmployee, viewPayroll, viewSchedule, viewOps, viewSettings];
   const allNavs = [navTimeclock, navManager, navEmployee, navPayroll, navSchedule, navOps, navSettings];
 

@@ -1395,47 +1395,6 @@
         </div>
       </div>
 
-      <!-- AI Assistant FAB -->
-      <div id="ai-fab" class="hidden"
-        style="position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #8e44ad; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: pointer; box-shadow: 0 4px 15px rgba(142, 68, 173, 0.4); z-index: 1000; transition: transform 0.2s;">
-        AI
-      </div>
-
-      <!-- AI Assistant Chat Panel -->
-      <div id="ai-chat-panel" class="hidden"
-        style="position: fixed; bottom: 100px; right: 30px; width: 350px; height: 500px; background: var(--card); border: 1px solid var(--border); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; display: flex; flex-direction: column; overflow: hidden;">
-        <div
-          style="background: #8e44ad; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-          <span>AI Assistant</span>
-          <button id="btn-close-ai"
-            style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">X</button>
-        </div>
-        <div id="ai-chat-history"
-          style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
-          <div
-            style="background: rgba(142, 68, 173, 0.1); border: 1px solid rgba(142, 68, 173, 0.3); padding: 10px; border-radius: 10px; color: var(--text); align-self: flex-start; max-width: 85%;">
-            Hello! I can help you build schedules, analyze hours, or answer questions. Try asking: "Build a schedule for
-            this week".
-          </div>
-        </div>
-        <div id="ai-image-preview-container" class="hidden"
-          style="padding: 5px 15px; background: rgba(0,0,0,0.2); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
-          <span id="ai-image-preview-name"
-            style="font-size: 0.8rem; color: var(--text-muted); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
-          <button id="btn-remove-ai-image"
-            style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem;">X</button>
-        </div>
-        <div style="padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center;">
-          <input type="file" id="ai-chat-file" accept="image/*" style="display: none;" />
-          <button id="btn-upload-ai" class="btn-ghost"
-            style="padding: 5px; font-size: 1.2rem; cursor: pointer; border: none; color: var(--text-muted); background: none;"
-            title="Upload Image">Img</button>
-          <input type="text" id="ai-chat-input" class="input-field" placeholder="Ask AI..."
-            style="margin: 0; flex: 1; font-size: 0.9rem;" />
-          <button id="btn-send-ai" class="btn-primary"
-            style="background: #8e44ad; padding: 0 15px; border-radius: 8px; border: none; cursor: pointer; color: white;">Send</button>
-        </div>
-      </div>
     </main>
   </div>
 

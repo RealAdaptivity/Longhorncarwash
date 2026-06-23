@@ -39,10 +39,6 @@ const setup2FAPin = document.getElementById('setup-2fa-pin');
 const btnCloseSecurity = document.getElementById('btn-close-security');
 const btnSaveSecurity = document.getElementById('btn-save-security');
 
-// --- Gemini API Key (settings view) ---
-const geminiKeyInput = document.getElementById('gemini-api-key-input');
-const btnSaveGeminiKey = document.getElementById('btn-save-gemini-key');
-
 export function applyTheme(theme) {
   if (theme === 'light') {
     document.documentElement.classList.add('light-mode');
@@ -193,11 +189,6 @@ export function init() {
 
   // Load payroll format
   loadCustomPayrollFormat();
-
-  // Pre-fill Gemini key if stored
-  if (geminiKeyInput) {
-    geminiKeyInput.value = localStorage.getItem('gemini_api_key') || '';
-  }
 
   // Theme buttons
   if (btnThemeDark) {
@@ -404,15 +395,4 @@ export function init() {
   }
 
   // Gemini API key save
-  if (btnSaveGeminiKey) {
-    btnSaveGeminiKey.addEventListener('click', () => {
-      const key = geminiKeyInput ? geminiKeyInput.value.trim() : '';
-      if (!key) {
-        showToast('Please enter a valid API key', 'error');
-        return;
-      }
-      localStorage.setItem('gemini_api_key', key);
-      showToast('Gemini API key saved!', 'success');
-    });
-  }
 }

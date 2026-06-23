@@ -13,8 +13,6 @@ export const state = {
   editingChecklistId: null,
   currentEditingPunchId: null,
   activeAnnouncement: null,
-  aiSelectedImageBase64: null,
-  aiSelectedImageMime: null,
   cameraStream: null,
   idleTimeout: null,
   laborHoursChart: null,
