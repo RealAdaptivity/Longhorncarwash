@@ -610,14 +610,13 @@ if (btnShowSignTimesheet) {
     stopCamera();
 
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const weekStart = getStartOfWeek();
 
       const { data, error } = await window.supabaseClient
         .from('time_logs')
         .select('*')
         .eq('user_id', currentUser.id)
-        .gte('created_at', sevenDaysAgo.toISOString())
+        .gte('created_at', weekStart.toISOString())
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -648,7 +647,7 @@ if (btnShowSignTimesheet) {
       });
 
       if (html === '') {
-        html = '<tr><td colspan="3" style="text-align:center; padding: 20px; color: var(--text-muted);">No logs found for the last 7 days.</td></tr>';
+        html = '<tr><td colspan="3" style="text-align:center; padding: 20px; color: var(--text-muted);">No logs found for this week.</td></tr>';
       }
 
       signTimesheetBody.innerHTML = html;
@@ -1375,11 +1374,12 @@ async function loadEmployeePortal(userId, name) {
 
 function getStartOfWeek() {
   const d = new Date();
-  const day = d.getDay();
-  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
-  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
-  wednesday.setHours(0, 0, 0, 0);
-  return wednesday;
+  const day = d.getDay(); // 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
+  // Calculate days back to the most recent Tuesday (week resets Monday midnight = Tuesday 00:00)
+  const diffToTue = (day >= 2) ? (day - 2) : (day + 5);
+  const tuesday = new Date(d.setDate(d.getDate() - diffToTue));
+  tuesday.setHours(0, 0, 0, 0);
+  return tuesday;
 }
 
 function getBiweeklyWeeks(date) {
@@ -1562,7 +1562,7 @@ async function loadTimesheets() {
             return;
           }
 
-          let csv = "#,Employee,Status,Mon,Tue,Wed,Thu,Fri,Sat,Sun,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total,Biweekly Total\n";
+          let csv = "#,Employee,Status,Tue,Wed,Thu,Fri,Sat,Sun,Mon,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total,Biweekly Total\n";
           let count = 1;
           rows.forEach(row => {
             const cols = row.querySelectorAll('td');
@@ -1815,7 +1815,7 @@ async function loadTimesheets() {
         if (emp.currentStatus === 'IN' && emp.lastIn) {
           const duration = time - emp.lastIn;
           if (emp.lastIn >= startOfWeek) {
-            const dayIndex = (new Date(emp.lastIn).getDay() + 6) % 7;
+            const dayIndex = (new Date(emp.lastIn).getDay() + 5) % 7;
             emp.weekMs[dayIndex] += duration;
           } else if (emp.lastIn >= startOfLastWeek && emp.lastIn < startOfWeek) {
             emp.lastWeekMs += duration;
@@ -1848,7 +1848,7 @@ async function loadTimesheets() {
       if (emp.currentStatus === 'IN' && emp.lastIn) {
         const activeMs = Date.now() - emp.lastIn;
         if (emp.lastIn >= startOfWeek) {
-          const dayIndex = (new Date(emp.lastIn).getDay() + 6) % 7;
+          const dayIndex = (new Date(emp.lastIn).getDay() + 5) % 7;
           emp.weekMs[dayIndex] += activeMs;
         } else if (emp.lastIn >= startOfLastWeek && emp.lastIn < startOfWeek) {
           emp.lastWeekMs += activeMs;
