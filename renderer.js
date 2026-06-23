@@ -1383,23 +1383,26 @@ function getStartOfWeek() {
 }
 
 function getBiweeklyWeeks(date) {
-  const anchor = new Date(2026, 4, 21); // Thursday, May 21, 2026
+  // Bi-weekly cycle aligns with the weekly Tue-Mon schedule. 
+  // We use a known Tuesday as our anchor: Tuesday, May 19, 2026
+  const anchor = new Date(2026, 4, 19); 
   anchor.setHours(0, 0, 0, 0);
 
-  const diffTime = date.getTime() - anchor.getTime();
-  const diffDays = Math.floor(diffTime / (24 * 60 * 60 * 1000));
+  // Use UTC to calculate day difference to ignore daylight saving time shifts
+  const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const utcAnchor = Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  
+  const diffDays = Math.floor((utcDate - utcAnchor) / (24 * 60 * 60 * 1000));
   const cycleIndex = Math.floor(diffDays / 14);
 
-  const resetThursday = new Date(anchor.getTime() + cycleIndex * 14 * 24 * 60 * 60 * 1000);
-
-  // Week 1 starts on the Wednesday before resetThursday
-  const week1Start = new Date(resetThursday);
-  week1Start.setDate(resetThursday.getDate() - 1);
+  // Week 1 starts on Tuesday
+  const week1Start = new Date(anchor);
+  week1Start.setDate(anchor.getDate() + (cycleIndex * 14));
   week1Start.setHours(0, 0, 0, 0);
 
-  // Week 2 starts on the Wednesday after resetThursday
-  const week2Start = new Date(resetThursday);
-  week2Start.setDate(resetThursday.getDate() + 6);
+  // Week 2 starts on the following Tuesday
+  const week2Start = new Date(week1Start);
+  week2Start.setDate(week1Start.getDate() + 7);
   week2Start.setHours(0, 0, 0, 0);
 
   return { week1Start, week2Start };
