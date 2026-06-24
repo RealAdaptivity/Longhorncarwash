@@ -598,209 +598,23 @@ nav {
 
 /* MOBILE RESPONSIVENESS */
 @media (max-width: 768px) {
-  #app {
-    flex-direction: column;
-  }
 
-  .sidebar {
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
+  /* ── Layout ── */
+  #app { flex-direction: column; }
 
-  .brand {
-    padding: 10px 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    border-bottom: none;
-  }
+  .content { margin-bottom: 60px; }
 
-  .brand h1 {
-    font-size: 1.3rem;
-    margin-bottom: 0;
-  }
+  .view { padding: 15px 12px; }
 
-  .brand p {
-    display: none;
-  }
-
-  .logo-box {
-    width: 40px;
-    height: 40px;
-    margin: 0;
-  }
-
-  nav {
-    flex-direction: row;
-    padding: 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    border-top: 1px solid var(--border);
-    scrollbar-width: none;
-    /* Hide scrollbar for clean look */
-  }
-
-  nav::-webkit-scrollbar {
-    display: none;
-  }
-
-  .nav-btn {
-    padding: 12px 20px;
-    text-align: center;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    flex: 1;
-    font-size: 0.85rem;
-    min-width: 100px;
-  }
-
-  .nav-btn.active {
-    border-left-color: transparent;
-    border-bottom-color: var(--primary);
-    background-color: rgba(169, 59, 47, 0.05);
-  }
-
-  .view {
-    padding: 20px 15px;
-  }
-
-  #clock-display {
-    font-size: 3.5rem;
-  }
-
-  .pin-pad-container,
-  .modal-content {
-    width: 100%;
-    max-width: 100%;
-    padding: 25px 20px;
-    margin-top: 2vh !important;
-    border-radius: 15px;
-  }
-
-  .pin-pad {
-    gap: 12px;
-  }
-
-  .pin-btn {
-    padding: 18px;
-    font-size: 1.4rem;
-  }
-
-  .table-container {
-    border-radius: 10px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.5);
-    /* Shadow indicator for scroll */
-  }
-
-  /* Sticky first column for tables on mobile */
-  .data-table th:first-child,
-  .data-table td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 5;
-    background-color: var(--card);
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
-  }
-
-  #manager-auth {
-    padding: 30px 20px;
-    margin-top: 20px;
-  }
-
-  /* Force grids to single column on mobile */
-  div[style*="display: grid;"],
-  div[style*="display: grid"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Quick Actions Grid Adjustment */
-  .quick-actions {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
-  }
-
-  .action-card {
-    padding: 20px 10px;
-  }
-
-  .action-icon {
-    font-size: 2rem;
-  }
-
-  .action-label {
-    font-size: 0.9rem;
-  }
-
-  #manager-anti-buddy {
-    grid-column: span 2 !important;
-  }
-
-  /* Optimize Modals for mobile */
-  .modal-content {
-    width: 92vw !important;
-    max-width: 92vw !important;
-    padding: 20px !important;
-    margin: auto !important;
-  }
-
-  /* Optimize Data Tables for mobile */
-  .data-table th,
-  .data-table td {
-    padding: 12px 8px !important;
-    font-size: 0.85rem !important;
-  }
-
-  .data-table th {
-    white-space: nowrap;
-  }
-}
-
-/* --- Mobile & Utility Classes --- */
-.mobile-hide {
-  display: block;
-}
-
-.mobile-only {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .mobile-hide {
-    display: none !important;
-  }
-
-  .mobile-only {
-    display: block !important;
-  }
-
-  /* Schedule: swap table for cards on mobile */
-  .schedule-desktop-table {
-    display: none !important;
-  }
-
-  .schedule-mobile-cards {
-    display: block !important;
-  }
-
-  #app {
-    flex-direction: column;
-  }
-
+  /* ── Bottom navigation bar ── */
   .sidebar {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
+    top: auto;
     width: 100%;
-    height: 75px;
+    height: 60px;
     background: var(--sidebar-bg);
     border-top: 1px solid var(--border);
     border-right: none;
@@ -809,23 +623,18 @@ nav {
     z-index: 1000;
   }
 
-  .brand {
-    display: none;
-  }
+  .brand { display: none; }
 
   nav {
     flex-direction: row;
     width: 100%;
     height: 100%;
     padding: 0;
-    justify-content: space-around;
     overflow-x: auto;
     scrollbar-width: none;
   }
 
-  nav::-webkit-scrollbar {
-    display: none;
-  }
+  nav::-webkit-scrollbar { display: none; }
 
   .nav-btn {
     flex: 1;
@@ -833,64 +642,147 @@ nav {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 5px;
-    font-size: 0.7rem;
+    padding: 4px 2px;
+    font-size: 0.75rem;
     text-align: center;
     border-left: none;
-    border-top: 3px solid transparent;
-    min-width: 70px;
-    gap: 4px;
+    border-top: 2px solid transparent;
+    min-width: 60px;
+    gap: 2px;
     color: var(--text-muted);
   }
 
   .nav-btn.active {
     border-top-color: var(--primary);
-    background: rgba(169, 59, 47, 0.05);
     color: var(--primary);
   }
 
+  /* ── Typography ── */
+  #clock-display { font-size: 3rem; }
 
-  .content {
-    margin-bottom: 75px;
+  /* Prevent iOS from zooming on input focus */
+  .input-field { font-size: 16px !important; padding: 14px 12px; }
+
+  /* ── Timeclock ── */
+  .pin-pad-container {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    padding: 20px !important;
+    margin: 10px auto !important;
+    border-radius: 15px;
   }
 
-  .view {
-    padding: 20px 15px;
-  }
+  .pin-btn { padding: 15px; font-size: 1.3rem; }
 
-  #clock-display {
-    font-size: 3rem;
-  }
-
-  .pin-pad-container,
+  /* ── Modals — override any inline width ── */
   .modal-content {
     width: 95vw !important;
     max-width: 95vw !important;
-    padding: 20px;
-    margin: 10px auto !important;
+    padding: 20px !important;
+    margin: auto !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    border-radius: 12px !important;
   }
 
-  .pin-btn {
-    padding: 15px;
-    font-size: 1.3rem;
+  /* ── Tables ── */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .input-field {
-    font-size: 16px !important;
-    padding: 15px;
+  .data-table th,
+  .data-table td {
+    padding: 10px 8px !important;
+    font-size: 0.82rem !important;
   }
 
+  .data-table th { white-space: nowrap; }
+
+  /* Sticky employee name column on scrollable tables */
+  .table-container .data-table th:first-child,
+  .table-container .data-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background-color: var(--card);
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── Dashboard header ── */
   .dash-header {
     flex-direction: column;
     align-items: stretch;
     gap: 10px;
   }
 
-  /* Force flex-wrap for dashboard cards */
-  div[style*="display: flex"] {
-    flex-wrap: wrap !important;
+  /* ── Manager auth ── */
+  #manager-auth { padding: 25px 15px; margin-top: 15px; }
+
+  /* ── Quick actions: keep 2-column grid ── */
+  .quick-actions {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
   }
+  .action-card { padding: 18px 10px; }
+  .action-icon { font-size: 1.8rem; }
+  .action-label { font-size: 0.82rem; }
+  #manager-anti-buddy { grid-column: span 2 !important; }
+
+  /* ── Manager analytics grids: stack to single column ── */
+  #manager-analytics-section [style*="grid-template-columns: 2fr 1fr"],
+  #manager-analytics-section [style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Employee portal ── */
+  /* Stats cards: full width on mobile */
+  #employee-dashboard > div > div[style*="width: 250px"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Employee schedule 7-day grid: 2 columns on mobile */
+  #emp-schedule-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ── Settings grid fixes ── */
+  #view-settings [style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Geofence row: stack on mobile */
+  #view-settings [style*="display: flex"][style*="align-items: center"] {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* ── Schedule editor table: allow horizontal scroll ── */
+  #post-schedule-section {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Payroll: scrollable tables ── */
+  #payroll-dashboard { overflow-x: hidden; }
+  #payroll-dashboard .table-container { overflow-x: auto; }
+
+  /* ── Ops view: stack 2-col grids ── */
+  #view-ops [style*="grid-template-columns: 1fr 1fr"],
+  #view-ops [style*="display: grid; grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Schedule view: cards on mobile, table on desktop ── */
+  .schedule-desktop-table { display: none !important; }
+  .schedule-mobile-cards { display: block !important; }
+
+  /* ── Utility classes ── */
+  .mobile-hide { display: none !important; }
+  .mobile-only { display: block !important; }
 }
+
 
 /* PRINT MODE */
 @media print {

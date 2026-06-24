@@ -696,6 +696,7 @@
                 Export Weekly CSV
               </button>
             </div>
+            <div class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
@@ -719,6 +720,7 @@
                 <!-- Populated by JS -->
               </tbody>
             </table>
+            </div>
 
           </div>
 
@@ -794,6 +796,7 @@
                 </div>
               </div>
 
+              <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -808,6 +811,7 @@
                   <!-- Populated by JS -->
                 </tbody>
               </table>
+              </div>
 
               <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
                 <button id="btn-delete-employee" class="btn-danger"
@@ -847,6 +851,7 @@
           <div id="pending-pins-section" class="hidden"
             style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
             <h3 style="color: var(--primary); margin-bottom: 15px;">Pending Account Approvals</h3>
+            <div class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
@@ -860,12 +865,14 @@
                 <!-- Populated by JS -->
               </tbody>
             </table>
+            </div>
           </div>
 
           <!-- Pending Time Off Requests -->
           <div id="pending-timeoff-section" class="hidden"
             style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
             <h3 style="color: var(--warning); margin-bottom: 15px;">Pending Time Off Requests</h3>
+            <div class="table-container">
             <table class="data-table">
               <thead>
                 <tr>
@@ -879,6 +886,7 @@
                 <!-- Populated by JS -->
               </tbody>
             </table>
+            </div>
           </div>
 
           <!-- EDIT PAYROLL FORMAT MODAL -->
@@ -1024,6 +1032,7 @@
               </div>
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the
                 current biweekly pay period (resets Thursday every 2 weeks)</p>
+              <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -1039,6 +1048,7 @@
                   <!-- Populated by JS -->
                 </tbody>
               </table>
+              </div>
             </div>
 
             <!-- Monthly Archive Section -->
@@ -1052,6 +1062,7 @@
               </div>
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4
                 weeks. Data older than 30 days is automatically purged.</p>
+              <div class="table-container">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -1070,6 +1081,7 @@
                   <!-- Populated by JS -->
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
