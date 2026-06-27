@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const BOT = '8729010258:AAEh2We1rFbEiC1WoEbz0Gz5qOyDr5Kyo4c';
-const CHAT = '8885837090';
+const CHAT = '-5595038862';
 const SECRET = 'lcw-punch-notify-2026';
 const TZ = 'America/Chicago';
 
