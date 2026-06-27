@@ -124,10 +124,12 @@ Deno.serve(async (req: Request) => {
       const inToday = last !== null;
       const stillIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH';
 
+      const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
       if (mins >= shift.s + 3 && mins < shift.e && !inToday) {
         const k = `${user.id}:late_clock_in`;
         if (!sentSet.has(k)) {
-          await tg(`${user.name} has not clocked in - shift started at ${fmt(shift.s)}`);
+          await tg(`${user.name} has not clocked in - shift started at ${fmt(shift.s)} on ${dateLabel}`);
           await sb.from('notifications_sent').insert({
             user_id: user.id, notification_type: 'late_clock_in', shift_date: date,
           });
@@ -138,7 +140,7 @@ Deno.serve(async (req: Request) => {
       if (mins >= shift.e + 5 && stillIn) {
         const k = `${user.id}:forgot_clock_out`;
         if (!sentSet.has(k)) {
-          await tg(`${user.name} forgot to clock out - shift ended at ${fmt(shift.e)}`);
+          await tg(`${user.name} forgot to clock out - shift ended at ${fmt(shift.e)} on ${dateLabel}`);
           await sb.from('notifications_sent').insert({
             user_id: user.id, notification_type: 'forgot_clock_out', shift_date: date,
           });
