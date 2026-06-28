@@ -1,0 +1,398 @@
+import { state, showToast, saveSettingRobust, loadWeather } from './utils.js';
+
+// --- Announcement ---
+const announcementInput = document.getElementById('announcement-input');
+const btnPostAnnouncement = document.getElementById('btn-post-announcement');
+const btnClearAnnouncement = document.getElementById('btn-clear-announcement');
+
+// --- Geofence ---
+const geofenceInput = document.getElementById('geofence-input');
+const geofenceLatInput = document.getElementById('geofence-lat');
+const geofenceLonInput = document.getElementById('geofence-lon');
+const btnSaveGeofence = document.getElementById('btn-save-geofence');
+const btnToggleGeofence = document.getElementById('btn-toggle-geofence');
+const geofenceStatusText = document.getElementById('geofence-status-text');
+const btnGetCurrentLocation = document.getElementById('btn-get-current-location');
+
+// --- Anti-Buddy ---
+const btnToggleAntiBuddy = document.getElementById('btn-toggle-anti-buddy');
+const antiBuddyStatusText = document.getElementById('anti-buddy-status-text');
+
+// --- Payroll Format ---
+const btnEditPayrollFormat = document.getElementById('btn-edit-payroll-format');
+const modalEditPayrollFormat = document.getElementById('modal-edit-payroll-format');
+const btnCancelPayrollFormat = document.getElementById('btn-cancel-payroll-format');
+const btnSavePayrollFormat = document.getElementById('btn-save-payroll-format');
+const customCurrentFormatInput = document.getElementById('custom-current-format');
+const customNextFormatInput = document.getElementById('custom-next-format');
+
+// --- Theme ---
+const btnThemeDark = document.getElementById('btn-theme-dark');
+const btnThemeLight = document.getElementById('btn-theme-light');
+
+// --- Security / 2FA ---
+const btnShowSecurity = document.getElementById('btn-show-security');
+const modalSecurity = document.getElementById('modal-security');
+const enable2FA = document.getElementById('enable-2fa');
+const setup2FASection = document.getElementById('setup-2fa-section');
+const setup2FAPin = document.getElementById('setup-2fa-pin');
+const btnCloseSecurity = document.getElementById('btn-close-security');
+const btnSaveSecurity = document.getElementById('btn-save-security');
+
+export function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.classList.add('light-mode');
+    if (btnThemeLight) {
+      btnThemeLight.className = 'btn-action btn-primary';
+      btnThemeLight.style.background = 'var(--primary)';
+      btnThemeLight.style.color = 'white';
+      btnThemeLight.style.borderColor = 'transparent';
+      btnThemeLight.style.boxShadow = '0 4px 15px rgba(169, 59, 47, 0.15)';
+    }
+    if (btnThemeDark) {
+      btnThemeDark.className = 'btn-action btn-ghost';
+      btnThemeDark.style.background = 'var(--bg)';
+      btnThemeDark.style.color = 'var(--text)';
+      btnThemeDark.style.borderColor = 'var(--border)';
+      btnThemeDark.style.boxShadow = 'none';
+    }
+  } else {
+    document.documentElement.classList.remove('light-mode');
+    if (btnThemeDark) {
+      btnThemeDark.className = 'btn-action btn-primary';
+      btnThemeDark.style.background = 'var(--primary)';
+      btnThemeDark.style.color = 'white';
+      btnThemeDark.style.borderColor = 'transparent';
+      btnThemeDark.style.boxShadow = '0 4px 15px rgba(169, 59, 47, 0.15)';
+    }
+    if (btnThemeLight) {
+      btnThemeLight.className = 'btn-action btn-ghost';
+      btnThemeLight.style.background = 'var(--bg)';
+      btnThemeLight.style.color = 'var(--text)';
+      btnThemeLight.style.borderColor = 'var(--border)';
+      btnThemeLight.style.boxShadow = 'none';
+    }
+  }
+}
+
+function updateGeofenceUI() {
+  if (!btnToggleGeofence || !geofenceStatusText) return;
+  if (state.GEOFENCE_ENABLED) {
+    geofenceStatusText.textContent = 'Enabled';
+    geofenceStatusText.style.color = 'var(--success)';
+    btnToggleGeofence.textContent = 'Disable';
+    btnToggleGeofence.className = 'btn-danger';
+  } else {
+    geofenceStatusText.textContent = 'Disabled';
+    geofenceStatusText.style.color = 'var(--text-muted)';
+    btnToggleGeofence.textContent = 'Enable';
+    btnToggleGeofence.className = 'btn-success';
+  }
+}
+
+function updateAntiBuddyUI() {
+  if (!btnToggleAntiBuddy || !antiBuddyStatusText) return;
+  if (state.ANTI_BUDDY_ENABLED) {
+    antiBuddyStatusText.textContent = 'Enabled';
+    antiBuddyStatusText.style.color = 'var(--success)';
+    btnToggleAntiBuddy.textContent = 'Disable';
+    btnToggleAntiBuddy.className = 'btn-danger';
+  } else {
+    antiBuddyStatusText.textContent = 'Disabled';
+    antiBuddyStatusText.style.color = 'var(--text-muted)';
+    btnToggleAntiBuddy.textContent = 'Enable';
+    btnToggleAntiBuddy.className = 'btn-success';
+  }
+}
+
+async function loadCustomPayrollFormat() {
+  try {
+    const { data, error } = await window.supabaseClient
+      .from('settings')
+      .select('value')
+      .eq('id', 'custom_payroll_format')
+      .limit(1);
+    if (!error && data && data.length > 0) {
+      state.customPayrollFormat = JSON.parse(data[0].value);
+      if (customCurrentFormatInput) customCurrentFormatInput.value = state.customPayrollFormat.current || '';
+      if (customNextFormatInput) customNextFormatInput.value = state.customPayrollFormat.next || '';
+    }
+  } catch (e) {
+    console.error('Failed to load payroll format:', e);
+  }
+}
+
+export async function fetchSettings() {
+  const db = window.supabaseClient;
+
+  try {
+    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').limit(1);
+    if (!error && data && data.length > 0) {
+      state.activeAnnouncement = data[0].value;
+      if (announcementInput) announcementInput.value = data[0].value;
+    }
+  } catch (e) {
+    console.error('Failed to load announcement setting:', e);
+  }
+
+  try {
+    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').limit(1);
+    if (geoData && geoData.length > 0) {
+      state.ALLOWED_RADIUS_METERS = parseInt(geoData[0].value, 10);
+    }
+    if (geofenceInput) geofenceInput.value = state.ALLOWED_RADIUS_METERS;
+
+    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').limit(1);
+    if (latData && latData.length > 0) state.CAR_WASH_LAT = parseFloat(latData[0].value);
+    if (geofenceLatInput) geofenceLatInput.value = state.CAR_WASH_LAT;
+
+    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').limit(1);
+    if (lonData && lonData.length > 0) state.CAR_WASH_LON = parseFloat(lonData[0].value);
+    if (geofenceLonInput) geofenceLonInput.value = state.CAR_WASH_LON;
+
+    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').limit(1);
+    if (enabledData && enabledData.length > 0) {
+      state.GEOFENCE_ENABLED = enabledData[0].value === 'true';
+    }
+    updateGeofenceUI();
+
+    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').limit(1);
+    if (abData && abData.length > 0) {
+      state.ANTI_BUDDY_ENABLED = abData[0].value === 'true';
+    }
+    updateAntiBuddyUI();
+
+    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
+    if (revData && revData.length > 0) {
+      state.dailyRevenueGoal = parseFloat(revData[0].value) || 0;
+      const dailyRevenueInput = document.getElementById('daily-revenue-input');
+      if (dailyRevenueInput) dailyRevenueInput.value = state.dailyRevenueGoal;
+    }
+
+    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').limit(1);
+    if (goalData && goalData.length > 0) {
+      state.laborCostGoalPercent = parseFloat(goalData[0].value) || 25;
+      const laborGoalInput = document.getElementById('labor-goal-input');
+      if (laborGoalInput) laborGoalInput.value = state.laborCostGoalPercent;
+    }
+  } catch (e) {
+    console.error('Failed to load geofence/anti-buddy settings:', e);
+  }
+
+  loadWeather();
+}
+
+export function init() {
+  // Apply saved theme immediately
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  applyTheme(savedTheme);
+
+  // Load payroll format
+  loadCustomPayrollFormat();
+
+  // Theme buttons
+  if (btnThemeDark) {
+    btnThemeDark.addEventListener('click', () => {
+      localStorage.setItem('theme', 'dark');
+      applyTheme('dark');
+      showToast('Dark theme applied!');
+    });
+  }
+  if (btnThemeLight) {
+    btnThemeLight.addEventListener('click', () => {
+      localStorage.setItem('theme', 'light');
+      applyTheme('light');
+      showToast('Light theme applied!');
+    });
+  }
+
+  // Announcement
+  if (btnPostAnnouncement) {
+    btnPostAnnouncement.addEventListener('click', async () => {
+      const msg = announcementInput ? announcementInput.value.trim() : '';
+      if (!msg) return;
+      try {
+        await saveSettingRobust('announcement', msg);
+        state.activeAnnouncement = msg;
+        showToast('Announcement posted successfully!', 'success');
+      } catch (e) {
+        showToast('Failed to post. (Does "settings" table exist?)', 'error');
+      }
+    });
+  }
+
+  if (btnClearAnnouncement) {
+    btnClearAnnouncement.addEventListener('click', async () => {
+      try {
+        await saveSettingRobust('announcement', '');
+        state.activeAnnouncement = '';
+        if (announcementInput) announcementInput.value = '';
+        showToast('Announcement cleared!', 'success');
+      } catch (e) {
+        showToast('Failed to clear announcement.', 'error');
+      }
+    });
+  }
+
+  // Geofence save
+  if (btnSaveGeofence) {
+    btnSaveGeofence.addEventListener('click', async () => {
+      const radius = parseInt(geofenceInput ? geofenceInput.value : '', 10);
+      const lat = parseFloat(geofenceLatInput ? geofenceLatInput.value : '');
+      const lon = parseFloat(geofenceLonInput ? geofenceLonInput.value : '');
+      if (isNaN(radius) || radius <= 0 || isNaN(lat) || isNaN(lon)) {
+        showToast('Please enter valid numbers for Radius, Latitude, and Longitude.', 'error');
+        return;
+      }
+      try {
+        await saveSettingRobust('geofence_radius', radius.toString());
+        await saveSettingRobust('geofence_lat', lat.toString());
+        await saveSettingRobust('geofence_lon', lon.toString());
+        state.ALLOWED_RADIUS_METERS = radius;
+        state.CAR_WASH_LAT = lat;
+        state.CAR_WASH_LON = lon;
+        showToast('Geofence settings updated!', 'success');
+        loadWeather();
+      } catch (err) {
+        showToast('Error: ' + (err.message || 'Check database table and RLS policies.'), 'error');
+      }
+    });
+  }
+
+  // Geofence toggle
+  if (btnToggleGeofence) {
+    btnToggleGeofence.addEventListener('click', async () => {
+      const newVal = !state.GEOFENCE_ENABLED;
+      try {
+        await saveSettingRobust('geofence_enabled', newVal.toString());
+        state.GEOFENCE_ENABLED = newVal;
+        updateGeofenceUI();
+        showToast(`Geofence is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
+      } catch (e) {
+        showToast('Failed to toggle geofence', 'error');
+      }
+    });
+  }
+
+  // Auto-fill coordinates
+  if (btnGetCurrentLocation) {
+    btnGetCurrentLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showToast('Geolocation not supported by browser.', 'error');
+        return;
+      }
+      showToast('Fetching your location...', 'success');
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          if (geofenceLatInput) geofenceLatInput.value = pos.coords.latitude;
+          if (geofenceLonInput) geofenceLonInput.value = pos.coords.longitude;
+          showToast('Coordinates populated! Click Save Settings to apply.', 'success');
+        },
+        () => showToast('Failed to get location. Check permissions.', 'error'),
+        { enableHighAccuracy: true }
+      );
+    });
+  }
+
+  // Anti-buddy toggle
+  if (btnToggleAntiBuddy) {
+    btnToggleAntiBuddy.addEventListener('click', async () => {
+      const newVal = !state.ANTI_BUDDY_ENABLED;
+      try {
+        await saveSettingRobust('anti_buddy_enabled', newVal.toString());
+        state.ANTI_BUDDY_ENABLED = newVal;
+        updateAntiBuddyUI();
+        showToast(`Anti-Buddy Verification is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
+      } catch (e) {
+        showToast('Error: ' + (e.message || 'Failed to toggle Anti-Buddy.'), 'error');
+      }
+    });
+  }
+
+  // Payroll format modal
+  if (btnEditPayrollFormat) {
+    btnEditPayrollFormat.addEventListener('click', () => {
+      if (modalEditPayrollFormat) modalEditPayrollFormat.classList.remove('hidden');
+    });
+  }
+  if (btnCancelPayrollFormat) {
+    btnCancelPayrollFormat.addEventListener('click', () => {
+      if (modalEditPayrollFormat) modalEditPayrollFormat.classList.add('hidden');
+    });
+  }
+  if (btnSavePayrollFormat) {
+    btnSavePayrollFormat.addEventListener('click', async () => {
+      state.customPayrollFormat.current = customCurrentFormatInput ? customCurrentFormatInput.value.trim() : '';
+      state.customPayrollFormat.next = customNextFormatInput ? customNextFormatInput.value.trim() : '';
+      try {
+        await saveSettingRobust('custom_payroll_format', JSON.stringify(state.customPayrollFormat));
+        showToast('Payroll format saved!', 'success');
+        if (modalEditPayrollFormat) modalEditPayrollFormat.classList.add('hidden');
+      } catch (e) {
+        showToast('Failed to save payroll format', 'error');
+      }
+    });
+  }
+
+  // Security / 2FA
+  if (btnShowSecurity) {
+    btnShowSecurity.addEventListener('click', () => {
+      if (!state.currentManager) return;
+      if (enable2FA) {
+        enable2FA.checked = state.currentManager.two_factor_enabled || false;
+        if (enable2FA.checked) {
+          if (setup2FASection) setup2FASection.classList.remove('hidden');
+          if (setup2FAPin) setup2FAPin.value = state.currentManager.two_factor_pin || '';
+        } else {
+          if (setup2FASection) setup2FASection.classList.add('hidden');
+          if (setup2FAPin) setup2FAPin.value = '';
+        }
+      }
+      if (modalSecurity) modalSecurity.classList.remove('hidden');
+    });
+  }
+
+  if (enable2FA) {
+    enable2FA.addEventListener('change', () => {
+      if (!setup2FASection) return;
+      if (enable2FA.checked) {
+        setup2FASection.classList.remove('hidden');
+      } else {
+        setup2FASection.classList.add('hidden');
+      }
+    });
+  }
+
+  if (btnCloseSecurity) {
+    btnCloseSecurity.addEventListener('click', () => {
+      if (modalSecurity) modalSecurity.classList.add('hidden');
+    });
+  }
+
+  if (btnSaveSecurity) {
+    btnSaveSecurity.addEventListener('click', async () => {
+      if (!state.currentManager) return;
+      const isEnabled = enable2FA ? enable2FA.checked : false;
+      const pin = setup2FAPin ? setup2FAPin.value : '';
+      if (isEnabled && pin.length !== 4) {
+        showToast('2-Step PIN must be 4 digits', 'error');
+        return;
+      }
+      try {
+        const { error } = await window.supabaseClient
+          .from('users')
+          .update({ two_factor_enabled: isEnabled, two_factor_pin: isEnabled ? pin : null })
+          .eq('id', state.currentManager.id);
+        if (error) throw error;
+        state.currentManager.two_factor_enabled = isEnabled;
+        state.currentManager.two_factor_pin = isEnabled ? pin : null;
+        showToast('Security settings saved!', 'success');
+        if (modalSecurity) modalSecurity.classList.add('hidden');
+      } catch (err) {
+        showToast('Failed to save security settings', 'error');
+      }
+    });
+  }
+
+  // Gemini API key save
+}

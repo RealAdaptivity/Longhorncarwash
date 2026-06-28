@@ -1,0 +1,102 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { supabase } from '../lib/supabase';
+import { registerForPushNotificationsAsync } from '../lib/notifications';
+import { User } from '../types';
+
+interface AuthContextType {
+  user: User | null;
+  isManagerUnlocked: boolean;
+  loading: boolean;
+  login: (pin: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  unlockManager: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  lockManager: () => void;
+}
+
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isManagerUnlocked, setIsManagerUnlocked] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
+  async function restoreSession() {
+    try {
+      const saved = await SecureStore.getItemAsync('lcw_user');
+      if (saved) setUser(JSON.parse(saved));
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function login(pin: string): Promise<{ success: boolean; error?: string }> {
+    if (pin.length !== 4) return { success: false, error: 'PIN must be 4 digits' };
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, role, is_approved')
+      .eq('pin', pin)
+      .limit(1)
+      .single();
+
+    if (error || !data) return { success: false, error: 'Invalid PIN' };
+    if (!data.is_approved) return { success: false, error: 'Account not approved. Contact a manager.' };
+
+    const u: User = { id: data.id, name: data.name, role: data.role, is_approved: data.is_approved };
+    setUser(u);
+    await SecureStore.setItemAsync('lcw_user', JSON.stringify(u));
+
+    // Register for push notifications and save token
+    try {
+      const token = await registerForPushNotificationsAsync();
+      if (token) {
+        await supabase.from('users').update({ push_token: token }).eq('id', u.id);
+      }
+    } catch (err) {
+      console.log('Failed to register push token', err);
+    }
+
+    return { success: true };
+  }
+
+  async function logout() {
+    setUser(null);
+    setIsManagerUnlocked(false);
+    await SecureStore.deleteItemAsync('lcw_user');
+  }
+
+  async function unlockManager(username: string, password: string): Promise<{ success: boolean; error?: string }> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, name, role')
+      .eq('name', username)
+      .eq('password', password)
+      .not('password', 'is', null)
+      .limit(1)
+      .single();
+
+    if (error || !data) return { success: false, error: 'Invalid manager credentials' };
+
+    setIsManagerUnlocked(true);
+    return { success: true };
+  }
+
+  function lockManager() {
+    setIsManagerUnlocked(false);
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, isManagerUnlocked, loading, login, logout, unlockManager, lockManager }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => useContext(AuthContext);
