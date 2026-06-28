@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Longhorn Car Wash",
+    "slug": "longhorn-carwash",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0f1117"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.longhorncarwash.timeclock"
+    },
+    "android": {
+      "package": "com.longhorncarwash.timeclock",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f1117"
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Longhorn Car Wash needs your location to verify you are on-site when clocking in."
+        }
+      ]
+    ]
+  }
+}

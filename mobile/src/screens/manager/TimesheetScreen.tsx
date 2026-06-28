@@ -1,0 +1,298 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, ActivityIndicator,
+  TouchableOpacity, Alert, Modal, TextInput,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
+import { colors, spacing, radius, font } from '../../theme';
+import { TimeLog, User } from '../../types';
+
+const TZ = 'America/Chicago';
+
+function getWeekStart(): string {
+  const now = new Date();
+  const ct = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
+  const day = ct.getDay();
+  const daysFromTue = (day + 7 - 2) % 7;
+  const ws = new Date(ct);
+  ws.setDate(ct.getDate() - daysFromTue);
+  return ws.toLocaleDateString('en-CA');
+}
+
+function calcHours(logs: TimeLog[]): number {
+  const sorted = [...logs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  let total = 0, lastIn: number | null = null;
+  for (const l of sorted) {
+    const t = new Date(l.created_at).getTime();
+    if (l.action === 'IN' || l.action === 'END_LUNCH') lastIn = t;
+    else if ((l.action === 'START_LUNCH' || l.action === 'OUT') && lastIn !== null) {
+      total += (t - lastIn) / 3600000; lastIn = null;
+    }
+  }
+  return total;
+}
+
+interface EmployeeRow {
+  user: User;
+  logs: TimeLog[];
+  hours: number;
+  status: string;
+}
+
+export function TimesheetScreen() {
+  const [rows, setRows] = useState<EmployeeRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRow | null>(null);
+  const [managingLogs, setManagingLogs] = useState(false);
+  const [newAction, setNewAction] = useState('IN');
+  const [newTime, setNewTime] = useState('');
+  const [addingLog, setAddingLog] = useState(false);
+
+  useEffect(() => { loadTimesheet(); }, []);
+
+  const loadTimesheet = useCallback(async () => {
+    setLoading(true);
+    const weekStart = getWeekStart();
+    const since = new Date(weekStart + 'T00:00:00').toISOString();
+
+    const [usersRes, logsRes] = await Promise.all([
+      supabase.from('users').select('id, name, role, is_approved').eq('is_approved', true),
+      supabase.from('time_logs')
+        .select('id, user_id, action, created_at, edited_by_manager')
+        .gte('created_at', since)
+        .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
+        .order('created_at', { ascending: true }),
+    ]);
+
+    const users = (usersRes.data ?? []) as User[];
+    const allLogs = (logsRes.data ?? []) as TimeLog[];
+
+    const byUser: Record<string, TimeLog[]> = {};
+    for (const l of allLogs) {
+      if (!byUser[l.user_id]) byUser[l.user_id] = [];
+      byUser[l.user_id].push(l);
+    }
+
+    const result: EmployeeRow[] = users.map(u => {
+      const userLogs = byUser[u.id] ?? [];
+      const hrs = calcHours(userLogs);
+      const last = userLogs[userLogs.length - 1]?.action ?? null;
+      const status = !last ? 'Out' : last === 'IN' || last === 'END_LUNCH' ? 'Clocked In' :
+        last === 'START_LUNCH' ? 'On Lunch' : 'Clocked Out';
+      return { user: u, logs: userLogs, hours: hrs, status };
+    });
+
+    result.sort((a, b) => b.hours - a.hours);
+    setRows(result);
+    setLoading(false);
+  }, []);
+
+  async function deleteLog(logId: string) {
+    Alert.alert('Delete Punch', 'Delete this punch record?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          await supabase.from('time_logs').delete().eq('id', logId);
+          if (selectedEmployee) {
+            const updated = { ...selectedEmployee, logs: selectedEmployee.logs.filter(l => l.id !== logId) };
+            updated.hours = calcHours(updated.logs);
+            setSelectedEmployee(updated);
+          }
+          loadTimesheet();
+        },
+      },
+    ]);
+  }
+
+  async function addLog() {
+    if (!selectedEmployee || !newTime) { Alert.alert('Error', 'Enter a time.'); return; }
+    setAddingLog(true);
+    const { error } = await supabase.from('time_logs').insert({
+      user_id: selectedEmployee.user.id,
+      action: newAction,
+      created_at: new Date(newTime).toISOString(),
+      edited_by_manager: true,
+    });
+    setAddingLog(false);
+    if (error) { Alert.alert('Error', 'Could not add punch.'); return; }
+    setNewTime('');
+    loadTimesheet();
+    setManagingLogs(false);
+    setSelectedEmployee(null);
+  }
+
+  function statusColor(status: string) {
+    if (status === 'Clocked In' || status === 'Back from Lunch') return colors.success;
+    if (status === 'On Lunch') return colors.warning;
+    return colors.textMuted;
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: spacing.xl * 2 }} />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <Text style={styles.weekLabel}>Week of {getWeekStart()}</Text>
+
+        {rows.map(row => (
+          <TouchableOpacity
+            key={row.user.id}
+            style={styles.employeeCard}
+            onPress={() => { setSelectedEmployee(row); setManagingLogs(true); }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.employeeInfo}>
+              <Text style={styles.employeeName}>{row.user.name}</Text>
+              <View style={[styles.statusPill, { backgroundColor: statusColor(row.status) + '22' }]}>
+                <Text style={[styles.statusPillText, { color: statusColor(row.status) }]}>{row.status}</Text>
+              </View>
+            </View>
+            <Text style={styles.hoursText}>{row.hours.toFixed(2)} hrs</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {/* Manage Logs Modal */}
+      <Modal visible={managingLogs} animationType="slide">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{selectedEmployee?.user.name}</Text>
+            <TouchableOpacity onPress={() => { setManagingLogs(false); setSelectedEmployee(null); }}>
+              <Text style={styles.closeBtn}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalScroll}>
+            {/* Add punch */}
+            <View style={styles.addSection}>
+              <Text style={styles.addTitle}>Add Punch</Text>
+              <View style={styles.actionRow}>
+                {(['IN','OUT','START_LUNCH','END_LUNCH'] as const).map(a => (
+                  <TouchableOpacity
+                    key={a}
+                    style={[styles.actionBtn, newAction === a && styles.actionBtnActive]}
+                    onPress={() => setNewAction(a)}
+                  >
+                    <Text style={[styles.actionBtnText, newAction === a && styles.actionBtnTextActive]}>
+                      {a.replace('_', '\n')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                style={styles.timeInput}
+                placeholder="YYYY-MM-DDTHH:MM (local)"
+                placeholderTextColor={colors.textMuted}
+                value={newTime}
+                onChangeText={setNewTime}
+                color={colors.text}
+              />
+              <TouchableOpacity style={styles.addBtn} onPress={addLog} disabled={addingLog}>
+                {addingLog ? <ActivityIndicator color={colors.white} /> : <Text style={styles.addBtnText}>Add Punch</Text>}
+              </TouchableOpacity>
+            </View>
+
+            {/* Existing logs */}
+            <Text style={styles.logsTitle}>Punch Log ({selectedEmployee?.hours.toFixed(2)} hrs)</Text>
+            {(selectedEmployee?.logs ?? []).slice().reverse().map(l => (
+              <View key={l.id} style={styles.logRow}>
+                <View>
+                  <Text style={styles.logAction}>{l.action.replace('_', ' ')}</Text>
+                  <Text style={styles.logTime}>
+                    {new Date(l.created_at).toLocaleString('en-US', {
+                      timeZone: TZ, month: 'short', day: 'numeric',
+                      hour: 'numeric', minute: '2-digit', hour12: true,
+                    })}
+                    {l.edited_by_manager ? '  (edited)' : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => deleteLog(l.id)}>
+                  <Text style={styles.deleteBtn}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  scroll: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl },
+  weekLabel: { fontSize: font.sm, color: colors.textMuted, marginBottom: spacing.xs },
+  employeeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  employeeInfo: { gap: spacing.xs },
+  employeeName: { fontSize: font.md, fontWeight: '700', color: colors.text },
+  statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.sm, alignSelf: 'flex-start' },
+  statusPillText: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  hoursText: { fontSize: font.lg, fontWeight: '700', color: colors.primary },
+  modalContainer: { flex: 1, backgroundColor: colors.bg },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  modalTitle: { fontSize: font.lg, fontWeight: '700', color: colors.text },
+  closeBtn: { color: colors.primary, fontSize: font.base, fontWeight: '600' },
+  modalScroll: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+  addSection: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addTitle: { fontSize: font.md, fontWeight: '700', color: colors.text },
+  actionRow: { flexDirection: 'row', gap: spacing.xs },
+  actionBtn: {
+    flex: 1, padding: spacing.sm, borderRadius: radius.sm,
+    backgroundColor: colors.card, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  actionBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  actionBtnText: { color: colors.textMuted, fontSize: 10, fontWeight: '600', textAlign: 'center' },
+  actionBtnTextActive: { color: colors.white },
+  timeInput: {
+    backgroundColor: colors.card, borderRadius: radius.md,
+    borderWidth: 1, borderColor: colors.border,
+    padding: spacing.md, fontSize: font.base,
+  },
+  addBtn: {
+    backgroundColor: colors.primary, padding: spacing.md,
+    borderRadius: radius.md, alignItems: 'center',
+  },
+  addBtnText: { color: colors.white, fontWeight: '700' },
+  logsTitle: { fontSize: font.md, fontWeight: '700', color: colors.text },
+  logRow: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logAction: { fontSize: font.base, fontWeight: '600', color: colors.text, textTransform: 'capitalize' },
+  logTime: { fontSize: font.sm, color: colors.textMuted, marginTop: spacing.xs },
+  deleteBtn: { color: colors.danger, fontSize: font.sm, fontWeight: '700' },
+});
