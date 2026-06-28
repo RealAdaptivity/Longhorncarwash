@@ -10,7 +10,8 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.longhorncarwash.timeclock"
+      "bundleIdentifier": "com.longhorncarwash.timeclock",
+      "appleTeamId": "68QFVQ738K"
     },
     "android": {
       "package": "com.longhorncarwash.timeclock",
