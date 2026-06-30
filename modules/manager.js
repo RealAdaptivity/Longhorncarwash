@@ -124,7 +124,7 @@ export async function loadTimesheets() {
         if (emp.currentStatus === 'IN' && emp.lastIn) {
           const d = time - emp.lastIn;
           if (emp.lastIn >= startOfWeek) {
-            emp.weekMs[(new Date(emp.lastIn).getDay() + 5) % 7] += d;
+            emp.weekMs[(new Date(emp.lastIn).getDay() + 4) % 7] += d;
           } else if (emp.lastIn >= startOfLastWeek) {
             emp.lastWeekMs += d;
           } else if (emp.lastIn >= startOf2WeeksAgo) {
@@ -159,7 +159,7 @@ export async function loadTimesheets() {
       if (emp.currentStatus === 'IN' && emp.lastIn) {
         const activeMs = Date.now() - emp.lastIn;
         if (emp.lastIn >= startOfWeek) {
-          emp.weekMs[(new Date(emp.lastIn).getDay() + 5) % 7] += activeMs;
+          emp.weekMs[(new Date(emp.lastIn).getDay() + 4) % 7] += activeMs;
         } else if (emp.lastIn >= startOfLastWeek) {
           emp.lastWeekMs += activeMs;
         } else if (emp.lastIn >= startOf2WeeksAgo) {
@@ -390,7 +390,7 @@ function wireExportButtons(w1Range, w2Range) {
 function exportWeeklyCsv() {
   const rows = document.querySelectorAll('#timesheet-body tr');
   if (rows.length === 0) { showToast('No data to export', 'warning'); return; }
-  let csv = '#,Employee,Status,Tue,Wed,Thu,Fri,Sat,Sun,Mon,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
+  let csv = '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
   let count = 1;
   rows.forEach(row => {
     const cols = row.querySelectorAll('td');

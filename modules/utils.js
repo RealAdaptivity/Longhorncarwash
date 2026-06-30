@@ -47,15 +47,15 @@ export function showToast(msg, type = 'success') {
 export function getStartOfWeek() {
   const d = new Date();
   const day = d.getDay();
-  const diffToTue = (day >= 2) ? (day - 2) : (day + 5);
-  const tuesday = new Date(d.setDate(d.getDate() - diffToTue));
-  tuesday.setHours(0, 0, 0, 0);
-  return tuesday;
+  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
+  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
+  wednesday.setHours(0, 0, 0, 0);
+  return wednesday;
 }
 
 export function getBiweeklyWeeks(date) {
-  // Anchor on Tuesday May 19, 2026 (start of first bi-weekly cycle)
-  const anchor = new Date(2026, 4, 19);
+  // Anchor on Wednesday May 20, 2026 (start of first bi-weekly cycle, week runs Wed–Tue)
+  const anchor = new Date(2026, 4, 20);
   anchor.setHours(0, 0, 0, 0);
 
   // Use UTC day arithmetic to avoid DST drift

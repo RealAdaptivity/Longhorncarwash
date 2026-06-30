@@ -256,7 +256,7 @@ export function init() {
               scheduleEditorBody.appendChild(tr);
             });
           }
-          scheduleHeaderInputs.forEach((inp, idx) => { inp.value = ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'][idx]; });
+          scheduleHeaderInputs.forEach((inp, idx) => { inp.value = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx]; });
         } catch (e) { showToast('Failed to load employees for schedule editor.', 'error'); }
       }
     });
@@ -274,7 +274,7 @@ export function init() {
         scheduleHeaderInputs.forEach((inp, idx) => {
           const d = new Date(startDate);
           d.setDate(startDate.getDate() + idx);
-          inp.value = `${['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon'][idx]} ${d.getMonth() + 1}/${d.getDate()}`;
+          inp.value = `${['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx]} ${d.getMonth() + 1}/${d.getDate()}`;
         });
       } catch (e) { console.error('Failed to auto-fill schedule date headers:', e); }
     });
