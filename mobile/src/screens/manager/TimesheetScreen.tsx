@@ -14,9 +14,9 @@ function getWeekStart(): string {
   const now = new Date();
   const ct = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
   const day = ct.getDay();
-  const daysFromTue = (day + 7 - 2) % 7;
+  const daysFromWed = (day + 7 - 3) % 7;
   const ws = new Date(ct);
-  ws.setDate(ct.getDate() - daysFromTue);
+  ws.setDate(ct.getDate() - daysFromWed);
   return ws.toLocaleDateString('en-CA');
 }
 

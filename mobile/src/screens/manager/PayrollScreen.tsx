@@ -9,7 +9,7 @@ import { colors, spacing, radius, font } from '../../theme';
 import { TimeLog, User } from '../../types';
 
 const TZ = 'America/Chicago';
-const BIWEEKLY_ANCHOR = new Date('2026-05-19T00:00:00-05:00').getTime();
+const BIWEEKLY_ANCHOR = new Date('2026-05-20T00:00:00-05:00').getTime();
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 
 function calcHours(logs: TimeLog[]): number {
@@ -29,11 +29,11 @@ function getWeekRangeStart(weeksBack: number): Date {
   const now = new Date();
   const ct = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
   const day = ct.getDay();
-  const daysFromTue = (day + 7 - 2) % 7;
-  const thisWeekTue = new Date(ct);
-  thisWeekTue.setDate(ct.getDate() - daysFromTue);
-  thisWeekTue.setHours(0, 0, 0, 0);
-  return new Date(thisWeekTue.getTime() - weeksBack * WEEK_MS);
+  const daysFromWed = (day + 7 - 3) % 7;
+  const thisWeekWed = new Date(ct);
+  thisWeekWed.setDate(ct.getDate() - daysFromWed);
+  thisWeekWed.setHours(0, 0, 0, 0);
+  return new Date(thisWeekWed.getTime() - weeksBack * WEEK_MS);
 }
 
 interface PayrollRow {

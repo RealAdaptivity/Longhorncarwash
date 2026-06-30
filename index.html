@@ -184,7 +184,7 @@
             style="width: 500px; text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
             <h3 style="margin-bottom: 10px; color: var(--primary);">Review Your Hours</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Review your punches for the
-              current week (Tue – Mon). If accurate, digitally sign below to approve them for payroll.</p>
+              current week (Wed – Tue). If accurate, digitally sign below to approve them for payroll.</p>
 
             <div
               style="flex: 1; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg);">
@@ -206,7 +206,7 @@
 
             <div
               style="background: rgba(46, 125, 50, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px dashed var(--success);">
-              <span style="font-size: 0.9rem; color: var(--text-muted);">Total Calculated Hours (Tue – Mon)</span><br>
+              <span style="font-size: 0.9rem; color: var(--text-muted);">Total Calculated Hours (Wed – Tue)</span><br>
               <span id="sign-timesheet-total"
                 style="font-size: 2rem; font-weight: bold; color: var(--success);">0.00</span>
             </div>
@@ -690,7 +690,7 @@
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
               <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet <span
-                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Tue – Mon)</span></h3>
+                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Wed – Tue)</span></h3>
               <button id="btn-export-csv" class="btn-ghost"
                 style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
                 Export Weekly CSV
@@ -1114,10 +1114,6 @@
               <thead>
                 <tr>
                   <th style="width: 150px;">Employee</th>
-                  <th><input type="text" class="input-field schedule-header-input" value="Mon"
-                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
-                  <th><input type="text" class="input-field schedule-header-input" value="Tue"
-                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Wed"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Thu"
@@ -1127,6 +1123,10 @@
                   <th><input type="text" class="input-field schedule-header-input" value="Sat"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Sun"
+                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
+                  <th><input type="text" class="input-field schedule-header-input" value="Mon"
+                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
+                  <th><input type="text" class="input-field schedule-header-input" value="Tue"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th style="width: 80px;">Total</th>
                 </tr>
