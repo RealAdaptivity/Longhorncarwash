@@ -937,9 +937,6 @@ nav {
 
   /* Fix time clock header cutoff */
   .view { padding-top: 80px; }
-  
-  /* Hide desktop site selector because sidebar is at the bottom */
-  .desktop-site-selector-container { display: none !important; }
 
   /* ── Typography ── */
   #clock-display { font-size: 3rem; }

@@ -27,35 +27,7 @@ export const state = {
   ANTI_BUDDY_ENABLED: true,
   EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
-  currentSite: 'Site 1 - Justin TX',
 };
-
-// Initialize site selectors
-const siteSelector = document.getElementById('site-selector');
-const mobileSiteSelector = document.getElementById('mobile-site-selector');
-
-async function handleSiteChange(newSite) {
-  state.currentSite = newSite;
-  if (siteSelector) siteSelector.value = newSite;
-  if (mobileSiteSelector) mobileSiteSelector.value = newSite;
-  
-  console.log('Site changed to:', state.currentSite);
-  showToast(`Switched to ${state.currentSite}`);
-  
-  if (state.managerLoggedIn) {
-    const { loadTimesheets } = await import('./manager.js');
-    const { initSettings } = await import('./settings.js');
-    loadTimesheets();
-    initSettings();
-  }
-}
-
-if (siteSelector) {
-  siteSelector.addEventListener('change', (e) => handleSiteChange(e.target.value));
-}
-if (mobileSiteSelector) {
-  mobileSiteSelector.addEventListener('change', (e) => handleSiteChange(e.target.value));
-}
 
 // --- Toast ---
 export function showToast(msg, type = 'success') {
@@ -305,10 +277,10 @@ export function downloadCsv(csvContent, filename) {
 // --- Save Setting (upsert) ---
 export async function saveSettingRobust(key, value) {
   const db = window.supabaseClient;
-  const { data, error: updateErr } = await db.from('settings').update({ value }).eq('id', key).eq('site', state.currentSite).select();
+  const { data, error: updateErr } = await db.from('settings').update({ value }).eq('id', key).select();
   if (!updateErr && data && data.length > 0) return true;
-  await db.from('settings').delete().eq('id', key).eq('site', state.currentSite);
-  const { error: insertErr } = await db.from('settings').insert({ id: key, value, site: state.currentSite });
+  await db.from('settings').delete().eq('id', key);
+  const { error: insertErr } = await db.from('settings').insert({ id: key, value });
   if (insertErr) throw insertErr;
   return true;
 }

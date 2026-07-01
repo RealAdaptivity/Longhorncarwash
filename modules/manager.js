@@ -129,8 +129,7 @@ export async function loadTimesheets() {
 
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
-      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar')
-      .eq('site', state.currentSite);
+      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar');
     const { data: logsData, error: logsError } = await window.supabaseClient
       .from('time_logs').select('id, user_id, action, created_at, edited_by_manager, photo_base64')
       .order('created_at', { ascending: true });
