@@ -18,6 +18,16 @@ function ensureModalTopLevel(el) {
   if (el && el.parentElement !== document.body) document.body.appendChild(el);
 }
 
+// Show the manager-password field only when a leadership (non-Employee) role is selected
+// in the employee-details editor.
+function toggleEditEmployeePassword() {
+  const roleEl = document.getElementById('edit-employee-role');
+  const wrap = document.getElementById('edit-employee-password-wrap');
+  if (!wrap) return;
+  const isLeadership = !!(roleEl && roleEl.value && roleEl.value !== 'Employee');
+  wrap.classList.toggle('hidden', !isLeadership);
+}
+
 function applyRolePermissions(role) {
   const p = ROLE_ACCESS[role] ?? {};
   const hide = (id) => document.getElementById(id)?.classList.add('hidden');
@@ -35,6 +45,10 @@ function applyRolePermissions(role) {
     if (p.addEmployee) btnShowCreateUser.style.display = '';
     else btnShowCreateUser.style.display = 'none';
   }
+
+  // Show/hide the Edit Employees card (details/role management)
+  const btnShowEditEmployees = document.getElementById('btn-show-edit-employees');
+  if (btnShowEditEmployees) btnShowEditEmployees.style.display = p.employee ? '' : 'none';
 
   // Schedule post/edit controls
   const btnShowPostSchedule = document.getElementById('btn-show-post-schedule');
@@ -1136,9 +1150,18 @@ export function init() {
       const taxStatus = taxStatusEl ? taxStatusEl.value : null;
       const roleEl = document.getElementById('edit-employee-role');
       const role = roleEl ? roleEl.value : 'Employee';
+      const managerPassword = document.getElementById('edit-employee-password')?.value || '';
 
       if (!firstName || !lastName || !loginName) {
         showToast('All name fields are required', 'error');
+        return;
+      }
+
+      const isLeadership = role !== 'Employee';
+      const oldRole = state.employeeMap[state.selectedEmployeeForLogs]?.role || 'Employee';
+      // Require a password when promoting an Employee into a leadership role (they have none yet).
+      if (isLeadership && !managerPassword && oldRole === 'Employee') {
+        showToast('Set a manager password for this leadership role', 'error');
         return;
       }
 
@@ -1146,6 +1169,12 @@ export function init() {
       try {
         const payload = { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, role: role };
         if (taxStatus !== null) payload.tax_status = taxStatus;
+        if (isLeadership) {
+          if (managerPassword) payload.password = managerPassword;   // set / change dashboard password
+          // otherwise keep their existing password
+        } else {
+          payload.password = null;   // demoted to Employee → revoke dashboard access
+        }
 
         const { error } = await window.supabaseClient.from('users').update(payload).eq('id', state.selectedEmployeeForLogs);
         if (error) {
@@ -1162,8 +1191,70 @@ export function init() {
         if (state.employeeMap[state.selectedEmployeeForLogs]) {
           Object.assign(state.employeeMap[state.selectedEmployeeForLogs], { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, tax_status: taxStatus, role: role });
         }
+        const pwdEl = document.getElementById('edit-employee-password');
+        if (pwdEl) pwdEl.value = '';
+        toggleEditEmployeePassword();
         loadTimesheets();
       } catch (err) { showToast('Error updating employee details.', 'error'); }
+    });
+  }
+
+  // Employee-details role change → reveal/hide the manager password field
+  const editEmployeeRoleEl = document.getElementById('edit-employee-role');
+  if (editEmployeeRoleEl) editEmployeeRoleEl.addEventListener('change', toggleEditEmployeePassword);
+
+  // Edit Employees (Manager tab) — details/role management list
+  const btnShowEditEmployees = document.getElementById('btn-show-edit-employees');
+  const modalEditEmployees = document.getElementById('modal-edit-employees');
+  const btnCloseEditEmployees = document.getElementById('btn-close-edit-employees');
+  const editEmployeesBody = document.getElementById('edit-employees-body');
+  const editEmployeesSearch = document.getElementById('edit-employees-search');
+
+  const escHtml = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function renderEditEmployees(filter = '') {
+    if (!editEmployeesBody) return;
+    const f = filter.trim().toLowerCase();
+    const emps = Object.values(state.employeeMap || {})
+      .filter(e => !f || (e.payroll_name || '').toLowerCase().includes(f) || (e.name || '').toLowerCase().includes(f))
+      .sort((a, b) => (a.payroll_name || a.name || '').localeCompare(b.payroll_name || b.name || ''));
+
+    if (!emps.length) {
+      editEmployeesBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">No employees found</td></tr>';
+      return;
+    }
+    editEmployeesBody.innerHTML = emps.map(e => {
+      const displayName = e.payroll_name || e.name || 'Unknown';
+      return `<tr>
+        <td>${escHtml(displayName)}</td>
+        <td>${escHtml(e.role || 'Employee')}</td>
+        <td><button class="btn-primary btn-edit-emp" data-id="${escHtml(e.id)}" data-name="${escHtml(displayName)}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Edit</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  if (btnShowEditEmployees) {
+    btnShowEditEmployees.addEventListener('click', async () => {
+      if (modalEditEmployees) modalEditEmployees.classList.remove('hidden');
+      if (editEmployeesSearch) editEmployeesSearch.value = '';
+      if (editEmployeesBody) editEmployeesBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">Loading…</td></tr>';
+      if (!Object.keys(state.employeeMap || {}).length) await loadTimesheets();
+      renderEditEmployees('');
+    });
+  }
+  if (btnCloseEditEmployees) {
+    btnCloseEditEmployees.addEventListener('click', () => { if (modalEditEmployees) modalEditEmployees.classList.add('hidden'); });
+  }
+  if (editEmployeesSearch) {
+    editEmployeesSearch.addEventListener('input', (e) => renderEditEmployees(e.target.value));
+  }
+  if (editEmployeesBody) {
+    editEmployeesBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-edit-emp');
+      if (btn) {
+        if (modalEditEmployees) modalEditEmployees.classList.add('hidden');
+        openManageLogs(btn.dataset.id, btn.dataset.name, { detailsOnly: true });
+      }
     });
   }
 
@@ -1356,7 +1447,8 @@ function openFullPhoto(src) {
   if (modal && fullImg) { ensureModalTopLevel(modal); fullImg.src = src; modal.classList.remove('hidden'); }
 }
 
-export async function openManageLogs(userId, userName) {
+export async function openManageLogs(userId, userName, options = {}) {
+  const { detailsOnly = false } = options;
   state.selectedEmployeeForLogs = userId;
   const emp = state.employeeMap[userId];
 
@@ -1370,6 +1462,9 @@ export async function openManageLogs(userId, userName) {
   if (taxEl) taxEl.value = emp ? (emp.tax_status || '') : '';
   const roleEl = document.getElementById('edit-employee-role');
   if (roleEl) roleEl.value = emp ? (emp.role || 'Employee') : 'Employee';
+  const pwdInput = document.getElementById('edit-employee-password');
+  if (pwdInput) pwdInput.value = '';
+  toggleEditEmployeePassword();
 
   const firstEl = document.getElementById('edit-employee-first-name');
   const lastEl = document.getElementById('edit-employee-last-name');
@@ -1382,15 +1477,22 @@ export async function openManageLogs(userId, userName) {
     if (lastEl) lastEl.value = '';
   }
 
+  // In details-only mode (Manager tab → Edit Employees) hide the time-log sections;
+  // the full log management stays on the Timesheet tab's Manage button.
+  const manualPunchSection = document.getElementById('manage-manual-punch-section');
+  const logsTableSection = document.getElementById('manage-logs-table-section');
+  if (manualPunchSection) manualPunchSection.classList.toggle('hidden', detailsOnly);
+  if (logsTableSection) logsTableSection.classList.toggle('hidden', detailsOnly);
+
   const manageLogsTitle = document.getElementById('manage-logs-title');
   const modalManageLogs = document.getElementById('modal-manage-logs');
-  if (manageLogsTitle) manageLogsTitle.textContent = `Manage Logs: ${userName}`;
+  if (manageLogsTitle) manageLogsTitle.textContent = detailsOnly ? `Edit Employee: ${userName}` : `Manage Logs: ${userName}`;
   if (modalManageLogs) {
     ensureModalTopLevel(modalManageLogs);
     modalManageLogs.classList.remove('hidden');
   }
 
-  await loadEmployeeLogs();
+  if (!detailsOnly) await loadEmployeeLogs();
 }
 window.openManageLogs = openManageLogs;
 
