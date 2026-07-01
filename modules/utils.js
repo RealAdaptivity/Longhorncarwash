@@ -25,6 +25,7 @@ export const state = {
   ALLOWED_RADIUS_METERS: 100,
   GEOFENCE_ENABLED: true,
   ANTI_BUDDY_ENABLED: true,
+  EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
 };
 
@@ -55,8 +56,8 @@ export function getStartOfWeek() {
 }
 
 export function getBiweeklyWeeks(date) {
-  // Anchor on Wednesday May 20, 2026 (start of first bi-weekly cycle, week runs Wed–Tue)
-  const anchor = new Date(2026, 4, 20);
+  // Anchor on Friday May 22, 2026 — pay cycles run Fri–Thu, payday is the Friday after each 14-day cycle ends
+  const anchor = new Date(2026, 4, 22);
   anchor.setHours(0, 0, 0, 0);
 
   // Use UTC day arithmetic to avoid DST drift
@@ -202,6 +203,25 @@ export function checkLocation() {
 }
 
 // --- Schedule Parsing ---
+export function parseShiftStartTime(shiftStr) {
+  if (!shiftStr || typeof shiftStr !== 'string') return null;
+  const s = shiftStr.trim();
+  if (!s || s === '-' || s.toUpperCase() === 'OFF' || s.toUpperCase() === 'OC') return null;
+  const dashIdx = s.indexOf('-');
+  if (dashIdx < 0) return null;
+  const startPart = s.substring(0, dashIdx).trim().toLowerCase();
+  const isPM = startPart.includes('pm') || (startPart.endsWith('p') && !startPart.endsWith('am'));
+  const isAM = startPart.includes('am') || startPart.endsWith('a');
+  const clean = startPart.replace(/[a-z]/g, '');
+  const [hStr, mStr] = clean.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || '0', 10);
+  if (isNaN(h)) return null;
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return { hour: h, minute: isNaN(m) ? 0 : m };
+}
+
 export function parseShiftHours(shiftStr) {
   if (!shiftStr || typeof shiftStr !== 'string') return 0;
   const s = shiftStr.trim().toUpperCase();

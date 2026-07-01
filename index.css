@@ -537,6 +537,14 @@ nav {
   font-weight: 800;
   color: var(--primary);
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .action-label {
@@ -787,16 +795,18 @@ nav {
   /* ── Mobile header ── */
   .mobile-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     background: var(--primary);
-    padding: 0 16px;
+    padding: 0 16px env(safe-area-inset-bottom, 0) 16px;
+    padding-top: env(safe-area-inset-top, 0);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 999;
-    height: 52px;
+    height: calc(52px + env(safe-area-inset-top, 0px));
     gap: 10px;
+    box-sizing: border-box;
   }
 
   body.logged-out .mobile-header {
@@ -828,8 +838,8 @@ nav {
     line-height: 1.2;
   }
 
-  /* Adjust layout for fixed header + bottom nav */
-  .content { margin-top: 52px; margin-bottom: 60px; }
+  /* Adjust layout for fixed header + bottom nav — account for notch/Dynamic Island */
+  .content { margin-top: calc(52px + env(safe-area-inset-top, 0px)); margin-bottom: 60px; }
   body.logged-out .content { margin-top: 0; }
 
   /* ── Bottom navigation bar ── */
@@ -975,6 +985,7 @@ nav {
   }
   .action-card { padding: 18px 10px; }
   .action-icon { font-size: 1.8rem; }
+  .action-icon svg { width: 1.8rem; height: 1.8rem; }
   .action-label { font-size: 0.82rem; }
   #manager-anti-buddy { grid-column: span 2 !important; }
 

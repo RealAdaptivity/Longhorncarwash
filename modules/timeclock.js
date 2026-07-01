@@ -1,4 +1,4 @@
-import { state, showToast, checkLocation, calculateTotalHoursForLogs } from './utils.js';
+import { state, showToast, checkLocation, calculateTotalHoursForLogs, parseShiftStartTime } from './utils.js';
 
 // --- Camera (Anti-Buddy Punching) ---
 export function startCamera() {
@@ -408,7 +408,125 @@ export function init() {
   const btnEndLunch = document.getElementById('btn-end-lunch');
   const btnForgotPin = document.getElementById('btn-forgot-pin');
 
-  if (btnClockIn) btnClockIn.addEventListener('click', () => logTime('IN'));
+  // Early clock-in modal handlers
+  const modalEarlyClockin = document.getElementById('modal-early-clockin');
+  const btnCancelEarlyClockin = document.getElementById('btn-cancel-early-clockin');
+  const btnRequestEarlyClockin = document.getElementById('btn-request-early-clockin');
+
+  if (btnCancelEarlyClockin) {
+    btnCancelEarlyClockin.addEventListener('click', () => {
+      if (modalEarlyClockin) modalEarlyClockin.classList.add('hidden');
+    });
+  }
+
+  if (btnRequestEarlyClockin) {
+    btnRequestEarlyClockin.addEventListener('click', async () => {
+      if (!state.currentUser || !modalEarlyClockin) return;
+      btnRequestEarlyClockin.disabled = true;
+      btnRequestEarlyClockin.textContent = 'Requesting...';
+      try {
+        const { error } = await window.supabaseClient.from('early_clockin_approvals').insert([{
+          user_id: state.currentUser.id,
+          employee_name: state.currentUser.name,
+          shift_date: modalEarlyClockin.dataset.shiftDate,
+          shift_start: modalEarlyClockin.dataset.shiftStart,
+          status: 'pending'
+        }]);
+        if (error) throw error;
+        showToast('Request sent — check with your manager.', 'warning');
+        modalEarlyClockin.classList.add('hidden');
+      } catch (err) {
+        showToast('Failed to send request.', 'error');
+      } finally {
+        btnRequestEarlyClockin.disabled = false;
+        btnRequestEarlyClockin.textContent = 'Request Approval';
+      }
+    });
+  }
+
+  async function checkAndClockIn() {
+    if (!state.currentUser) return;
+    if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) { logTime('IN'); return; }
+    try {
+      const now = new Date();
+      const chicagoNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+      const currentTotalMin = chicagoNow.getHours() * 60 + chicagoNow.getMinutes();
+      const todayStr = `${chicagoNow.getFullYear()}-${String(chicagoNow.getMonth() + 1).padStart(2, '0')}-${String(chicagoNow.getDate()).padStart(2, '0')}`;
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const todayAbbr = dayNames[chicagoNow.getDay()];
+
+      const { data: schedules } = await window.supabaseClient
+        .from('schedules').select('content').order('created_at', { ascending: false }).limit(5);
+
+      if (schedules && schedules.length > 0) {
+        for (const sched of schedules) {
+          try {
+            const parsed = JSON.parse(sched.content);
+            const myRow = parsed.rows?.find(r => r.employee === state.currentUser.name);
+            if (!myRow) continue;
+
+            const todayIdx = (parsed.headers || []).findIndex(h =>
+              h && h.toString().toUpperCase().startsWith(todayAbbr.toUpperCase())
+            );
+            if (todayIdx < 0) continue;
+
+            const shiftStr = myRow.shifts?.[todayIdx];
+            if (!shiftStr) continue;
+
+            const startTime = parseShiftStartTime(shiftStr);
+            if (!startTime) break; // OFF — no restriction
+
+            const shiftTotalMin = startTime.hour * 60 + startTime.minute;
+            const GRACE_MIN = 5;
+
+            if (currentTotalMin >= shiftTotalMin - GRACE_MIN) break; // On time
+
+            // Early — check for existing approval
+            const { data: approval } = await window.supabaseClient
+              .from('early_clockin_approvals')
+              .select('status')
+              .eq('user_id', state.currentUser.id)
+              .eq('shift_date', todayStr)
+              .order('requested_at', { ascending: false })
+              .limit(1);
+
+            const approvalStatus = approval?.[0]?.status;
+            if (approvalStatus === 'approved') break; // Approved — allow
+
+            const ampm = startTime.hour >= 12 ? 'PM' : 'AM';
+            const h12 = startTime.hour % 12 || 12;
+            const shiftDisplay = `${h12}:${String(startTime.minute).padStart(2, '0')} ${ampm}`;
+
+            if (approvalStatus === 'pending') {
+              showToast(`Shift starts at ${shiftDisplay}. Approval pending — check with your manager.`, 'warning');
+              return;
+            }
+            if (approvalStatus === 'denied') {
+              showToast(`Early clock-in was denied. Your shift starts at ${shiftDisplay}.`, 'error');
+              return;
+            }
+
+            // No request yet — prompt
+            if (modalEarlyClockin) {
+              const el = document.getElementById('early-clockin-shift-start');
+              if (el) el.textContent = shiftDisplay;
+              modalEarlyClockin.dataset.shiftDate = todayStr;
+              modalEarlyClockin.dataset.shiftStart = shiftDisplay;
+              modalEarlyClockin.classList.remove('hidden');
+            } else {
+              showToast(`Shift starts at ${shiftDisplay}. Request early clock-in from a manager.`, 'error');
+            }
+            return;
+          } catch (e) { continue; }
+        }
+      }
+    } catch (e) {
+      console.error('Early clock-in check failed — allowing clock-in:', e);
+    }
+    logTime('IN');
+  }
+
+  if (btnClockIn) btnClockIn.addEventListener('click', () => checkAndClockIn());
   if (btnStartLunch) btnStartLunch.addEventListener('click', () => logTime('START_LUNCH'));
   if (btnEndLunch) btnEndLunch.addEventListener('click', () => logTime('END_LUNCH'));
 

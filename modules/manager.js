@@ -399,6 +399,38 @@ export async function loadTimesheets() {
       }
     }
 
+    // Early clock-in requests (today only)
+    const todayLocal = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+    const { data: earlyRequests } = await window.supabaseClient
+      .from('early_clockin_approvals')
+      .select('id, employee_name, shift_start, requested_at')
+      .eq('status', 'pending')
+      .eq('shift_date', todayLocal);
+    const earlyBody = document.getElementById('early-clockin-body');
+    const earlySection = document.getElementById('pending-early-clockin-section');
+    if (earlyBody) {
+      earlyBody.innerHTML = '';
+      if (earlyRequests && earlyRequests.length > 0) {
+        earlyRequests.forEach(req => {
+          pendingCount++;
+          const requestedAt = new Date(req.requested_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${req.employee_name}</td>
+            <td>${req.shift_start}</td>
+            <td>${requestedAt}</td>
+            <td>
+              <button class="btn-success btn-approve-early" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">Approve</button>
+              <button class="btn-ghost btn-deny-early" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Deny</button>
+            </td>`;
+          earlyBody.appendChild(tr);
+        });
+        if (earlySection) earlySection.classList.remove('hidden');
+      } else {
+        if (earlySection) earlySection.classList.add('hidden');
+      }
+    }
+
     // Approval badge
     const badge = document.getElementById('approval-badge');
     if (badge) {
@@ -816,6 +848,30 @@ export function init() {
           showToast('Time off denied.');
           loadTimesheets();
         } catch (err) { showToast('Failed to deny time off.', 'error'); }
+      }
+    });
+  }
+
+  // Early clock-in approval delegation
+  const earlyBodyEl = document.getElementById('early-clockin-body');
+  if (earlyBodyEl) {
+    earlyBodyEl.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      if (e.target.classList.contains('btn-approve-early')) {
+        try {
+          await window.supabaseClient.from('early_clockin_approvals')
+            .update({ status: 'approved', approved_by: state.currentManager || 'Manager' }).eq('id', id);
+          showToast('Early clock-in approved!');
+          loadTimesheets();
+        } catch (err) { showToast('Failed to approve.', 'error'); }
+      } else if (e.target.classList.contains('btn-deny-early')) {
+        try {
+          await window.supabaseClient.from('early_clockin_approvals')
+            .update({ status: 'denied', approved_by: state.currentManager || 'Manager' }).eq('id', id);
+          showToast('Early clock-in denied.');
+          loadTimesheets();
+        } catch (err) { showToast('Failed to deny.', 'error'); }
       }
     });
   }
