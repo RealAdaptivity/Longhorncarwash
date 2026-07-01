@@ -227,8 +227,12 @@ export async function loadTimesheets() {
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
       .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar');
+    // Only the columns the hours aggregation below uses. In particular this
+    // avoids pulling photo_base64 (a base64 image per punch), which the
+    // timesheet never reads and which dominated the payload size. The Manage
+    // Logs modal fetches photos separately when they're actually needed.
     const { data: logsData, error: logsError } = await window.supabaseClient
-      .from('time_logs').select('id, user_id, action, created_at, edited_by_manager, photo_base64')
+      .from('time_logs').select('user_id, action, created_at')
       .order('created_at', { ascending: true });
 
     if (usersError || logsError) throw new Error('Failed to fetch timesheet data');
