@@ -123,9 +123,14 @@ async function attemptManagerLogin(username, password) {
 
 // --- Load Timesheets (main data fetch) ---
 export async function loadTimesheets() {
+  const timesheetTableBody = document.getElementById('timesheet-table-body');
+  if (!timesheetTableBody) return;
+  timesheetTableBody.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading timesheets...</td></tr>';
+
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
-      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved');
+      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar')
+      .eq('site', state.currentSite);
     const { data: logsData, error: logsError } = await window.supabaseClient
       .from('time_logs').select('id, user_id, action, created_at, edited_by_manager, photo_base64')
       .order('created_at', { ascending: true });
