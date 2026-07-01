@@ -545,6 +545,9 @@ nav {
 .action-icon svg {
   width: 2.5rem;
   height: 2.5rem;
+  stroke: currentColor;
+  fill: none;
+  overflow: visible;
 }
 
 .action-label {
@@ -985,7 +988,7 @@ nav {
   }
   .action-card { padding: 18px 10px; }
   .action-icon { font-size: 1.8rem; }
-  .action-icon svg { width: 1.8rem; height: 1.8rem; }
+  .action-icon svg { width: 1.8rem; height: 1.8rem; stroke: currentColor; fill: none; }
   .action-label { font-size: 0.82rem; }
   #manager-anti-buddy { grid-column: span 2 !important; }
 
