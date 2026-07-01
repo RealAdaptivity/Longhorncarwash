@@ -606,6 +606,16 @@ nav {
 
   .view { padding: 15px 12px; }
 
+  /* ── Modals: fixed so they cover the viewport regardless of scroll position ── */
+  .modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1001 !important;
+  }
+
   /* ── Bottom navigation bar ── */
   .sidebar {
     position: fixed;
@@ -767,6 +777,21 @@ nav {
   /* ── Payroll: scrollable tables ── */
   #payroll-dashboard { overflow-x: hidden; }
   #payroll-dashboard .table-container { overflow-x: auto; }
+
+  /* ── Manager timesheet / logs: ensure horizontal scroll works ── */
+  #manager-dashboard .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Add-punch row inside manage-logs modal: stack on narrow screens ── */
+  #modal-manage-logs [style*="display: flex"][style*="gap: 10px"] {
+    flex-wrap: wrap !important;
+  }
+  #modal-manage-logs #new-log-time {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
 
   /* ── Ops view: stack 2-col grids ── */
   #view-ops [style*="grid-template-columns: 1fr 1fr"],
