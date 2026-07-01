@@ -4,6 +4,7 @@ export const state = {
   currentUser: null,
   managerLoggedIn: false,
   currentManager: null,
+  currentManagerRole: null,
   pending2FAUser: null,
   pendingLoginTarget: 'manager',
   employeeMap: {},
@@ -24,6 +25,7 @@ export const state = {
   ALLOWED_RADIUS_METERS: 100,
   GEOFENCE_ENABLED: true,
   ANTI_BUDDY_ENABLED: true,
+  EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
 };
 
@@ -47,19 +49,24 @@ export function showToast(msg, type = 'success') {
 export function getStartOfWeek() {
   const d = new Date();
   const day = d.getDay();
-  const diffToTue = (day >= 2) ? (day - 2) : (day + 5);
-  const tuesday = new Date(d.setDate(d.getDate() - diffToTue));
-  tuesday.setHours(0, 0, 0, 0);
-  return tuesday;
+  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
+  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
+  wednesday.setHours(0, 0, 0, 0);
+  return wednesday;
 }
 
 export function getBiweeklyWeeks(date) {
-  // Anchor on Tuesday May 19, 2026 (start of first bi-weekly cycle)
-  const anchor = new Date(2026, 4, 19);
+  // Delay the cycle calculation by 24 hours so that if today is Wednesday,
+  // we still show the previous cycle until midnight (end of Wednesday).
+  const effectiveDate = new Date(date.getTime() - 24 * 60 * 60 * 1000);
+
+  // Anchor on Wednesday June 17, 2026 — each week runs Wed–Tue (ends Tuesday midnight),
+  // the 14-day cycle resets Wednesday, and payday is the Friday after the cycle ends.
+  const anchor = new Date(2026, 5, 17);
   anchor.setHours(0, 0, 0, 0);
 
   // Use UTC day arithmetic to avoid DST drift
-  const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  const utcDate = Date.UTC(effectiveDate.getFullYear(), effectiveDate.getMonth(), effectiveDate.getDate());
   const utcAnchor = Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
   const diffDays = Math.floor((utcDate - utcAnchor) / (24 * 60 * 60 * 1000));
   const cycleIndex = Math.floor(diffDays / 14);
@@ -201,6 +208,25 @@ export function checkLocation() {
 }
 
 // --- Schedule Parsing ---
+export function parseShiftStartTime(shiftStr) {
+  if (!shiftStr || typeof shiftStr !== 'string') return null;
+  const s = shiftStr.trim();
+  if (!s || s === '-' || s.toUpperCase() === 'OFF' || s.toUpperCase() === 'OC') return null;
+  const dashIdx = s.indexOf('-');
+  if (dashIdx < 0) return null;
+  const startPart = s.substring(0, dashIdx).trim().toLowerCase();
+  const isPM = startPart.includes('pm') || (startPart.endsWith('p') && !startPart.endsWith('am'));
+  const isAM = startPart.includes('am') || startPart.endsWith('a');
+  const clean = startPart.replace(/[a-z]/g, '');
+  const [hStr, mStr] = clean.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || '0', 10);
+  if (isNaN(h)) return null;
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return { hour: h, minute: isNaN(m) ? 0 : m };
+}
+
 export function parseShiftHours(shiftStr) {
   if (!shiftStr || typeof shiftStr !== 'string') return 0;
   const s = shiftStr.trim().toUpperCase();
@@ -232,39 +258,6 @@ export function parseShiftHours(shiftStr) {
     }
     return Math.max(0, end - start);
   } catch (e) { return 0; }
-}
-
-// --- Weather ---
-export async function loadWeather() {
-  const weatherIcon = document.getElementById('weather-icon');
-  const weatherTemp = document.getElementById('weather-temp');
-  const weatherDesc = document.getElementById('weather-desc');
-  if (!weatherIcon || !weatherTemp || !weatherDesc) return;
-
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.CAR_WASH_LAT}&longitude=${state.CAR_WASH_LON}&current_weather=true&temperature_unit=fahrenheit&windspeed_unit=mph`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Weather fetch failed');
-    const data = await response.json();
-    const weather = data.current_weather;
-    if (!weather) throw new Error('No weather data');
-
-    const code = weather.weathercode;
-    let icon = '☁️', desc = 'Cloudy';
-    if (code === 0) { icon = '☀️'; desc = 'Clear'; }
-    else if (code <= 3) { icon = '⛅'; desc = 'Partly Cloudy'; }
-    else if (code <= 48) { icon = '🌫️'; desc = 'Fog'; }
-    else if (code <= 67) { icon = '🌧️'; desc = 'Rain'; }
-    else if (code <= 82) { icon = '❄️'; desc = 'Snow'; }
-    else if (code >= 95) { icon = '⛈️'; desc = 'Thunderstorm'; }
-
-    weatherIcon.textContent = icon;
-    weatherTemp.textContent = `${Math.round(weather.temperature)}°F`;
-    weatherDesc.textContent = desc;
-  } catch (e) {
-    if (weatherDesc) weatherDesc.textContent = 'Weather Unavailable';
-    if (weatherTemp) weatherTemp.textContent = '--°F';
-  }
 }
 
 // --- CSV Download Helper ---

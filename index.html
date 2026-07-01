@@ -3,7 +3,8 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Longhorn Car Wash Timeclock</title>
 
   <!-- PWA & Apple App Settings -->
@@ -30,30 +31,87 @@
     });
   </script>
   <div id="app">
+    <!-- Mobile top header — hidden on desktop, hidden when logged out -->
+    <div class="mobile-header">
+      <div class="mobile-header-logo-box">
+        <img src="logo.png" class="mobile-header-logo" alt="Longhorn" />
+      </div>
+      <span class="mobile-header-name">Longhorn<br>Car Wash</span>
+    </div>
+
     <aside class="sidebar">
       <div class="brand">
-        <!-- Logo removed -->
+        <div class="brand-logo-box">
+          <img src="logo.png" class="brand-logo" alt="Longhorn Car Wash" />
+        </div>
         <h1>LONGHORN</h1>
         <p>CAR WASH</p>
       </div>
       <nav>
-        <button id="nav-timeclock" class="nav-btn active">Timeclock</button>
-        <button id="nav-employee" class="nav-btn">
-          <span class="mobile-hide">Employee Dashboard</span>
-          <span class="mobile-only">Employee</span>
+        <button id="nav-timeclock" class="nav-btn active">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span class="nav-label">Timeclock</span>
         </button>
-        <button id="nav-manager" class="nav-btn">Manager</button>
-        <button id="nav-payroll" class="nav-btn">Payroll</button>
-        <button id="nav-schedule" class="nav-btn">Schedule</button>
+        <button id="nav-employee" class="nav-btn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span class="nav-label"><span class="mobile-hide">Employee Dashboard</span><span
+              class="mobile-only">Employee</span></span>
+        </button>
+        <button id="nav-manager" class="nav-btn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span class="nav-label">Manager</span>
+        </button>
+        <button id="nav-payroll" class="nav-btn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          <span class="nav-label">Payroll</span>
+        </button>
+        <button id="nav-schedule" class="nav-btn">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <span class="nav-label">Schedule</span>
+        </button>
         <button id="nav-ops" class="nav-btn">
-          <span class="mobile-hide">Digital Ops</span>
-          <span class="mobile-only">Ops</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+            <rect x="9" y="3" width="6" height="4" rx="1" ry="1" />
+            <line x1="9" y1="12" x2="15" y2="12" />
+            <line x1="9" y1="16" x2="11" y2="16" />
+          </svg>
+          <span class="nav-label"><span class="mobile-hide">Digital Ops</span><span
+              class="mobile-only">Ops</span></span>
         </button>
         <button id="nav-settings" class="nav-btn">
-          <span class="mobile-hide">Settings</span>
-          <span class="mobile-only">Settings</span>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span class="nav-label">Settings</span>
         </button>
       </nav>
+      <div class="sidebar-footer">Built by RealAdaptivity LLC</div>
     </aside>
 
     <main class="content">
@@ -68,7 +126,11 @@
         </div>
 
         <div class="pin-pad-container">
-          <h3>Enter PIN</h3>
+          <div class="login-logo-wrap">
+            <img src="logo.png" class="login-logo" alt="Longhorn Car Wash" />
+          </div>
+          <h2 class="login-heading">Welcome Back</h2>
+          <p class="login-subheading">Enter your PIN to sign in</p>
           <div class="pin-display-wrapper">
             <input type="password" id="pin-display" readonly placeholder="----" maxlength="4" />
           </div>
@@ -90,7 +152,8 @@
 
           <p id="btn-forgot-pin"
             style="margin-top: 20px; color: var(--text-muted); cursor: pointer; text-decoration: underline; font-size: 0.9rem;">
-            Forgot PIN?</p>
+            Forgot PIN? Contact your manager.</p>
+          <p class="login-credit">Built by RealAdaptivity LLC</p>
 
           <div class="action-buttons hidden" id="action-buttons">
 
@@ -102,9 +165,16 @@
             <canvas id="photo-canvas" style="display: none;"></canvas>
 
             <h2 id="employee-welcome" style="margin-bottom: 25px; color: var(--text);">Welcome, Name</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-              <button id="btn-clock-in" class="btn-action btn-success"
-                style="margin:0; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);">
+
+            <div id="salary-employee-msg"
+              style="display: none; margin-bottom: 20px; padding: 20px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.95rem; text-align: center; font-style: italic;">
+              Salaried employees do not clock in.
+            </div>
+
+            <div id="clock-action-grid"
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+              <button id="btn-clock-in" class="btn-action"
+                style="margin:0; background: #1C1C1E; color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);">
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK IN</span>
               </button>
               <button id="btn-clock-out" class="btn-action btn-danger"
@@ -112,7 +182,7 @@
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK OUT</span>
               </button>
               <button id="btn-start-lunch" class="btn-action"
-                style="margin:0; background: #FFB300; color: #111; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(255, 179, 0, 0.2);">
+                style="margin:0; background: #5C5C5E; color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);">
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">START LUNCH</span>
               </button>
               <button id="btn-end-lunch" class="btn-action"
@@ -124,7 +194,8 @@
               style="margin: 0 0 10px 0; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px;">
               Review & Sign Timesheet
             </button>
-            <button id="btn-cancel-action" class="btn-action btn-ghost" style="margin:0;">Cancel / Go Back</button>
+            <button onclick="window.signOut()" class="btn-action btn-ghost"
+              style="margin:0; border: 1px solid var(--primary); color: var(--primary);">Sign Out</button>
           </div>
         </div>
 
@@ -135,6 +206,24 @@
             <img id="full-size-photo" src=""
               style="width: 100%; border-radius: 8px; border: 2px solid var(--border); margin-bottom: 15px;" />
             <button id="btn-close-photo" class="btn-ghost" style="padding: 10px 20px;">Close</button>
+          </div>
+        </div>
+
+        <!-- Early Clock-In Request Modal -->
+        <div id="modal-early-clockin" class="modal hidden">
+          <div class="modal-content" style="width: 380px; text-align: center;">
+            <h3 style="color: var(--warning); margin-bottom: 10px;">Too Early to Clock In</h3>
+            <p style="color: var(--text-muted); margin-bottom: 6px;">Your shift doesn't start until</p>
+            <p id="early-clockin-shift-start"
+              style="font-size: 1.8rem; font-weight: 800; color: var(--text); margin-bottom: 16px;">—</p>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">You can request early clock-in
+              approval from a manager. They'll see it in Pending Approvals and can approve or deny.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <button id="btn-cancel-early-clockin" class="btn-ghost"
+                style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Cancel</button>
+              <button id="btn-request-early-clockin" class="btn-primary"
+                style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Request Approval</button>
+            </div>
           </div>
         </div>
 
@@ -184,7 +273,7 @@
             style="width: 500px; text-align: left; max-height: 80vh; display: flex; flex-direction: column;">
             <h3 style="margin-bottom: 10px; color: var(--primary);">Review Your Hours</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Review your punches for the
-              current week (Tue – Mon). If accurate, digitally sign below to approve them for payroll.</p>
+              current week (Wed – Tue). If accurate, digitally sign below to approve them for payroll.</p>
 
             <div
               style="flex: 1; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--bg);">
@@ -206,7 +295,7 @@
 
             <div
               style="background: rgba(46, 125, 50, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px dashed var(--success);">
-              <span style="font-size: 0.9rem; color: var(--text-muted);">Total Calculated Hours (Tue – Mon)</span><br>
+              <span style="font-size: 0.9rem; color: var(--text-muted);">Total Calculated Hours (Wed – Tue)</span><br>
               <span id="sign-timesheet-total"
                 style="font-size: 2rem; font-weight: bold; color: var(--success);">0.00</span>
             </div>
@@ -453,46 +542,66 @@
         <div id="manager-dashboard" class="hidden">
           <header class="dash-header">
             <h2>Manager Dashboard</h2>
-            <div style="display: flex; gap: 10px;">
-              <button id="btn-edit-payroll-format" class="btn-ghost"
-                style="padding: 10px 15px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;"
-                title="Edit Payroll Format">
-                Edit Format
-              </button>
-              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
-            </div>
           </header>
 
           <div class="quick-actions"
             style="margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
             <div id="btn-show-create-user" class="action-card">
-              <div class="action-icon">+</div>
+              <div class="action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+              </div>
               <div class="action-label">Add New Employee</div>
             </div>
             <div id="btn-scroll-approvals" class="action-card">
               <div id="approval-badge" class="badge hidden">0</div>
-              <div class="action-icon">✓</div>
+              <div class="action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
               <div class="action-label">Pending Approvals</div>
             </div>
             <div id="btn-show-security" class="action-card">
-              <div class="action-icon">SEC</div>
+              <div class="action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
               <div class="action-label">Security Settings</div>
             </div>
             <div class="action-card" id="overtime-alert-card" style="border: 1px solid var(--warning);">
               <div id="overtime-badge" class="badge hidden" style="background: var(--danger);">0</div>
-              <div class="action-icon" style="color: var(--danger);">!</div>
+              <div class="action-icon" style="color: var(--danger);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
               <div class="action-label" style="color: var(--danger); font-weight: bold;">Overtime Risk</div>
             </div>
-            <div id="weather-card" class="action-card"
-              style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
-              <div id="weather-icon" class="action-icon">--</div>
-              <div id="weather-temp" class="action-label" style="font-size: 1.2rem; font-weight: 800;">--°F</div>
-              <div id="weather-desc" style="font-size: 0.8rem; opacity: 0.9;">Loading weather...</div>
-            </div>
             <div id="btn-show-analytics" class="action-card"
-              style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white;">
-              <div class="action-icon">Stats</div>
-              <div class="action-label">Business Insights</div>
+              style="background: linear-gradient(135deg, #A93B2F 0%, #7a1a12 100%); color: white;">
+              <div class="action-icon" style="color: white;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="10" />
+                  <line x1="6" y1="20" x2="6" y2="16" />
+                  <line x1="2" y1="20" x2="22" y2="20" />
+                </svg>
+              </div>
+              <div class="action-label" style="color: white;">Business Insights</div>
             </div>
           </div>
 
@@ -655,6 +764,20 @@
                 </div>
               </div>
 
+              <!-- Early Clock-In Block Setting -->
+              <div id="manager-early-clockin-block"
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">Early Clock-In Block</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">When enabled, employees
+                  cannot clock in before their scheduled shift start time (5-minute grace period). They can request
+                  manager approval to clock in early.</p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span id="early-block-status-text" style="font-weight: bold; color: var(--success);">Enabled</span>
+                  <button id="btn-toggle-early-block" class="btn-danger"
+                    style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem;">Disable</button>
+                </div>
+              </div>
+
               <!-- Revenue & Goals Setting -->
               <div id="manager-revenue-goals"
                 style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
@@ -690,36 +813,36 @@
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
               <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet <span
-                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Tue – Mon)</span></h3>
+                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Wed – Tue)</span></h3>
               <button id="btn-export-csv" class="btn-ghost"
                 style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
                 Export Weekly CSV
               </button>
             </div>
             <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Status</th>
-                  <th>Tue</th>
-                  <th>Wed</th>
-                  <th>Thu</th>
-                  <th>Fri</th>
-                  <th>Sat</th>
-                  <th>Sun</th>
-                  <th>Mon</th>
-                  <th>Total</th>
-                  <th>Rate</th>
-                  <th>Est. Pay ($)</th>
-                  <th>Last Week</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="timesheet-body">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Status</th>
+                    <th>Wed</th>
+                    <th>Thu</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                    <th>Sun</th>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Total</th>
+                    <th>Rate</th>
+                    <th>Est. Pay ($)</th>
+                    <th>Last Week</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="timesheet-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
             </div>
 
           </div>
@@ -797,20 +920,20 @@
               </div>
 
               <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Photo</th>
-                    <th>Action</th>
-                    <th>Time</th>
-                    <th>Edited By</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody id="manage-logs-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Photo</th>
+                      <th>Action</th>
+                      <th>Time</th>
+                      <th>Edited By</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="manage-logs-body">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
               </div>
 
               <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
@@ -852,19 +975,19 @@
             style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
             <h3 style="color: var(--primary); margin-bottom: 15px;">Pending Account Approvals</h3>
             <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Type</th>
-                  <th>Requested Value</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="pending-pins-body">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Type</th>
+                    <th>Requested Value</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="pending-pins-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -873,19 +996,40 @@
             style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
             <h3 style="color: var(--warning); margin-bottom: 15px;">Pending Time Off Requests</h3>
             <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Dates</th>
-                  <th>Reason</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="manager-timeoff-body">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Dates</th>
+                    <th>Reason</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="manager-timeoff-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Pending Early Clock-In Requests -->
+          <div id="pending-early-clockin-section" class="hidden"
+            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
+            <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Shift Starts</th>
+                    <th>Requested At</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="early-clockin-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -945,11 +1089,19 @@
                 class="input-field" style="margin-bottom: 20px;" />
               <input type="password" id="new-user-password" placeholder="Create a Dashboard Password"
                 class="input-field hidden" />
-              <div class="role-select" style="margin-top: 10px; margin-bottom: 20px;">
+              <div class="role-select"
+                style="margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px;">
                 <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
-                <label style="margin-left: 15px;"><input type="radio" name="new-user-role" value="Manager">
+                <label><input type="radio" name="new-user-role" value="Supervisor"> Supervisor</label>
+                <label><input type="radio" name="new-user-role" value="Assistant Site Manager"> Asst. Site
                   Manager</label>
+                <label><input type="radio" name="new-user-role" value="Site Manager"> Site Manager</label>
               </div>
+              <label
+                style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem;">
+                <input type="checkbox" id="new-user-is-salary" style="width: 16px; height: 16px; cursor: pointer;">
+                Salaried employee (does not clock in)
+              </label>
               <div class="modal-actions" style="margin-top: 30px;">
                 <button id="btn-cancel-create" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
                 <button id="btn-confirm-create" class="btn-primary"
@@ -1015,9 +1167,6 @@
         <div id="payroll-dashboard" class="hidden" style="width: 100%; max-width: 1100px; margin: 0 auto;">
           <header class="dash-header">
             <h2>Payroll Dashboard</h2>
-            <div style="display: flex; gap: 10px;">
-              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
-            </div>
           </header>
 
           <div style="display: grid; grid-template-columns: 1fr; gap: 40px;">
@@ -1031,23 +1180,23 @@
                 </button>
               </div>
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the
-                current biweekly pay period (resets Thursday every 2 weeks)</p>
+                current biweekly pay period (resets Friday every 2 weeks)</p>
               <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th id="biweekly-header-w1">Last Week (Hrs)</th>
-                    <th id="biweekly-header-w2">This Week (Hrs)</th>
-                    <th>Biweekly Total (Hrs)</th>
-                    <th>Est. Pay ($)</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="biweekly-history-body-payroll">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th id="biweekly-header-w1">Last Week (Hrs)</th>
+                      <th id="biweekly-header-w2">This Week (Hrs)</th>
+                      <th>Biweekly Total (Hrs)</th>
+                      <th>Est. Pay ($)</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="biweekly-history-body-payroll">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -1063,24 +1212,24 @@
               <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Combined hours for the past 4
                 weeks. Data older than 30 days is automatically purged.</p>
               <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>4 Weeks Ago</th>
-                    <th>3 Weeks Ago</th>
-                    <th>2 Weeks Ago</th>
-                    <th>Last Week</th>
-                    <th>This Week</th>
-                    <th>Monthly Total (Hrs)</th>
-                    <th>Est. Pay ($)</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="monthly-archive-body-payroll">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>4 Weeks Ago</th>
+                      <th>3 Weeks Ago</th>
+                      <th>2 Weeks Ago</th>
+                      <th>Last Week</th>
+                      <th>This Week</th>
+                      <th>Monthly Total (Hrs)</th>
+                      <th>Est. Pay ($)</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="monthly-archive-body-payroll">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1114,10 +1263,6 @@
               <thead>
                 <tr>
                   <th style="width: 150px;">Employee</th>
-                  <th><input type="text" class="input-field schedule-header-input" value="Mon"
-                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
-                  <th><input type="text" class="input-field schedule-header-input" value="Tue"
-                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Wed"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Thu"
@@ -1127,6 +1272,10 @@
                   <th><input type="text" class="input-field schedule-header-input" value="Sat"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th><input type="text" class="input-field schedule-header-input" value="Sun"
+                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
+                  <th><input type="text" class="input-field schedule-header-input" value="Mon"
+                      style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
+                  <th><input type="text" class="input-field schedule-header-input" value="Tue"
                       style="padding: 5px; text-align: center; font-weight: bold; margin-bottom: 0;"></th>
                   <th style="width: 80px;">Total</th>
                 </tr>
@@ -1359,7 +1508,9 @@
               Required</label>
             <select id="checklist-role" class="input-field">
               <option value="Employee">Employee</option>
-              <option value="Manager">Manager</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Assistant Site Manager">Asst. Site Manager</option>
+              <option value="Site Manager">Site Manager</option>
             </select>
           </div>
 

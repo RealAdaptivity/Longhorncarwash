@@ -4,9 +4,19 @@ import { supabase } from '../lib/supabase';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
 import { User } from '../types';
 
+const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'];
+
+export const ROLE_ACCESS: Record<string, Record<string, boolean>> = {
+  'Site Manager':           { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
+  'Manager':                { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
+  'Assistant Site Manager': { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false },
+  'Supervisor':             { payroll: false, schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false },
+};
+
 interface AuthContextType {
   user: User | null;
   isManagerUnlocked: boolean;
+  managerRole: string | null;
   loading: boolean;
   login: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -19,6 +29,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isManagerUnlocked, setIsManagerUnlocked] = useState(false);
+  const [managerRole, setManagerRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function restoreSession() {
     try {
       const saved = await SecureStore.getItemAsync('lcw_user');
-      if (saved) setUser(JSON.parse(saved));
+      if (saved) {
+        const userData = JSON.parse(saved);
+        setUser(userData);
+        // Restore management access so managers don't lose their tabs on reopen
+        if (MANAGEMENT_ROLES.includes(userData.role)) {
+          setIsManagerUnlocked(true);
+          setManagerRole(userData.role);
+        }
+      }
     } catch {
       // ignore
     } finally {
@@ -41,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, role, is_approved')
+      .select('id, name, role, is_approved, is_salary')
       .eq('pin', pin)
       .limit(1)
       .single();
@@ -49,9 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error || !data) return { success: false, error: 'Invalid PIN' };
     if (!data.is_approved) return { success: false, error: 'Account not approved. Contact a manager.' };
 
-    const u: User = { id: data.id, name: data.name, role: data.role, is_approved: data.is_approved };
+    const u: User = { id: data.id, name: data.name, role: data.role, is_approved: data.is_approved, is_salary: data.is_salary ?? false };
     setUser(u);
     await SecureStore.setItemAsync('lcw_user', JSON.stringify(u));
+
+    // Auto-unlock manager access for management roles
+    if (MANAGEMENT_ROLES.includes(data.role)) {
+      setIsManagerUnlocked(true);
+      setManagerRole(data.role);
+    }
 
     // Register for push notifications and save token
     try {
@@ -69,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     setUser(null);
     setIsManagerUnlocked(false);
+    setManagerRole(null);
     await SecureStore.deleteItemAsync('lcw_user');
   }
 
@@ -82,18 +108,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .limit(1)
       .single();
 
-    if (error || !data) return { success: false, error: 'Invalid manager credentials' };
+    if (error || !data) return { success: false, error: 'Invalid credentials' };
+    if (!MANAGEMENT_ROLES.includes(data.role)) return { success: false, error: 'Not a management account' };
 
     setIsManagerUnlocked(true);
+    setManagerRole(data.role);
     return { success: true };
   }
 
   function lockManager() {
     setIsManagerUnlocked(false);
+    setManagerRole(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isManagerUnlocked, loading, login, logout, unlockManager, lockManager }}>
+    <AuthContext.Provider value={{ user, isManagerUnlocked, managerRole, loading, login, logout, unlockManager, lockManager }}>
       {children}
     </AuthContext.Provider>
   );

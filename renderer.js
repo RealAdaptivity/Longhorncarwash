@@ -1,5 +1,5 @@
 import { state } from './modules/utils.js';
-import { init as initTimeclock, resetTimeclockState } from './modules/timeclock.js';
+import { init as initTimeclock, resetTimeclockState, signOut } from './modules/timeclock.js';
 import { init as initManager, logoutManager, loadTimesheets } from './modules/manager.js';
 import { init as initEmployee, loadEmployeePortal } from './modules/employee.js';
 import { init as initSchedule, loadSchedules } from './modules/schedule.js';
@@ -48,7 +48,9 @@ export function switchView(view) {
     viewTimeclock.classList.add('active');
     navTimeclock.classList.add('active');
     resetTimeclockState();
-    logoutManager();
+    const _savedSession = localStorage.getItem('lcw_web_user');
+    const _savedUser = _savedSession ? JSON.parse(_savedSession) : null;
+    if (!_savedUser || _savedUser.role === 'Employee') logoutManager();
     logoutEmployeePortal();
 
   } else if (view === 'manager') {
@@ -66,7 +68,15 @@ export function switchView(view) {
   } else if (view === 'employee') {
     viewEmployee.classList.add('active');
     if (navEmployee) navEmployee.classList.add('active');
+    // Auto-use the globally logged-in user — no second login needed
+    if (!state.currentPortalEmployee && state.currentUser) {
+      state.currentPortalEmployee = state.currentUser;
+    }
     if (state.currentPortalEmployee) {
+      const employeeAuth = document.getElementById('employee-auth');
+      const employeeDashboard = document.getElementById('employee-dashboard');
+      if (employeeAuth) employeeAuth.classList.add('hidden');
+      if (employeeDashboard) employeeDashboard.classList.remove('hidden');
       loadEmployeePortal(state.currentPortalEmployee.id, state.currentPortalEmployee.name);
     }
 
@@ -99,6 +109,7 @@ export function switchView(view) {
 }
 
 window.switchView = switchView;
+window.signOut = signOut;
 
 // --- Nav Event Listeners ---
 if (navTimeclock) navTimeclock.addEventListener('click', () => switchView('timeclock'));
@@ -120,8 +131,9 @@ if (navOps) navOps.addEventListener('click', () => switchView('ops'));
 if (navSettings) navSettings.addEventListener('click', () => switchView('settings'));
 
 // --- Bootstrap ---
-const savedTheme = localStorage.getItem('theme') || 'dark';
+const savedTheme = localStorage.getItem('theme') || 'light';
 applyTheme(savedTheme);
+document.body.classList.add('logged-out');
 
 initSettings();
 initTimeclock();

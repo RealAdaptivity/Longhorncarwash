@@ -9,7 +9,7 @@ import { colors, spacing, radius, font } from '../../theme';
 import { TimeLog, User } from '../../types';
 
 const TZ = 'America/Chicago';
-const BIWEEKLY_ANCHOR = new Date('2026-05-19T00:00:00-05:00').getTime();
+const BIWEEKLY_ANCHOR = new Date('2026-05-20T00:00:00-05:00').getTime();
 const WEEK_MS = 7 * 24 * 3600 * 1000;
 
 function calcHours(logs: TimeLog[]): number {
@@ -28,12 +28,23 @@ function calcHours(logs: TimeLog[]): number {
 function getWeekRangeStart(weeksBack: number): Date {
   const now = new Date();
   const ct = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
-  const day = ct.getDay();
-  const daysFromTue = (day + 7 - 2) % 7;
-  const thisWeekTue = new Date(ct);
-  thisWeekTue.setDate(ct.getDate() - daysFromTue);
-  thisWeekTue.setHours(0, 0, 0, 0);
-  return new Date(thisWeekTue.getTime() - weeksBack * WEEK_MS);
+  // Delay the cycle calculation by 24 hours to keep the previous cycle active through Wednesday
+  const effectiveDate = new Date(ct.getTime() - 24 * 60 * 60 * 1000);
+  
+  const anchor = new Date(BIWEEKLY_ANCHOR);
+  
+  const utcDate = Date.UTC(effectiveDate.getFullYear(), effectiveDate.getMonth(), effectiveDate.getDate());
+  const utcAnchor = Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  const diffDays = Math.floor((utcDate - utcAnchor) / (24 * 60 * 60 * 1000));
+  const cycleIndex = Math.floor(diffDays / 14);
+  
+  const i = 3 - weeksBack;
+  const totalWeeksOffset = (cycleIndex - 1) * 2 + i;
+  
+  const weekStart = new Date(anchor);
+  weekStart.setDate(anchor.getDate() + totalWeeksOffset * 7);
+  weekStart.setHours(0, 0, 0, 0);
+  return weekStart;
 }
 
 interface PayrollRow {

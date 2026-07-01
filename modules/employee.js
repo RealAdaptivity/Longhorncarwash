@@ -101,9 +101,9 @@ export async function loadEmployeePortal(userId, name) {
 
     const empNextPayday = document.getElementById('emp-next-payday');
     if (empNextPayday) {
-      const friday = new Date(bwNext);
-      friday.setDate(friday.getDate() + 2);
-      empNextPayday.innerHTML = `Friday<br>${friday.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}`;
+      // Cycle ends the second Tuesday (bw2 + 6 days); payday is the Friday after (bw2 + 9 days).
+      const payday = new Date(bw2 + 9 * 86400000);
+      empNextPayday.innerHTML = `Friday<br>${payday.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}`;
     }
 
     // Time off requests

@@ -67,11 +67,10 @@ export async function sendPushNotification(expoPushToken: string, title: string,
 }
 
 export async function notifyManagers(title: string, body: string, data = {}) {
-  // Query all users with role 'manager'
   const { data: managers } = await supabase
     .from('users')
     .select('push_token')
-    .eq('role', 'manager')
+    .in('role', ['Site Manager', 'Assistant Site Manager', 'Supervisor'])
     .not('push_token', 'is', null);
 
   if (managers && managers.length > 0) {
