@@ -1033,6 +1033,27 @@
             </div>
           </div>
 
+          <!-- Pending Early Clock-In Requests -->
+          <div id="pending-early-clockin-section" class="hidden"
+            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
+            <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
+            <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Shift Starts</th>
+                  <th>Requested At</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="early-clockin-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+            </div>
+          </div>
+
           <!-- EDIT PAYROLL FORMAT MODAL -->
           <div id="modal-edit-payroll-format" class="modal hidden">
             <div class="modal-content" style="width: 500px; text-align: left;">
