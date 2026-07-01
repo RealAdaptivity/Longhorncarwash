@@ -239,6 +239,7 @@ export async function loadTimesheets() {
         pay_rate: u.pay_rate || 0, is_salary: u.is_salary || false,
         tax_status: u.tax_status || 'Single',
         avatar: u.avatar || null,
+        role: u.role || 'Employee',
         weekMs: [0, 0, 0, 0, 0, 0, 0], lastWeekMs: 0,
         week2Ms: 0, week3Ms: 0, week4Ms: 0,
         biweeklyWeek1Ms: 0, biweeklyWeek2Ms: 0,
