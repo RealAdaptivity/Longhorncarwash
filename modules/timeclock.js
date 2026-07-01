@@ -83,6 +83,12 @@ function showUserSession(userData) {
     if (isManager) navManager.classList.remove('hidden');
     else navManager.classList.add('hidden');
   }
+
+  const navTimesheet = document.getElementById('nav-timesheet');
+  if (navTimesheet) {
+    if (isManager) navTimesheet.classList.remove('hidden');
+    else navTimesheet.classList.add('hidden');
+  }
 }
 
 export function resetTimeclockState() {
@@ -95,6 +101,9 @@ export function resetTimeclockState() {
 
   const navManager = document.getElementById('nav-manager');
   if (navManager) navManager.classList.remove('hidden');
+
+  const navTimesheet = document.getElementById('nav-timesheet');
+  if (navTimesheet) navTimesheet.classList.remove('hidden');
 
   const modalAnnouncement = document.getElementById('modal-announcement');
   if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
