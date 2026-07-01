@@ -47,27 +47,40 @@ export function showToast(msg, type = 'success') {
 
 // --- Date Utilities ---
 export function getStartOfWeek() {
+  // Work weeks run Wednesday–Tuesday (week ends Tuesday midnight)
   const d = new Date();
   const day = d.getDay();
-  const diffToFri = (day >= 5) ? (day - 5) : (day + 2);
-  const friday = new Date(d.setDate(d.getDate() - diffToFri));
-  friday.setHours(0, 0, 0, 0);
-  return friday;
+  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
+  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
+  wednesday.setHours(0, 0, 0, 0);
+  return wednesday;
 }
 
 export function getBiweeklyWeeks(date) {
-  // Anchor on Friday May 22, 2026 — pay cycles run Fri–Thu, payday is the Friday after each 14-day cycle ends
-  const anchor = new Date(2026, 4, 22);
-  anchor.setHours(0, 0, 0, 0);
+  // Biweekly pay. Work weeks run Wed–Tue; payroll is run Wednesday morning for
+  // the two weeks that just ended, and payday is the Friday of that same week.
+  // We return the period being paid at the NEXT upcoming Friday payday, so that
+  // running payroll on Wednesday morning shows the just-completed two weeks.
+  // Anchor: Friday July 3, 2026 is a payday for the period Wed Jun 17 – Tue Jun 30.
+  const anchorPayday = new Date(2026, 6, 3); // July 3, 2026 (Friday)
+  anchorPayday.setHours(0, 0, 0, 0);
 
+  const MS_DAY = 24 * 60 * 60 * 1000;
   // Use UTC day arithmetic to avoid DST drift
   const utcDate = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-  const utcAnchor = Date.UTC(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
-  const diffDays = Math.floor((utcDate - utcAnchor) / (24 * 60 * 60 * 1000));
-  const cycleIndex = Math.floor(diffDays / 14);
+  const utcAnchor = Date.UTC(anchorPayday.getFullYear(), anchorPayday.getMonth(), anchorPayday.getDate());
+  const diffDays = Math.floor((utcDate - utcAnchor) / MS_DAY);
 
-  const week1Start = new Date(anchor);
-  week1Start.setDate(anchor.getDate() + cycleIndex * 14);
+  // Round up so we land on the next payday >= today; a period stays "current"
+  // through its own payday Friday, then advances the next day.
+  const cycleIndex = Math.ceil(diffDays / 14);
+  const nextPayday = new Date(anchorPayday);
+  nextPayday.setDate(anchorPayday.getDate() + cycleIndex * 14);
+  nextPayday.setHours(0, 0, 0, 0);
+
+  // Period being paid = the two Wed–Tue weeks ending 3 days before payday.
+  const week1Start = new Date(nextPayday);
+  week1Start.setDate(nextPayday.getDate() - 16); // Wed, 16 days before Fri payday
   week1Start.setHours(0, 0, 0, 0);
 
   const week2Start = new Date(week1Start);
