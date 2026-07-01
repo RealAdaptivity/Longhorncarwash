@@ -30,6 +30,14 @@
     });
   </script>
   <div id="app">
+    <!-- Mobile top header — hidden on desktop, hidden when logged out -->
+    <div class="mobile-header">
+      <div class="mobile-header-logo-box">
+        <img src="logo.png" class="mobile-header-logo" alt="Longhorn" />
+      </div>
+      <span class="mobile-header-name">Longhorn<br>Car Wash</span>
+    </div>
+
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-logo-box">
@@ -149,7 +157,6 @@
               style="margin: 0 0 10px 0; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px;">
               Review & Sign Timesheet
             </button>
-            <button id="btn-cancel-action" class="btn-action btn-ghost" style="margin:0 0 10px 0;">Back</button>
             <button onclick="window.signOut()" class="btn-action btn-ghost" style="margin:0; border: 1px solid var(--primary); color: var(--primary);">Sign Out</button>
           </div>
         </div>
@@ -479,14 +486,6 @@
         <div id="manager-dashboard" class="hidden">
           <header class="dash-header">
             <h2>Manager Dashboard</h2>
-            <div style="display: flex; gap: 10px;">
-              <button id="btn-edit-payroll-format" class="btn-ghost"
-                style="padding: 10px 15px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px;"
-                title="Edit Payroll Format">
-                Edit Format
-              </button>
-              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
-            </div>
           </header>
 
           <div class="quick-actions"
@@ -508,12 +507,6 @@
               <div id="overtime-badge" class="badge hidden" style="background: var(--danger);">0</div>
               <div class="action-icon" style="color: var(--danger);">!</div>
               <div class="action-label" style="color: var(--danger); font-weight: bold;">Overtime Risk</div>
-            </div>
-            <div id="weather-card" class="action-card"
-              style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
-              <div id="weather-icon" class="action-icon">--</div>
-              <div id="weather-temp" class="action-label" style="font-size: 1.2rem; font-weight: 800;">--°F</div>
-              <div id="weather-desc" style="font-size: 0.8rem; opacity: 0.9;">Loading weather...</div>
             </div>
             <div id="btn-show-analytics" class="action-card"
               style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white;">
@@ -1046,9 +1039,6 @@
         <div id="payroll-dashboard" class="hidden" style="width: 100%; max-width: 1100px; margin: 0 auto;">
           <header class="dash-header">
             <h2>Payroll Dashboard</h2>
-            <div style="display: flex; gap: 10px;">
-              <button onclick="logoutManager()" class="btn-ghost" style="padding: 10px 20px;">Log Out</button>
-            </div>
           </header>
 
           <div style="display: grid; grid-template-columns: 1fr; gap: 40px;">

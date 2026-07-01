@@ -2,7 +2,7 @@
   --primary: #A93B2F;
   --primary-hover: #8B2C21;
   --bg: #111111;
-  --sidebar-bg: #1A1A1A;
+  --sidebar-bg: #1A0808;
   --card: #222222;
   --surface: #2A2A2A;
   --text: #F4F4F4;
@@ -152,7 +152,7 @@ body.logged-out .login-credit {
 .sidebar {
   width: 240px;
   background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(255,255,255,0.08);
   display: flex;
   flex-direction: column;
 }
@@ -160,7 +160,7 @@ body.logged-out .login-credit {
 .brand {
   padding: 28px 20px 22px;
   text-align: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .brand-logo-box {
@@ -171,7 +171,7 @@ body.logged-out .login-credit {
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
 .brand-logo {
@@ -185,12 +185,12 @@ body.logged-out .login-credit {
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 2px;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .brand p {
   font-size: 0.7rem;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.55);
   letter-spacing: 3px;
   margin-top: 2px;
 }
@@ -205,7 +205,7 @@ nav {
 .nav-btn {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.6);
   padding: 13px 20px;
   text-align: left;
   font-size: 0.9rem;
@@ -219,14 +219,14 @@ nav {
 }
 
 .nav-btn:hover {
-  background-color: var(--hover-bg);
-  color: var(--text);
+  background-color: rgba(255,255,255,0.08);
+  color: #ffffff;
 }
 
 .nav-btn.active {
-  color: var(--primary);
-  background-color: rgba(169, 59, 47, 0.08);
-  border-left-color: var(--primary);
+  color: #ffffff;
+  background-color: rgba(255,255,255,0.15);
+  border-left-color: #ffffff;
 }
 
 .nav-icon {
@@ -247,11 +247,16 @@ nav {
 .sidebar-footer {
   padding: 16px 20px;
   font-size: 0.65rem;
-  color: var(--text-muted);
-  opacity: 0.4;
+  color: rgba(255,255,255,0.35);
+  opacity: 1;
   letter-spacing: 0.5px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255,255,255,0.1);
   text-align: center;
+}
+
+/* MOBILE HEADER — shown on small screens in place of sidebar brand */
+.mobile-header {
+  display: none;
 }
 
 /* MAIN CONTENT */
@@ -739,6 +744,54 @@ nav {
     z-index: 1001 !important;
   }
 
+  /* ── Mobile header ── */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    background: var(--primary);
+    padding: 0 16px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    height: 52px;
+    gap: 10px;
+  }
+
+  body.logged-out .mobile-header {
+    display: none;
+  }
+
+  .mobile-header-logo-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-header-logo {
+    width: 60px;
+    height: 28px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .mobile-header-name {
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  /* Adjust layout for fixed header + bottom nav */
+  .content { margin-top: 52px; margin-bottom: 60px; }
+  body.logged-out .content { margin-top: 0; }
+
   /* ── Bottom navigation bar ── */
   .sidebar {
     position: fixed;
@@ -749,7 +802,7 @@ nav {
     width: 100%;
     height: 60px;
     background: var(--sidebar-bg);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(255,255,255,0.12);
     border-right: none;
     flex-direction: row;
     padding: 0;
@@ -782,12 +835,12 @@ nav {
     border-top: 2px solid transparent;
     min-width: 52px;
     gap: 3px;
-    color: var(--text-muted);
+    color: rgba(255,255,255,0.55);
   }
 
   .nav-btn.active {
-    border-top-color: var(--primary);
-    color: var(--primary);
+    border-top-color: #ffffff;
+    color: #ffffff;
   }
 
   .nav-icon {
@@ -907,8 +960,7 @@ nav {
   }
 
   /* ── Payroll: scrollable tables ── */
-  #payroll-dashboard { overflow-x: hidden; }
-  #payroll-dashboard .table-container { overflow-x: auto; }
+  #payroll-dashboard .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
   /* ── Manager timesheet / logs: ensure horizontal scroll works ── */
   #manager-dashboard .table-container {

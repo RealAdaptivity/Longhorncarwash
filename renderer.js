@@ -68,7 +68,15 @@ export function switchView(view) {
   } else if (view === 'employee') {
     viewEmployee.classList.add('active');
     if (navEmployee) navEmployee.classList.add('active');
+    // Auto-use the globally logged-in user — no second login needed
+    if (!state.currentPortalEmployee && state.currentUser) {
+      state.currentPortalEmployee = state.currentUser;
+    }
     if (state.currentPortalEmployee) {
+      const employeeAuth = document.getElementById('employee-auth');
+      const employeeDashboard = document.getElementById('employee-dashboard');
+      if (employeeAuth) employeeAuth.classList.add('hidden');
+      if (employeeDashboard) employeeDashboard.classList.remove('hidden');
       loadEmployeePortal(state.currentPortalEmployee.id, state.currentPortalEmployee.name);
     }
 
