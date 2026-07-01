@@ -123,9 +123,9 @@ async function attemptManagerLogin(username, password) {
 
 // --- Load Timesheets (main data fetch) ---
 export async function loadTimesheets() {
-  const timesheetBody = document.getElementById('timesheet-body');
-  if (!timesheetBody) return;
-  timesheetBody.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading timesheets...</td></tr>';
+  const timesheetGrid = document.getElementById('timesheet-grid');
+  if (!timesheetGrid) return;
+  timesheetGrid.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">Loading timesheets...</p>';
 
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
@@ -207,13 +207,16 @@ export async function loadTimesheets() {
       }
     });
 
-    const timesheetBody = document.getElementById('timesheet-body');
+    const timesheetGrid = document.getElementById('timesheet-grid');
     const biweeklyHistoryBody = document.getElementById('biweekly-history-body-payroll');
     const monthlyArchiveBody = document.getElementById('monthly-archive-body-payroll');
 
-    if (timesheetBody) timesheetBody.innerHTML = '';
+    if (timesheetGrid) timesheetGrid.innerHTML = '';
     if (biweeklyHistoryBody) biweeklyHistoryBody.innerHTML = '';
     if (monthlyArchiveBody) monthlyArchiveBody.innerHTML = '';
+
+    // Structured rows for CSV export (decoupled from DOM layout)
+    state.weeklyTimesheetRows = [];
 
     let overtimeCount = 0;
     let pendingCount = 0;
@@ -255,29 +258,51 @@ export async function loadTimesheets() {
       const weeklyPayVal = calculatePayWithOvertime([totalWeekHrsVal], emp.pay_rate);
       const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : weeklyPayVal.toFixed(2);
       const rateText = emp.is_salary ? `$${emp.pay_rate.toFixed(2)} (Salary)` : `$${emp.pay_rate.toFixed(2)}/hr`;
-      const dayLabels = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
-      const daysStr = emp.weekMs.map((ms, i) => {
+      const dayLetters = ['W', 'T', 'F', 'S', 'S', 'M', 'T'];
+      const dayNames = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
+      const weekStrip = emp.weekMs.map((ms, i) => {
         const h = ms / 3600000;
-        return `<td data-label="${dayLabels[i]}">${h > 0 ? h.toFixed(1) : '-'}</td>`;
+        return `<div class="ts-day${h > 0 ? ' on' : ''}"><span class="dl">${dayLetters[i]}</span><span class="dv${h > 0 ? '' : ' zero'}" title="${dayNames[i]}">${h > 0 ? h.toFixed(1) : '–'}</span></div>`;
       }).join('');
+      const otTag = totalWeekHrsVal >= 40 ? ' <span class="ts-ot">OT</span>' : '';
+      const tsAvatar = emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23bbb'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
-      if (timesheetBody) {
-        const tr = document.createElement('tr');
-        tr.dataset.id = emp.id;
-        tr.dataset.isSalary = emp.is_salary;
-        tr.dataset.payRate = emp.pay_rate;
-        tr.innerHTML = `
-          <td data-label="Employee">${displayName}</td>
-          <td data-label="Status"><span style="color:${statusColor};font-weight:bold;">${emp.currentStatus}</span></td>
-          ${daysStr}
-          <td data-label="Total" style="font-weight:bold;color:${totalColor};">${totalWeekHrs}</td>
-          <td data-label="Rate" style="font-weight:bold;color:var(--success);">${rateText}</td>
-          <td data-label="Est. Pay" style="font-weight:bold;color:var(--success);">$${estWeeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(Fixed)</span>' : ''}</td>
-          <td data-label="Last Week" style="color:var(--text-muted);">${totalLastWeekHrs}</td>
-          <td data-label="Actions"><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${safeName}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Manage</button></td>
+      if (timesheetGrid) {
+        const card = document.createElement('div');
+        card.className = 'ts-card';
+        card.dataset.id = emp.id;
+        card.dataset.isSalary = emp.is_salary;
+        card.dataset.payRate = emp.pay_rate;
+        card.innerHTML = `
+          <div class="ts-card-head">
+            <div class="ts-who">
+              <img class="avatar-circle" src="${tsAvatar}" alt="" />
+              <span class="ts-name">${displayName}</span>
+            </div>
+            <span class="ts-pill" style="color:${statusColor};border-color:${statusColor};">${emp.currentStatus}</span>
+          </div>
+          <div class="ts-week">${weekStrip}</div>
+          <div class="ts-summary">
+            <div class="ts-stat"><span class="ts-big" style="color:${totalColor};">${totalWeekHrs}${otTag}</span><span class="ts-unit">Total hrs</span></div>
+            <div class="ts-stat right"><span class="ts-big money">$${estWeeklyPay}${emp.is_salary ? ' <span class="ts-fixed">(Fixed)</span>' : ''}</span><span class="ts-unit">Est. pay</span></div>
+          </div>
+          <div class="ts-meta"><span>${rateText}</span><span>Last week <b>${totalLastWeekHrs}</b></span></div>
+          <button class="btn-primary btn-manage-logs ts-manage" data-id="${emp.id}" data-name="${safeName}">Manage</button>
         `;
-        timesheetBody.appendChild(tr);
+        timesheetGrid.appendChild(card);
       }
+
+      state.weeklyTimesheetRows.push({
+        name: displayName,
+        status: emp.currentStatus,
+        days: emp.weekMs.map(ms => ms / 3600000),
+        total: totalWeekHrsVal,
+        rateText,
+        estGross: parseFloat(estWeeklyPay) || 0,
+        taxStatus: emp.tax_status || 'Single',
+        isSalary: !!emp.is_salary,
+        lastWeek: parseFloat(totalLastWeekHrs) || 0,
+      });
 
       if (biweeklyHistoryBody) {
         const w1Hrs = (emp.biweeklyWeek1Ms / 3600000).toFixed(2);
@@ -614,37 +639,27 @@ function wireExportButtons(w1Range, w2Range) {
 }
 
 function exportWeeklyCsv() {
-  const rows = document.querySelectorAll('#timesheet-body tr');
+  const rows = state.weeklyTimesheetRows || [];
   if (rows.length === 0) { showToast('No data to export', 'warning'); return; }
   let csv = '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
   let count = 1;
-  rows.forEach(row => {
-    const cols = row.querySelectorAll('td');
-    const empId = row.dataset.id;
-    const emp = state.employeeMap[empId];
-    const isSalary = row.dataset.isSalary === 'true' || (emp && emp.is_salary) || false;
-    const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
-
-    let rowData = [];
-    cols.forEach((col, i) => {
-      if (i === cols.length - 1) return;
-      let text = col.textContent.replace(/[\r\n]+/g, '').trim();
-      if (i === 0) text = formatNameLastFirst(text);
-      rowData.push(`"${text.replace(/"/g, '""')}"`);
-    });
-
-    const estGross = parseFloat((rowData[11] || '').replace(/[^0-9.-]/g, '')) || 0;
-    const estTaxes = calculateEstimatedTaxes(estGross, taxStatus, isSalary, 52);
-    const estNet = Math.max(0, estGross - estTaxes);
-    const lastWeek = rowData[12] || '"0"';
-
-    rowData = rowData.slice(0, 11);
-    rowData.push(`"${estGross.toFixed(2)}"`, `"${taxStatus}"`, `"${estTaxes.toFixed(2)}"`, `"${estNet.toFixed(2)}"`, lastWeek);
-
-    const thisWeekVal = parseFloat((rowData[9] || '').replace(/"/g, '')) || 0;
-    if (thisWeekVal === 0 && !isSalary) return;
-
-    csv += `"${count++}",${rowData.join(',')}\n`;
+  rows.forEach(r => {
+    if (r.total === 0 && !r.isSalary) return;
+    const estTaxes = calculateEstimatedTaxes(r.estGross, r.taxStatus, r.isSalary, 52);
+    const estNet = Math.max(0, r.estGross - estTaxes);
+    const cells = [
+      formatNameLastFirst(r.name),
+      r.status,
+      ...r.days.map(h => (h > 0 ? h.toFixed(2) : '0')),
+      r.total.toFixed(2),
+      r.rateText,
+      r.estGross.toFixed(2),
+      r.taxStatus,
+      estTaxes.toFixed(2),
+      estNet.toFixed(2),
+      r.lastWeek.toFixed(2),
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+    csv += `"${count++}",${cells.join(',')}\n`;
   });
   downloadCsv(csv, `Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
   showToast('Payroll CSV Downloaded!');
@@ -904,16 +919,17 @@ export function init() {
     });
   }
 
-  // Timesheet body delegation
-  const timesheetBody = document.getElementById('timesheet-body');
+  // Timesheet + payroll history delegation
+  const timesheetGrid = document.getElementById('timesheet-grid');
   const biweeklyHistoryBody = document.getElementById('biweekly-history-body-payroll');
   const monthlyArchiveBody = document.getElementById('monthly-archive-body-payroll');
 
-  [timesheetBody, biweeklyHistoryBody, monthlyArchiveBody].forEach(tbody => {
-    if (tbody) {
-      tbody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-manage-logs')) {
-          openManageLogs(e.target.dataset.id, e.target.dataset.name);
+  [timesheetGrid, biweeklyHistoryBody, monthlyArchiveBody].forEach(container => {
+    if (container) {
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-manage-logs');
+        if (btn) {
+          openManageLogs(btn.dataset.id, btn.dataset.name);
         }
       });
     }

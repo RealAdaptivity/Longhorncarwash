@@ -11,6 +11,7 @@
   --danger: #C62828;
   --warning: #D4820A;
   --border: #333333;
+  --primary-tint: rgba(169, 59, 47, 0.22);
   --hover-bg: rgba(255, 255, 255, 0.05);
   --shadow-strong: rgba(0, 0, 0, 0.5);
   --modal-backdrop: rgba(0, 0, 0, 0.8);
@@ -27,6 +28,7 @@
   --danger: #B71C1C;
   --warning: #B45309;
   --border: #E5E5EA;
+  --primary-tint: #F6E7E4;
   --hover-bg: rgba(0, 0, 0, 0.04);
   --shadow-strong: rgba(0, 0, 0, 0.08);
   --modal-backdrop: rgba(0, 0, 0, 0.4);
@@ -1282,6 +1284,121 @@ nav {
     display: none; /* Don't show "Employee" label, just center the name */
   }
 }
+
+/* ── Timesheet Cards ── */
+.ts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+.ts-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 2px 10px var(--shadow-strong);
+  padding: 15px 16px;
+}
+.ts-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ts-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ts-who .avatar-circle { margin-right: 0; flex: none; width: 36px; height: 36px; }
+.ts-name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ts-pill {
+  border: 1.5px solid;
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  flex: none;
+}
+.ts-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.ts-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.ts-day.on { background: var(--primary-tint); }
+.ts-day .dl {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.ts-day .dv { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+.ts-day .dv.zero { color: var(--border); }
+.ts-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ts-stat.right { text-align: right; }
+.ts-big { font-size: 1.5rem; font-weight: 800; line-height: 1; color: var(--text); }
+.ts-big.money { color: var(--success); }
+.ts-unit {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 3px;
+}
+.ts-fixed { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; }
+.ts-ot {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--danger);
+  border-radius: 4px;
+  padding: 1px 5px;
+  vertical-align: middle;
+  letter-spacing: 0.5px;
+}
+.ts-meta {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+.ts-meta b { color: var(--text); font-weight: 600; }
+.ts-manage {
+  margin-top: 12px;
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.ts-manage:hover { background: var(--primary-hover); }
 
 /* ── Splash Screen Animation ── */
 .splash-screen {
