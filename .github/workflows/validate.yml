@@ -1,0 +1,27 @@
+name: Validate
+
+# Catches broken markup and JS syntax errors before they reach the live site.
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check HTML structure (tag nesting)
+        run: python3 scripts/check-html.py index.html
+
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          for f in *.js modules/*.js; do
+            echo "node --check $f"
+            node --check "$f"
+          done
