@@ -37,7 +37,7 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
     token = (await Notifications.getExpoPushTokenAsync({
-      projectId: '5f44d0dc-80b7-40b8-b60b-79c29b7f58c6',
+      projectId: '7a5b531f-2cc7-4dd1-bbdd-ddba27f76e90',
     })).data;
   } else {
     console.log('Must use physical device for Push Notifications');
