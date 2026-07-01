@@ -329,20 +329,23 @@ export function init() {
           const employeeNames = rows.map(r => r.employee);
           const { data: users } = await window.supabaseClient.from('users').select('name, push_token').in('name', employeeNames).not('push_token', 'is', null);
           if (users && users.length > 0) {
-            for (const u of users) {
-              if (u.push_token) {
-                await fetch('https://exp.host/--/api/v2/push/send', {
-                  method: 'POST',
-                  headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    to: u.push_token,
-                    sound: 'default',
-                    title: 'Schedule Update',
-                    body: `Your schedule for ${weekRange} has been posted/updated.`
-                  })
-                });
-              }
-            }
+            const messages = users.map(u => ({
+              to: u.push_token,
+              sound: 'default',
+              title: '📅 Schedule Posted/Updated',
+              body: `Your schedule for the week ${weekRange} has been posted/updated.`
+            }));
+
+            await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(messages)
+            });
+            console.log(`Sent schedule updates to ${messages.length} employees.`);
           }
         } catch (pushErr) {
           console.error('Failed to send push notifications', pushErr);
