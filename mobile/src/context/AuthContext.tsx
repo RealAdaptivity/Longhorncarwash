@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
 import { User } from '../types';
 
-const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'];
+const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'];
 
 export const ROLE_ACCESS: Record<string, Record<string, boolean>> = {
   'Admin':                  { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },

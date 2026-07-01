@@ -73,7 +73,7 @@ function showUserSession(userData) {
 
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) {
-    const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(userData.role);
+    const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(userData.role);
     btnGoToManager.style.display = isManager ? 'flex' : 'none';
   }
 }
@@ -94,7 +94,7 @@ export function resetTimeclockState() {
     try {
       const userData = JSON.parse(saved);
       showUserSession(userData);
-      if (userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(userData.role)) {
+      if (userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(userData.role)) {
         import('./manager.js').then(({ unlockManagerByPin }) => unlockManagerByPin(userData));
       }
       resetIdleTimeout();
@@ -387,6 +387,12 @@ export function init() {
 
         localStorage.setItem('lcw_web_user', JSON.stringify(data));
         showUserSession(data);
+
+        // Management roles unlock their sections via PIN (no username/password needed)
+        if (data.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(data.role)) {
+          const { unlockManagerByPin } = await import('./manager.js');
+          unlockManagerByPin(data);
+        }
 
         if (state.activeAnnouncement && state.activeAnnouncement.trim() !== '') {
           if (announcementText) announcementText.textContent = state.activeAnnouncement;
