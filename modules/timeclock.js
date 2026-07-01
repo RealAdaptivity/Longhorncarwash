@@ -73,8 +73,15 @@ function showUserSession(userData) {
 
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) {
-    const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(userData.role);
+    const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(userData.role);
     btnGoToManager.style.display = isManager ? 'flex' : 'none';
+  }
+
+  const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(userData.role);
+  const navManager = document.getElementById('nav-manager');
+  if (navManager) {
+    if (isManager) navManager.classList.remove('hidden');
+    else navManager.classList.add('hidden');
   }
 }
 
@@ -86,6 +93,9 @@ export function resetTimeclockState() {
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) btnGoToManager.style.display = 'none';
 
+  const navManager = document.getElementById('nav-manager');
+  if (navManager) navManager.classList.remove('hidden');
+
   const modalAnnouncement = document.getElementById('modal-announcement');
   if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
 
@@ -94,7 +104,7 @@ export function resetTimeclockState() {
     try {
       const userData = JSON.parse(saved);
       showUserSession(userData);
-      if (userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(userData.role)) {
+      if (userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(userData.role)) {
         import('./manager.js').then(({ unlockManagerByPin }) => unlockManagerByPin(userData));
       }
       resetIdleTimeout();
@@ -389,7 +399,7 @@ export function init() {
         showUserSession(data);
 
         // Management roles unlock their sections via PIN (no username/password needed)
-        if (data.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'].includes(data.role)) {
+        if (data.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'].includes(data.role)) {
           const { unlockManagerByPin } = await import('./manager.js');
           unlockManagerByPin(data);
         }
