@@ -171,6 +171,20 @@
           </div>
         </div>
 
+        <!-- Early Clock-In Request Modal -->
+        <div id="modal-early-clockin" class="modal hidden">
+          <div class="modal-content" style="width: 380px; text-align: center;">
+            <h3 style="color: var(--warning); margin-bottom: 10px;">Too Early to Clock In</h3>
+            <p style="color: var(--text-muted); margin-bottom: 6px;">Your shift doesn't start until</p>
+            <p id="early-clockin-shift-start" style="font-size: 1.8rem; font-weight: 800; color: var(--text); margin-bottom: 16px;">—</p>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">You can request early clock-in approval from a manager. They'll see it in Pending Approvals and can approve or deny.</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <button id="btn-cancel-early-clockin" class="btn-ghost" style="padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Cancel</button>
+              <button id="btn-request-early-clockin" class="btn-primary" style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Request Approval</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Forgot PIN Modal -->
         <div id="modal-forgot-pin" class="modal hidden">
           <div class="modal-content" style="width: 400px; text-align: left;">
@@ -912,6 +926,27 @@
                 </tr>
               </thead>
               <tbody id="manager-timeoff-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+            </div>
+          </div>
+
+          <!-- Pending Early Clock-In Requests -->
+          <div id="pending-early-clockin-section" class="hidden"
+            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
+            <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
+            <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Shift Starts</th>
+                  <th>Requested At</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="early-clockin-body">
                 <!-- Populated by JS -->
               </tbody>
             </table>

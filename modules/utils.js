@@ -202,6 +202,25 @@ export function checkLocation() {
 }
 
 // --- Schedule Parsing ---
+export function parseShiftStartTime(shiftStr) {
+  if (!shiftStr || typeof shiftStr !== 'string') return null;
+  const s = shiftStr.trim();
+  if (!s || s === '-' || s.toUpperCase() === 'OFF' || s.toUpperCase() === 'OC') return null;
+  const dashIdx = s.indexOf('-');
+  if (dashIdx < 0) return null;
+  const startPart = s.substring(0, dashIdx).trim().toLowerCase();
+  const isPM = startPart.includes('pm') || (startPart.endsWith('p') && !startPart.endsWith('am'));
+  const isAM = startPart.includes('am') || startPart.endsWith('a');
+  const clean = startPart.replace(/[a-z]/g, '');
+  const [hStr, mStr] = clean.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || '0', 10);
+  if (isNaN(h)) return null;
+  if (isPM && h !== 12) h += 12;
+  if (isAM && h === 12) h = 0;
+  return { hour: h, minute: isNaN(m) ? 0 : m };
+}
+
 export function parseShiftHours(shiftStr) {
   if (!shiftStr || typeof shiftStr !== 'string') return 0;
   const s = shiftStr.trim().toUpperCase();
