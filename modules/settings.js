@@ -474,8 +474,12 @@ export function init() {
   }
 
   // Security / 2FA
-  if (btnShowSecurity) {
+    if (btnShowSecurity) {
     btnShowSecurity.addEventListener('click', () => {
+      const secSection = document.getElementById('manager-security-section');
+      if (secSection) secSection.classList.toggle('hidden');
+      
+      // Keep the 2FA initialization just in case it's opened
       if (!state.currentManager) return;
       if (enable2FA) {
         enable2FA.checked = state.currentManager.two_factor_enabled || false;
@@ -487,7 +491,6 @@ export function init() {
           if (setup2FAPin) setup2FAPin.value = '';
         }
       }
-      if (modalSecurity) modalSecurity.classList.remove('hidden');
     });
   }
 
