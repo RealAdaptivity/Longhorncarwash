@@ -43,9 +43,8 @@ async function handleSiteChange(newSite) {
   showToast(`Switched to ${state.currentSite}`);
   
   if (state.managerLoggedIn) {
-    const { loadEmployees, loadTimesheets } = await import('./manager.js');
+    const { loadTimesheets } = await import('./manager.js');
     const { initSettings } = await import('./settings.js');
-    loadEmployees();
     loadTimesheets();
     initSettings();
   }
