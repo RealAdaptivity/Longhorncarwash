@@ -123,6 +123,80 @@ async function attemptManagerLogin(username, password) {
   return rawData[0];
 }
 
+// --- Check and Send Payday Notification ---
+async function checkAndSendPaydayNotification() {
+  try {
+    const today = new Date();
+    // Payday is always on a Friday (0=Sun, 5=Fri)
+    if (today.getDay() !== 5) return;
+
+    // Calculate biweekly weeks to verify if today is the payday Friday of the cycle
+    const { week1Start, week2Start } = getBiweeklyWeeks(today);
+    // Cycle ends the second Tuesday (week2Start + 6 days). Payday is the Friday after (week2Start + 9 days).
+    const payday = new Date(week2Start.getTime() + 9 * 24 * 60 * 60 * 1000);
+    payday.setHours(0, 0, 0, 0);
+
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+
+    if (todayStart.getTime() !== payday.getTime()) return;
+
+    // Today is payday! Check if we've already sent a payday notification today
+    const dateStr = todayStart.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const { data: sentBefore, error: checkErr } = await window.supabaseClient
+      .from('notifications_sent')
+      .select('id')
+      .eq('notification_type', 'payday_broadcast')
+      .eq('shift_date', dateStr)
+      .limit(1);
+
+    if (checkErr) throw checkErr;
+    if (sentBefore && sentBefore.length > 0) return; // Already sent today
+
+    // Record that we are sending the notification (inserts into notifications_sent)
+    const { error: insertErr } = await window.supabaseClient
+      .from('notifications_sent')
+      .insert([{
+        user_id: state.currentManager?.id || '00000000-0000-0000-0000-000000000000',
+        notification_type: 'payday_broadcast',
+        shift_date: dateStr
+      }]);
+
+    if (insertErr) throw insertErr;
+
+    // Fetch all users with push tokens to notify
+    const { data: users, error: userErr } = await window.supabaseClient
+      .from('users')
+      .select('push_token')
+      .not('push_token', 'is', null);
+
+    if (!userErr && users && users.length > 0) {
+      const tokens = users.map(u => u.push_token).filter(Boolean);
+      if (tokens.length > 0) {
+        const messages = tokens.map(token => ({
+          to: token,
+          sound: 'default',
+          title: 'Payday! 💰',
+          body: 'Direct deposits are being processed today. Thank you for your hard work!'
+        }));
+
+        await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Accept-encoding': 'gzip, deflate',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(messages)
+        });
+        console.log(`Sent payday notifications to ${tokens.length} employees.`);
+      }
+    }
+  } catch (err) {
+    console.error('Failed to process payday notification:', err);
+  }
+}
+
 // --- Load Timesheets (main data fetch) ---
 export async function loadTimesheets() {
   const timesheetGrid = document.getElementById('timesheet-grid');
@@ -508,6 +582,9 @@ export async function loadTimesheets() {
       calculateAnalytics();
       if (!analyticsSection.classList.contains('hidden')) initCharts();
     }
+
+    // Trigger payday push notification check
+    checkAndSendPaydayNotification();
   } catch (err) {
     showToast('Error: ' + (err.message || 'Failed to load timesheets'), 'error');
   }
