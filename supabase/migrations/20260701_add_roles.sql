@@ -11,4 +11,4 @@ ALTER TABLE public.users
 
 ALTER TABLE public.users
   ADD CONSTRAINT users_role_check
-  CHECK (role IN ('Employee', 'Supervisor', 'Assistant Site Manager', 'Site Manager'));
+  CHECK (role IN ('Employee', 'Supervisor', 'Assistant Site Manager', 'Site Manager', 'Manager', 'Admin', 'Payroll'));

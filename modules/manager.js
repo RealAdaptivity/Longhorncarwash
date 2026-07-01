@@ -1,12 +1,14 @@
 import { state, showToast, getStartOfWeek, getBiweeklyWeeks, formatNameLastFirst, calculateEstimatedTaxes, calculatePayWithOvertime, downloadCsv } from './utils.js';
 
 // Role hierarchy: what each role can access
-const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'];
+const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'];
 const ROLE_ACCESS = {
-  'Site Manager':             { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
+  'Admin':                    { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
   'Manager':                  { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Assistant Site Manager':   { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false, dashboard: true,  addEmployee: true  },
-  'Supervisor':               { payroll: false, schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false, dashboard: true,  addEmployee: false },
+  'Site Manager':             { payroll: false, schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
+  'Assistant Site Manager':   { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
+  'Supervisor':               { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
+  'Payroll':                  { payroll: true,  schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false, dashboard: true,  addEmployee: false },
 };
 
 function applyRolePermissions(role) {
@@ -360,120 +362,57 @@ export async function loadTimesheets() {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-      
-      const getBadgeClass = (hrs) => {
-        if (hrs == 0) return 'badge-subtle';
-        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
-        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
-        return 'badge-regular';
-      };
-
-      const getWeekBadgeClass = (hrs) => {
-        if (hrs >= 40) return 'badge-danger';
-        if (hrs >= 36) return 'badge-warning';
-        return 'badge-regular';
-      };
-
-      tr.innerHTML = `
-        
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
-          ${safeName}
-        </td>
-        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
-        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
-        <td data-label="Tips">$$0.00</td>
-        <td data-label="Action">
-          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
-        </td>
-      `;
+          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${u.name}
+            </td>
+            <td>New Registration</td>
+            <td>Role: ${u.role}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-account" data-id="${u.id}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-reject-account" data-id="${u.id}">Reject</button>
+            </td>
+          `;
           pendingPinsBody.appendChild(tr);
         }
         if (u.pending_pin) {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-      
-      const getBadgeClass = (hrs) => {
-        if (hrs == 0) return 'badge-subtle';
-        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
-        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
-        return 'badge-regular';
-      };
-
-      const getWeekBadgeClass = (hrs) => {
-        if (hrs >= 40) return 'badge-danger';
-        if (hrs >= 36) return 'badge-warning';
-        return 'badge-regular';
-      };
-
-      tr.innerHTML = `
-        
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
-          ${safeName}
-        </td>
-        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
-        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
-        <td data-label="Tips">$$0.00</td>
-        <td data-label="Action">
-          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
-        </td>
-      `;
+          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${u.name}
+            </td>
+            <td>PIN Change</td>
+            <td>PIN: ${u.pending_pin}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-pin" data-id="${u.id}" data-val="${u.pending_pin}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-reject-pin" data-id="${u.id}">Reject</button>
+            </td>
+          `;
           pendingPinsBody.appendChild(tr);
         }
         if (u.pending_password) {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-      
-      const getBadgeClass = (hrs) => {
-        if (hrs == 0) return 'badge-subtle';
-        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
-        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
-        return 'badge-regular';
-      };
-
-      const getWeekBadgeClass = (hrs) => {
-        if (hrs >= 40) return 'badge-danger';
-        if (hrs >= 36) return 'badge-warning';
-        return 'badge-regular';
-      };
-
-      tr.innerHTML = `
-        
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
-          ${safeName}
-        </td>
-        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
-        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
-        <td data-label="Tips">$$0.00</td>
-        <td data-label="Action">
-          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
-        </td>
-      `;
+          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${u.name}
+            </td>
+            <td>Password Reset</td>
+            <td>New Password requested</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-pwd" data-id="${u.id}" data-val="${u.pending_password}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-reject-pwd" data-id="${u.id}">Reject</button>
+            </td>
+          `;
           pendingPinsBody.appendChild(tr);
         }
       });
@@ -491,42 +430,22 @@ export async function loadTimesheets() {
         if (pendingTimeoffSection) pendingTimeoffSection.classList.remove('hidden');
         timeoffData.forEach(req => {
           pendingCount++;
-          const empName = state.employeeMap[req.user_id] ? state.employeeMap[req.user_id].name : 'Unknown';
+          const emp = state.employeeMap[req.user_id];
+          const empName = emp ? emp.name : 'Unknown';
+          const avatarUrl = (emp && emp.avatar) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           const tr = document.createElement('tr');
-      
-      const getBadgeClass = (hrs) => {
-        if (hrs == 0) return 'badge-subtle';
-        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
-        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
-        return 'badge-regular';
-      };
-
-      const getWeekBadgeClass = (hrs) => {
-        if (hrs >= 40) return 'badge-danger';
-        if (hrs >= 36) return 'badge-warning';
-        return 'badge-regular';
-      };
-
-      tr.innerHTML = `
-        
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
-          ${safeName}
-        </td>
-        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
-        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
-        <td data-label="Tips">$$0.00</td>
-        <td data-label="Action">
-          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
-        </td>
-      `;
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${empName}
+            </td>
+            <td>${req.start_date} to ${req.end_date}</td>
+            <td>${req.reason || 'No reason provided'}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-timeoff" data-id="${req.id}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-deny-timeoff" data-id="${req.id}">Deny</button>
+            </td>
+          `;
           managerTimeoffBody.appendChild(tr);
         });
       } else {
@@ -549,41 +468,21 @@ export async function loadTimesheets() {
         earlyRequests.forEach(req => {
           pendingCount++;
           const requestedAt = new Date(req.requested_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
+          const emp = Object.values(state.employeeMap).find(e => e.name === req.employee_name);
+          const avatarUrl = (emp && emp.avatar) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           const tr = document.createElement('tr');
-      
-      const getBadgeClass = (hrs) => {
-        if (hrs == 0) return 'badge-subtle';
-        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
-        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
-        return 'badge-regular';
-      };
-
-      const getWeekBadgeClass = (hrs) => {
-        if (hrs >= 40) return 'badge-danger';
-        if (hrs >= 36) return 'badge-warning';
-        return 'badge-regular';
-      };
-
-      tr.innerHTML = `
-        
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
-          ${safeName}
-        </td>
-        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
-        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
-        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
-        <td data-label="Tips">$$0.00</td>
-        <td data-label="Action">
-          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
-        </td>
-      `;
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${req.employee_name}
+            </td>
+            <td>${req.shift_start}</td>
+            <td>${requestedAt}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-early" data-id="${req.id}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-deny-early" data-id="${req.id}">Deny</button>
+            </td>
+          `;
           earlyBody.appendChild(tr);
         });
         if (earlySection) earlySection.classList.remove('hidden');
@@ -1368,7 +1267,7 @@ function openFullPhoto(src) {
   if (modal && fullImg) { fullImg.src = src; modal.classList.remove('hidden'); }
 }
 
-window.openManageLogs = async function openManageLogs(userId, userName) {
+export async function openManageLogs(userId, userName) {
   state.selectedEmployeeForLogs = userId;
   const emp = state.employeeMap[userId];
 
@@ -1400,7 +1299,8 @@ window.openManageLogs = async function openManageLogs(userId, userName) {
   if (modalManageLogs) modalManageLogs.classList.remove('hidden');
 
   await loadEmployeeLogs();
-};
+}
+window.openManageLogs = openManageLogs;
 
 // Photo viewer
 document.getElementById('btn-close-photo')?.addEventListener('click', () => {

@@ -8,6 +8,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -70,7 +72,7 @@ export async function notifyManagers(title: string, body: string, data = {}) {
   const { data: managers } = await supabase
     .from('users')
     .select('push_token')
-    .in('role', ['Site Manager', 'Assistant Site Manager', 'Supervisor'])
+    .in('role', ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'])
     .not('push_token', 'is', null);
 
   if (managers && managers.length > 0) {

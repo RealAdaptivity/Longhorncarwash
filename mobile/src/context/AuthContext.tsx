@@ -4,13 +4,15 @@ import { supabase } from '../lib/supabase';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
 import { User } from '../types';
 
-const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'];
+const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'];
 
 export const ROLE_ACCESS: Record<string, Record<string, boolean>> = {
-  'Site Manager':           { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
+  'Admin':                  { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
   'Manager':                { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
-  'Assistant Site Manager': { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false },
-  'Supervisor':             { payroll: false, schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false },
+  'Site Manager':           { payroll: false, schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
+  'Assistant Site Manager': { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true  },
+  'Supervisor':             { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true  },
+  'Payroll':                { payroll: true,  schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false },
 };
 
 interface AuthContextType {

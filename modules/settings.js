@@ -361,18 +361,6 @@ export function init() {
         state.ANTI_BUDDY_ENABLED = newVal;
         updateAntiBuddyUI();
 
-    // Load WiFi Lock
-    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').limit(1);
-    if (wifiEnabledData && wifiEnabledData.length > 0) {
-      state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
-    }
-    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').limit(1);
-    if (wifiIpData && wifiIpData.length > 0) {
-      state.WIFI_IP_ADDRESS = wifiIpData[0].value;
-      if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
-    }
-    updateWifiLockUI();
-
         showToast(`Anti-Buddy Verification is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
       } catch (e) {
         showToast('Error: ' + (e.message || 'Failed to toggle Anti-Buddy.'), 'error');

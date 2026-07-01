@@ -38,8 +38,20 @@ export function OpsScreen() {
         .order('created_at', { ascending: false }),
     ]);
 
+    const comps: ChecklistCompletion[] = (compRes.data ?? []).map((c: any) => {
+      const checkArray = Array.isArray(c.checklists) ? c.checklists : (c.checklists ? [c.checklists] : []);
+      const userArray = Array.isArray(c.users) ? c.users : (c.users ? [c.users] : []);
+      return {
+        id: c.id,
+        checklist_id: c.checklist_id,
+        completed_at: c.completed_at,
+        checklists: checkArray[0] || { title: 'Unknown' },
+        users: userArray[0] || { name: 'Unknown' },
+      };
+    });
+
     setChecklists((checkRes.data ?? []) as Checklist[]);
-    setCompletions((compRes.data ?? []) as ChecklistCompletion[]);
+    setCompletions(comps);
     setSiteLogs((logRes.data ?? []) as SiteLog[]);
     setLoading(false);
   }, []);
@@ -141,9 +153,9 @@ export function OpsScreen() {
             {completions.slice(0, 10).map(c => (
               <View key={c.id} style={styles.completionRow}>
                 <View>
-                  <Text style={styles.completionTitle}>{(c.checklists as any)?.title ?? 'Unknown'}</Text>
+                  <Text style={styles.completionTitle}>{c.checklists?.title ?? 'Unknown'}</Text>
                   <Text style={styles.completionMeta}>
-                    by {(c.users as any)?.name ?? 'Unknown'} · {new Date(c.completed_at).toLocaleString('en-US', {
+                    by {c.users?.name ?? 'Unknown'} · {new Date(c.completed_at).toLocaleString('en-US', {
                       timeZone: TZ, month: 'short', day: 'numeric',
                       hour: 'numeric', minute: '2-digit', hour12: true,
                     })}

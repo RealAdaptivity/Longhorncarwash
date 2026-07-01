@@ -811,7 +811,7 @@ nav {
     display: flex;
     align-items: flex-end;
     background: var(--primary);
-    padding: 0 16px env(safe-area-inset-bottom, 0) 16px;
+    padding: 0 16px 8px 16px;
     padding-top: env(safe-area-inset-top, 0);
     position: fixed;
     top: 0;

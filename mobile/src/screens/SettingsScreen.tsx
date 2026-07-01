@@ -80,6 +80,8 @@ export function SettingsScreen() {
                 {managerRole === 'Site Manager' ? 'SITE MGR'
                   : managerRole === 'Assistant Site Manager' ? 'ASST MGR'
                   : managerRole === 'Supervisor' ? 'SUPERVISOR'
+                  : managerRole === 'Admin' ? 'ADMIN'
+                  : managerRole === 'Payroll' ? 'PAYROLL'
                   : 'MANAGER'}
               </Text>
             </View>

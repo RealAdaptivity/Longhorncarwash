@@ -52,8 +52,20 @@ export function EmployeesScreen() {
       pending_pin: u.pending_pin,
     }));
 
+    const timeOff: TimeOffRequest[] = (timeOffRes.data ?? []).map((r: any) => {
+      const usersArray = Array.isArray(r.users) ? r.users : (r.users ? [r.users] : []);
+      return {
+        id: r.id,
+        user_id: r.user_id,
+        dates: r.dates,
+        reason: r.reason,
+        status: r.status,
+        users: usersArray[0] || { name: 'Unknown' },
+      };
+    });
+
     setPendingApprovals(approvals);
-    setTimeOffRequests((timeOffRes.data ?? []) as TimeOffRequest[]);
+    setTimeOffRequests(timeOff);
     setLoading(false);
   }, []);
 
@@ -133,7 +145,7 @@ export function EmployeesScreen() {
             timeOffRequests.map(r => (
               <View key={r.id} style={styles.card}>
                 <View style={styles.cardTop}>
-                  <Text style={styles.cardName}>{(r.users as any)?.name ?? 'Unknown'}</Text>
+                  <Text style={styles.cardName}>{r.users?.name ?? 'Unknown'}</Text>
                   <Text style={styles.cardType}>{r.dates}</Text>
                 </View>
                 <Text style={styles.cardReason}>{r.reason}</Text>
