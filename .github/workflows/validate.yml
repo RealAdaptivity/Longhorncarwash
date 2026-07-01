@@ -46,8 +46,11 @@ jobs:
         run: npm run typecheck
 
   functions:
-    # Type-checks the Supabase (Deno) edge functions so type errors are caught
-    # before they are deployed.
+    # Lints the Supabase (Deno) edge functions for syntax errors and common
+    # mistakes. Uses deno lint (not deno check) because lint is purely
+    # syntactic and does not resolve remote imports — deno check follows
+    # Supabase's edge-runtime type declarations, which reference npm:openai
+    # and fail to resolve in a bare checkout.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,10 +59,5 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Type-check edge functions
-        run: |
-          set -e
-          for f in supabase/functions/*/index.ts; do
-            echo "deno check $f"
-            deno check "$f"
-          done
+      - name: Lint edge functions
+        run: deno lint supabase/functions

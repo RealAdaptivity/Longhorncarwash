@@ -36,7 +36,8 @@ function parseShift(raw: string): { s: number; e: number } | null {
   if (!raw || /^(off|-)$/i.test(raw.trim()) || !raw.trim()) return null;
   const pts = raw.split(/\s*[-–]\s*/);
   if (pts.length < 2) return null;
-  let s = parseT(pts[0]), e = parseT(pts[pts.length - 1]);
+  const s = parseT(pts[0]);
+  let e = parseT(pts[pts.length - 1]);
   if (s === null || e === null) return null;
   if (e <= s && !/am|pm/i.test(raw)) e += 720;
   return { s, e };
