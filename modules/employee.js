@@ -102,6 +102,7 @@ export async function loadEmployeePortal(userId, name) {
     const empNextPayday = document.getElementById('emp-next-payday');
     if (empNextPayday) {
       const payday = new Date(bwNext);
+      payday.setDate(payday.getDate() + 2); // Wed period rollover + 2 = Friday payday
       empNextPayday.innerHTML = `Friday<br>${payday.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}`;
     }
 
