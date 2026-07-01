@@ -25,6 +25,7 @@ export const state = {
   ALLOWED_RADIUS_METERS: 100,
   GEOFENCE_ENABLED: true,
   ANTI_BUDDY_ENABLED: true,
+  EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
 };
 

@@ -18,6 +18,10 @@ const btnGetCurrentLocation = document.getElementById('btn-get-current-location'
 const btnToggleAntiBuddy = document.getElementById('btn-toggle-anti-buddy');
 const antiBuddyStatusText = document.getElementById('anti-buddy-status-text');
 
+// --- Early Clock-In Block ---
+const btnToggleEarlyBlock = document.getElementById('btn-toggle-early-block');
+const earlyBlockStatusText = document.getElementById('early-block-status-text');
+
 // --- Payroll Format ---
 const btnEditPayrollFormat = document.getElementById('btn-edit-payroll-format');
 const modalEditPayrollFormat = document.getElementById('modal-edit-payroll-format');
@@ -105,6 +109,21 @@ function updateAntiBuddyUI() {
   }
 }
 
+function updateEarlyBlockUI() {
+  if (!btnToggleEarlyBlock || !earlyBlockStatusText) return;
+  if (state.EARLY_CLOCKIN_BLOCK_ENABLED) {
+    earlyBlockStatusText.textContent = 'Enabled';
+    earlyBlockStatusText.style.color = 'var(--success)';
+    btnToggleEarlyBlock.textContent = 'Disable';
+    btnToggleEarlyBlock.className = 'btn-danger';
+  } else {
+    earlyBlockStatusText.textContent = 'Disabled';
+    earlyBlockStatusText.style.color = 'var(--text-muted)';
+    btnToggleEarlyBlock.textContent = 'Enable';
+    btnToggleEarlyBlock.className = 'btn-success';
+  }
+}
+
 async function loadCustomPayrollFormat() {
   try {
     const { data, error } = await window.supabaseClient
@@ -161,6 +180,12 @@ export async function fetchSettings() {
       state.ANTI_BUDDY_ENABLED = abData[0].value === 'true';
     }
     updateAntiBuddyUI();
+
+    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').limit(1);
+    if (ebData && ebData.length > 0) {
+      state.EARLY_CLOCKIN_BLOCK_ENABLED = ebData[0].value === 'true';
+    }
+    updateEarlyBlockUI();
 
     const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
     if (revData && revData.length > 0) {
@@ -305,6 +330,21 @@ export function init() {
         showToast(`Anti-Buddy Verification is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
       } catch (e) {
         showToast('Error: ' + (e.message || 'Failed to toggle Anti-Buddy.'), 'error');
+      }
+    });
+  }
+
+  // Early clock-in block toggle
+  if (btnToggleEarlyBlock) {
+    btnToggleEarlyBlock.addEventListener('click', async () => {
+      const newVal = !state.EARLY_CLOCKIN_BLOCK_ENABLED;
+      try {
+        await saveSettingRobust('early_clockin_block_enabled', newVal.toString());
+        state.EARLY_CLOCKIN_BLOCK_ENABLED = newVal;
+        updateEarlyBlockUI();
+        showToast(`Early Clock-In Block is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
+      } catch (e) {
+        showToast('Failed to toggle Early Clock-In Block.', 'error');
       }
     });
   }

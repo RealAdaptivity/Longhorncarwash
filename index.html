@@ -698,6 +698,18 @@
                 </div>
               </div>
 
+              <!-- Early Clock-In Block Setting -->
+              <div id="manager-early-clockin-block"
+                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">Early Clock-In Block</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">When enabled, employees cannot clock in before their scheduled shift start time (5-minute grace period). They can request manager approval to clock in early.</p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span id="early-block-status-text" style="font-weight: bold; color: var(--success);">Enabled</span>
+                  <button id="btn-toggle-early-block" class="btn-danger"
+                    style="padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9rem;">Disable</button>
+                </div>
+              </div>
+
               <!-- Revenue & Goals Setting -->
               <div id="manager-revenue-goals"
                 style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">

@@ -446,6 +446,7 @@ export function init() {
 
   async function checkAndClockIn() {
     if (!state.currentUser) return;
+    if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) { logTime('IN'); return; }
     try {
       const now = new Date();
       const chicagoNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
