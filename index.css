@@ -795,16 +795,18 @@ nav {
   /* ── Mobile header ── */
   .mobile-header {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     background: var(--primary);
-    padding: 0 16px;
+    padding: 0 16px env(safe-area-inset-bottom, 0) 16px;
+    padding-top: env(safe-area-inset-top, 0);
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 999;
-    height: 52px;
+    height: calc(52px + env(safe-area-inset-top, 0px));
     gap: 10px;
+    box-sizing: border-box;
   }
 
   body.logged-out .mobile-header {
@@ -836,8 +838,8 @@ nav {
     line-height: 1.2;
   }
 
-  /* Adjust layout for fixed header + bottom nav */
-  .content { margin-top: 52px; margin-bottom: 60px; }
+  /* Adjust layout for fixed header + bottom nav — account for notch/Dynamic Island */
+  .content { margin-top: calc(52px + env(safe-area-inset-top, 0px)); margin-bottom: 60px; }
   body.logged-out .content { margin-top: 0; }
 
   /* ── Bottom navigation bar ── */
