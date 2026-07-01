@@ -49,10 +49,10 @@ export function showToast(msg, type = 'success') {
 export function getStartOfWeek() {
   const d = new Date();
   const day = d.getDay();
-  const diffToWed = (day >= 3) ? (day - 3) : (day + 4);
-  const wednesday = new Date(d.setDate(d.getDate() - diffToWed));
-  wednesday.setHours(0, 0, 0, 0);
-  return wednesday;
+  const diffToFri = (day >= 5) ? (day - 5) : (day + 2);
+  const friday = new Date(d.setDate(d.getDate() - diffToFri));
+  friday.setHours(0, 0, 0, 0);
+  return friday;
 }
 
 export function getBiweeklyWeeks(date) {
