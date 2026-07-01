@@ -345,7 +345,9 @@ export async function loadTimesheets() {
       };
 
       tr.innerHTML = `
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+        
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
           ${safeName}
         </td>
         <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
@@ -383,7 +385,9 @@ export async function loadTimesheets() {
       };
 
       tr.innerHTML = `
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+        
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
           ${safeName}
         </td>
         <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
@@ -421,7 +425,9 @@ export async function loadTimesheets() {
       };
 
       tr.innerHTML = `
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+        
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
           ${safeName}
         </td>
         <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
@@ -472,7 +478,9 @@ export async function loadTimesheets() {
       };
 
       tr.innerHTML = `
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+        
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
           ${safeName}
         </td>
         <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
@@ -527,7 +535,9 @@ export async function loadTimesheets() {
       };
 
       tr.innerHTML = `
-        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+        
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor}; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+          <img src="${emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"}" class="avatar-circle" />
           ${safeName}
         </td>
         <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>

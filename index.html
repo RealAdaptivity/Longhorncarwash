@@ -31,6 +31,32 @@
     });
   </script>
   <div id="app">
+
+  <!-- Splash Screen -->
+  <div id="splash-screen" class="splash-screen">
+    <div class="splash-logo-container">
+      <img src="logo.png" alt="Longhorn Car Wash" class="splash-logo" />
+      <h1 class="splash-title">LONGHORN</h1>
+    </div>
+  </div>
+
+  <!-- Clock In Overlay -->
+  <div id="clockin-overlay" class="clockin-overlay hidden">
+    <div class="clockin-content" id="clockin-loading">
+      <div class="clockin-spinner"></div>
+      <p class="clockin-text" id="clockin-status-text">Authenticating...</p>
+    </div>
+    <div class="clockin-content hidden" id="clockin-success">
+      <div class="clockin-checkmark">
+        <svg viewBox="0 0 52 52">
+          <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+          <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+        </svg>
+      </div>
+      <h2 class="clockin-success-text" id="clockin-success-message">Success!</h2>
+    </div>
+  </div>
+
     <!-- Mobile top header — hidden on desktop, hidden when logged out -->
         <div class="mobile-header" style="justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 10px;">

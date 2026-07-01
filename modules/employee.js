@@ -8,6 +8,62 @@ export async function loadEmployeePortal(userId, name) {
 
   if (employeePortalWelcome) employeePortalWelcome.textContent = `Welcome, ${name}`;
 
+    // Load avatar if exists
+    try {
+      const { data: uData } = await window.supabaseClient.from('users').select('avatar').eq('id', userId).single();
+      const avatarImg = document.getElementById('emp-profile-avatar');
+      if (uData && uData.avatar && avatarImg) {
+        avatarImg.src = uData.avatar;
+      }
+    } catch (e) {}
+
+    // Avatar upload listener
+    const avatarInput = document.getElementById('avatar-upload-input');
+    if (avatarInput && !avatarInput.dataset.bound) {
+      avatarInput.dataset.bound = 'true';
+      avatarInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        // Compress image using canvas
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            const size = 150;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Crop to center square
+            const minDim = Math.min(img.width, img.height);
+            const sx = (img.width - minDim) / 2;
+            const sy = (img.height - minDim) / 2;
+            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+            
+            // Compress to base64 jpeg
+            const base64Avatar = canvas.toDataURL('image/jpeg', 0.6);
+            
+            // Update UI
+            document.getElementById('emp-profile-avatar').src = base64Avatar;
+            
+            // Save to DB
+            try {
+              const { error } = await window.supabaseClient.from('users').update({ avatar: base64Avatar }).eq('id', userId);
+              if (error) throw error;
+              showToast('Profile picture updated successfully!');
+            } catch (err) {
+              showToast('Failed to save profile picture', 'error');
+            }
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+
   try {
     const { data: logsData, error } = await window.supabaseClient.from('time_logs')
       .select('id, user_id, action, created_at').eq('user_id', userId).order('created_at', { ascending: true });
