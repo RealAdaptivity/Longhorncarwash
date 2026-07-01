@@ -22,6 +22,13 @@ const antiBuddyStatusText = document.getElementById('anti-buddy-status-text');
 const btnToggleEarlyBlock = document.getElementById('btn-toggle-early-block');
 const earlyBlockStatusText = document.getElementById('early-block-status-text');
 
+// --- WiFi Lock ---
+const wifiLockStatusText = document.getElementById('wifi-lock-status-text');
+const btnToggleWifiLock = document.getElementById('btn-toggle-wifi-lock');
+const wifiIpInput = document.getElementById('wifi-ip-input');
+const btnGetCurrentIp = document.getElementById('btn-get-current-ip');
+const btnSaveWifiIp = document.getElementById('btn-save-wifi-ip');
+
 // --- Payroll Format ---
 const btnEditPayrollFormat = document.getElementById('btn-edit-payroll-format');
 const modalEditPayrollFormat = document.getElementById('modal-edit-payroll-format');
@@ -94,6 +101,21 @@ function updateGeofenceUI() {
   }
 }
 
+function updateWifiLockUI() {
+  if (!btnToggleWifiLock || !wifiLockStatusText) return;
+  if (state.WIFI_LOCK_ENABLED) {
+    wifiLockStatusText.textContent = 'Enabled';
+    wifiLockStatusText.style.color = 'var(--success)';
+    btnToggleWifiLock.textContent = 'Disable';
+    btnToggleWifiLock.className = 'btn-danger';
+  } else {
+    wifiLockStatusText.textContent = 'Disabled';
+    wifiLockStatusText.style.color = 'var(--text-muted)';
+    btnToggleWifiLock.textContent = 'Enable';
+    btnToggleWifiLock.className = 'btn-success';
+  }
+}
+
 function updateAntiBuddyUI() {
   if (!btnToggleAntiBuddy || !antiBuddyStatusText) return;
   if (state.ANTI_BUDDY_ENABLED) {
@@ -145,7 +167,7 @@ export async function fetchSettings() {
   const db = window.supabaseClient;
 
   try {
-    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').limit(1);
+    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').eq('site', state.currentSite).limit(1);
     if (!error && data && data.length > 0) {
       state.activeAnnouncement = data[0].value;
       if (announcementInput) announcementInput.value = data[0].value;
@@ -155,46 +177,59 @@ export async function fetchSettings() {
   }
 
   try {
-    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').limit(1);
+    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').eq('site', state.currentSite).limit(1);
     if (geoData && geoData.length > 0) {
       state.ALLOWED_RADIUS_METERS = parseInt(geoData[0].value, 10);
     }
     if (geofenceInput) geofenceInput.value = state.ALLOWED_RADIUS_METERS;
 
-    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').limit(1);
+    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').eq('site', state.currentSite).limit(1);
     if (latData && latData.length > 0) state.CAR_WASH_LAT = parseFloat(latData[0].value);
     if (geofenceLatInput) geofenceLatInput.value = state.CAR_WASH_LAT;
 
-    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').limit(1);
+    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').eq('site', state.currentSite).limit(1);
     if (lonData && lonData.length > 0) state.CAR_WASH_LON = parseFloat(lonData[0].value);
     if (geofenceLonInput) geofenceLonInput.value = state.CAR_WASH_LON;
 
-    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').limit(1);
+    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').eq('site', state.currentSite).limit(1);
     if (enabledData && enabledData.length > 0) {
       state.GEOFENCE_ENABLED = enabledData[0].value === 'true';
     }
     updateGeofenceUI();
 
-    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').limit(1);
+    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').eq('site', state.currentSite).limit(1);
     if (abData && abData.length > 0) {
       state.ANTI_BUDDY_ENABLED = abData[0].value === 'true';
     }
     updateAntiBuddyUI();
 
-    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').limit(1);
+    // Load WiFi Lock
+    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').eq('site', state.currentSite).limit(1);
+    if (wifiEnabledData && wifiEnabledData.length > 0) {
+      state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
+    }
+    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').eq('site', state.currentSite).limit(1);
+    if (wifiIpData && wifiIpData.length > 0) {
+      state.WIFI_IP_ADDRESS = wifiIpData[0].value;
+      if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
+    }
+    updateWifiLockUI();
+
+
+    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').eq('site', state.currentSite).limit(1);
     if (ebData && ebData.length > 0) {
       state.EARLY_CLOCKIN_BLOCK_ENABLED = ebData[0].value === 'true';
     }
     updateEarlyBlockUI();
 
-    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
+    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').eq('site', state.currentSite).limit(1);
     if (revData && revData.length > 0) {
       state.dailyRevenueGoal = parseFloat(revData[0].value) || 0;
       const dailyRevenueInput = document.getElementById('daily-revenue-input');
       if (dailyRevenueInput) dailyRevenueInput.value = state.dailyRevenueGoal;
     }
 
-    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').limit(1);
+    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').eq('site', state.currentSite).limit(1);
     if (goalData && goalData.length > 0) {
       state.laborCostGoalPercent = parseFloat(goalData[0].value) || 25;
       const laborGoalInput = document.getElementById('labor-goal-input');
@@ -325,6 +360,19 @@ export function init() {
         await saveSettingRobust('anti_buddy_enabled', newVal.toString());
         state.ANTI_BUDDY_ENABLED = newVal;
         updateAntiBuddyUI();
+
+    // Load WiFi Lock
+    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').eq('site', state.currentSite).limit(1);
+    if (wifiEnabledData && wifiEnabledData.length > 0) {
+      state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
+    }
+    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').eq('site', state.currentSite).limit(1);
+    if (wifiIpData && wifiIpData.length > 0) {
+      state.WIFI_IP_ADDRESS = wifiIpData[0].value;
+      if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
+    }
+    updateWifiLockUI();
+
         showToast(`Anti-Buddy Verification is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
       } catch (e) {
         showToast('Error: ' + (e.message || 'Failed to toggle Anti-Buddy.'), 'error');
@@ -343,6 +391,59 @@ export function init() {
         showToast(`Early Clock-In Block is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
       } catch (e) {
         showToast('Failed to toggle Early Clock-In Block.', 'error');
+      }
+    });
+  }
+
+
+  // WiFi Lock Toggle
+  if (btnToggleWifiLock) {
+    btnToggleWifiLock.addEventListener('click', async () => {
+      const newVal = !state.WIFI_LOCK_ENABLED;
+      try {
+        await saveSettingRobust('wifi_lock_enabled', newVal.toString());
+        state.WIFI_LOCK_ENABLED = newVal;
+        updateWifiLockUI();
+        showToast(`WiFi Lock is now ${newVal ? 'Enabled' : 'Disabled'}`, 'success');
+      } catch (e) {
+        showToast('Failed to toggle WiFi Lock.', 'error');
+      }
+    });
+  }
+
+  // Get Current IP
+  if (btnGetCurrentIp) {
+    btnGetCurrentIp.addEventListener('click', async () => {
+      try {
+        showToast('Fetching your IP address...', 'success');
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        if (data && data.ip) {
+          if (wifiIpInput) wifiIpInput.value = data.ip;
+          showToast('IP address populated! Click Save IP to apply.', 'success');
+        } else {
+          showToast('Failed to parse IP address.', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to fetch IP address.', 'error');
+      }
+    });
+  }
+
+  // Save WiFi IP
+  if (btnSaveWifiIp) {
+    btnSaveWifiIp.addEventListener('click', async () => {
+      const ip = (wifiIpInput ? wifiIpInput.value : '').trim();
+      if (!ip) {
+        showToast('Please enter an IP address.', 'error');
+        return;
+      }
+      try {
+        await saveSettingRobust('wifi_ip_address', ip);
+        state.WIFI_IP_ADDRESS = ip;
+        showToast('WiFi IP address updated successfully!', 'success');
+      } catch (err) {
+        showToast('Failed to save WiFi IP address.', 'error');
       }
     });
   }

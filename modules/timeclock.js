@@ -140,7 +140,7 @@ export async function logTime(action, tips = 0) {
   try {
     if (navigator.onLine) {
       const { data: lastLog, error: logErr } = await window.supabaseClient
-        .from('time_logs').select('action').eq('user_id', state.currentUser.id)
+        .from('time_logs').select('action').eq('user_id', state.currentUser.id).eq('site', state.currentSite)
         .order('created_at', { ascending: false }).limit(1);
 
       if (!logErr && lastLog && lastLog.length > 0) {
@@ -165,6 +165,7 @@ export async function logTime(action, tips = 0) {
 
     if (!navigator.onLine) {
       const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
+  offlineLogs.forEach(l => l.site = l.site || state.currentSite);
       const offlineEntry = { user_id: state.currentUser.id, action, created_at: new Date().toISOString() };
       if (location) { offlineEntry.punch_lat = location.lat; offlineEntry.punch_lon = location.lon; offlineEntry.punch_accuracy = location.accuracy; }
       offlineLogs.push(offlineEntry);
@@ -200,6 +201,7 @@ export async function logTime(action, tips = 0) {
 // --- Offline Sync ---
 export async function syncOfflineLogs() {
   const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
+  offlineLogs.forEach(l => l.site = l.site || state.currentSite);
   if (offlineLogs.length === 0 || !navigator.onLine) return;
 
   showToast(`Syncing ${offlineLogs.length} offline punches...`);
@@ -241,7 +243,7 @@ function initTimesheetSigning() {
         const { getStartOfWeek } = await import('./utils.js');
         const weekStart = getStartOfWeek();
         const { data, error } = await window.supabaseClient.from('time_logs')
-          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id)
+          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id).eq('site', state.currentSite)
           .gte('created_at', weekStart.toISOString())
           .order('created_at', { ascending: true });
 
@@ -285,7 +287,7 @@ function initTimesheetSigning() {
       btnApproveSign.disabled = true;
       btnApproveSign.textContent = 'Approving...';
       try {
-        const { error } = await window.supabaseClient.from('time_logs').insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED' }]);
+        const { error } = await window.supabaseClient.from('time_logs').insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED', site: state.currentSite }]);
         if (error) throw error;
         showToast('Timesheet Digitally Signed!');
         modalSignTimesheet.classList.add('hidden');
@@ -428,6 +430,7 @@ export function init() {
         const { error } = await window.supabaseClient.from('early_clockin_approvals').insert([{
           user_id: state.currentUser.id,
           employee_name: state.currentUser.name,
+          site: state.currentSite,
           shift_date: modalEarlyClockin.dataset.shiftDate,
           shift_start: modalEarlyClockin.dataset.shiftStart,
           status: 'pending'
@@ -444,8 +447,26 @@ export function init() {
     });
   }
 
-  async function checkAndClockIn() {
+
+  async function checkWifiLock() {
+    if (!state.WIFI_LOCK_ENABLED) return true;
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      if (data && data.ip && state.WIFI_IP_ADDRESS) {
+        if (data.ip.trim() === state.WIFI_IP_ADDRESS.trim()) return true;
+      }
+    } catch (e) {
+      console.warn('IP check failed', e);
+    }
+    showToast('You must be connected to the shop WiFi to punch the clock.', 'error');
+    return false;
+  }
+
+async function checkAndClockIn() {
     if (!state.currentUser) return;
+    const wifiOk = await checkWifiLock();
+    if (!wifiOk) return;
     if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) { logTime('IN'); return; }
     try {
       const now = new Date();
@@ -456,7 +477,7 @@ export function init() {
       const todayAbbr = dayNames[chicagoNow.getDay()];
 
       const { data: schedules } = await window.supabaseClient
-        .from('schedules').select('content').order('created_at', { ascending: false }).limit(5);
+        .from('schedules').select('content').eq('site', state.currentSite).order('created_at', { ascending: false }).limit(5);
 
       if (schedules && schedules.length > 0) {
         for (const sched of schedules) {
@@ -527,11 +548,12 @@ export function init() {
   }
 
   if (btnClockIn) btnClockIn.addEventListener('click', () => checkAndClockIn());
-  if (btnStartLunch) btnStartLunch.addEventListener('click', () => logTime('START_LUNCH'));
-  if (btnEndLunch) btnEndLunch.addEventListener('click', () => logTime('END_LUNCH'));
+if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (await checkWifiLock()) logTime('START_LUNCH'); });
+  if (btnEndLunch) btnEndLunch.addEventListener('click', async () => { if (await checkWifiLock()) logTime('END_LUNCH'); });
 
   if (btnClockOut) {
-    btnClockOut.addEventListener('click', () => {
+    btnClockOut.addEventListener('click', async () => {
+      if (!(await checkWifiLock())) return;
       const modal = document.getElementById('modal-tip-declaration');
       const tipInput = document.getElementById('tip-amount-input');
       if (modal && tipInput) {

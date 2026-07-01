@@ -15,6 +15,7 @@ const navPayroll = document.getElementById('nav-payroll');
 const navSchedule = document.getElementById('nav-schedule');
 const navOps = document.getElementById('nav-ops');
 const navSettings = document.getElementById('nav-settings');
+const navTimesheet = document.getElementById('nav-timesheet');
 
 const viewTimeclock = document.getElementById('view-timeclock');
 const viewEmployee = document.getElementById('view-employee');
@@ -23,6 +24,7 @@ const viewPayroll = document.getElementById('view-payroll');
 const viewSchedule = document.getElementById('view-schedule');
 const viewOps = document.getElementById('view-ops');
 const viewSettings = document.getElementById('view-settings');
+const viewTimesheet = document.getElementById('view-timesheet');
 
 const managerAuth = document.getElementById('manager-auth');
 const managerDashboard = document.getElementById('manager-dashboard');
@@ -38,8 +40,8 @@ function logoutEmployeePortal() {
 }
 
 export function switchView(view) {
-  const allViews = [viewTimeclock, viewManager, viewEmployee, viewPayroll, viewSchedule, viewOps, viewSettings];
-  const allNavs = [navTimeclock, navManager, navEmployee, navPayroll, navSchedule, navOps, navSettings];
+  const allViews = [viewTimeclock, viewManager, viewEmployee, viewPayroll, viewSchedule, viewOps, viewSettings, viewTimesheet];
+  const allNavs = [navTimeclock, navManager, navEmployee, navPayroll, navSchedule, navOps, navSettings, navTimesheet];
 
   allViews.forEach(v => v && v.classList.remove('active'));
   allNavs.forEach(n => n && n.classList.remove('active'));
@@ -78,6 +80,19 @@ export function switchView(view) {
       if (employeeAuth) employeeAuth.classList.add('hidden');
       if (employeeDashboard) employeeDashboard.classList.remove('hidden');
       loadEmployeePortal(state.currentPortalEmployee.id, state.currentPortalEmployee.name);
+    }
+
+  } else if (view === 'timesheet') {
+    viewTimesheet.classList.add('active');
+    if (navTimesheet) navTimesheet.classList.add('active');
+    
+    // We reuse manager authentication/state since timesheet is a manager function
+    if (!state.managerLoggedIn) {
+      if (managerAuth) managerAuth.classList.remove('hidden');
+      if (managerDashboard) managerDashboard.classList.add('hidden');
+      switchView('manager'); // Redirect to login
+    } else {
+      if (window.loadTimesheets) window.loadTimesheets();
     }
 
   } else if (view === 'payroll') {
@@ -129,6 +144,7 @@ if (navPayroll) {
 if (navSchedule) navSchedule.addEventListener('click', () => switchView('schedule'));
 if (navOps) navOps.addEventListener('click', () => switchView('ops'));
 if (navSettings) navSettings.addEventListener('click', () => switchView('settings'));
+if (navTimesheet) navTimesheet.addEventListener('click', () => switchView('timesheet'));
 
 // --- Bootstrap ---
 const savedTheme = localStorage.getItem('theme') || 'light';

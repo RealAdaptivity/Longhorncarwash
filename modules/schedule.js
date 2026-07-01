@@ -5,7 +5,7 @@ export async function loadSchedules() {
   if (!scheduleList) return;
 
   try {
-    const { data: rawData, error } = await window.supabaseClient.from('schedules').select('*');
+    const { data: rawData, error } = await window.supabaseClient.from('schedules').select('*').eq('site', state.currentSite);
     if (error) throw error;
 
     const data = rawData.sort((a, b) => {
@@ -246,7 +246,7 @@ export function init() {
 
       if (postScheduleSection && !postScheduleSection.classList.contains('hidden')) {
         try {
-          const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).order('name', { ascending: true });
+          const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).eq('site', state.currentSite).order('name', { ascending: true });
           if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
           if (users) {
             users.forEach(u => {
@@ -298,7 +298,7 @@ export function init() {
 
       // Conflict detection
       try {
-        const { data: timeoffs } = await window.supabaseClient.from('time_off_requests').select('*').eq('status', 'Approved');
+        const { data: timeoffs } = await window.supabaseClient.from('time_off_requests').select('*').eq('site', state.currentSite).eq('status', 'Approved');
         if (timeoffs) {
           const conflicts = rows.filter(row => {
             const emp = Object.values(state.employeeMap).find(e => e.name.toLowerCase() === row.employee.toLowerCase());
@@ -318,9 +318,9 @@ export function init() {
       try {
         let error;
         if (state.editingScheduleId) {
-          ({ error } = await window.supabaseClient.from('schedules').update({ content: JSON.stringify(scheduleData) }).eq('id', state.editingScheduleId));
+          ({ error } = await window.supabaseClient.from('schedules').update({ content: JSON.stringify(scheduleData), site: state.currentSite }).eq('id', state.editingScheduleId));
         } else {
-          ({ error } = await window.supabaseClient.from('schedules').insert([{ content: JSON.stringify(scheduleData) }]));
+          ({ error } = await window.supabaseClient.from('schedules').insert([{ content: JSON.stringify(scheduleData), site: state.currentSite }]));
         }
         if (error) throw error;
         
@@ -372,7 +372,7 @@ export function init() {
           parsed.headers.forEach((h, idx) => { if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h; });
           if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
 
-          const { data: currentUsers } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).order('name', { ascending: true });
+          const { data: currentUsers } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).eq('site', state.currentSite).order('name', { ascending: true });
           (currentUsers || []).forEach(u => {
             const savedRow = parsed.rows.find(r => r.employee === u.name);
             const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
@@ -407,7 +407,7 @@ export function init() {
 
         if (swapTargetEmployee) {
           try {
-            const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true);
+            const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).eq('site', state.currentSite);
             swapTargetEmployee.innerHTML = '<option value="">Select a teammate...</option>';
             (users || []).forEach(u => {
               if (u.name !== emp) {

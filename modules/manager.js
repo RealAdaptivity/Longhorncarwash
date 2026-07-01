@@ -995,6 +995,8 @@ export function init() {
       const isSalary = document.getElementById('edit-employee-is-salary')?.checked || false;
       const taxStatusEl = document.getElementById('edit-employee-tax-status');
       const taxStatus = taxStatusEl ? taxStatusEl.value : null;
+      const roleEl = document.getElementById('edit-employee-role');
+      const role = roleEl ? roleEl.value : 'Employee';
 
       if (!firstName || !lastName || !loginName) {
         showToast('All name fields are required', 'error');
@@ -1003,7 +1005,7 @@ export function init() {
 
       const payrollName = `${lastName}, ${firstName}`;
       try {
-        const payload = { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary };
+        const payload = { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, role: role };
         if (taxStatus !== null) payload.tax_status = taxStatus;
 
         const { error } = await window.supabaseClient.from('users').update(payload).eq('id', state.selectedEmployeeForLogs);
@@ -1019,7 +1021,7 @@ export function init() {
         }
 
         if (state.employeeMap[state.selectedEmployeeForLogs]) {
-          Object.assign(state.employeeMap[state.selectedEmployeeForLogs], { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, tax_status: taxStatus });
+          Object.assign(state.employeeMap[state.selectedEmployeeForLogs], { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, tax_status: taxStatus, role: role });
         }
         loadTimesheets();
       } catch (err) { showToast('Error updating employee details.', 'error'); }
@@ -1227,6 +1229,8 @@ window.openManageLogs = async function openManageLogs(userId, userName) {
   if (salaryEl) salaryEl.checked = emp ? emp.is_salary : false;
   const taxEl = document.getElementById('edit-employee-tax-status');
   if (taxEl) taxEl.value = emp ? (emp.tax_status || '') : '';
+  const roleEl = document.getElementById('edit-employee-role');
+  if (roleEl) roleEl.value = emp ? (emp.role || 'Employee') : 'Employee';
 
   const firstEl = document.getElementById('edit-employee-first-name');
   const lastEl = document.getElementById('edit-employee-last-name');
