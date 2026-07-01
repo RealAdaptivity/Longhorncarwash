@@ -255,9 +255,10 @@ export async function loadTimesheets() {
       const weeklyPayVal = calculatePayWithOvertime([totalWeekHrsVal], emp.pay_rate);
       const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : weeklyPayVal.toFixed(2);
       const rateText = emp.is_salary ? `$${emp.pay_rate.toFixed(2)} (Salary)` : `$${emp.pay_rate.toFixed(2)}/hr`;
-      const daysStr = emp.weekMs.map(ms => {
+      const dayLabels = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
+      const daysStr = emp.weekMs.map((ms, i) => {
         const h = ms / 3600000;
-        return `<td>${h > 0 ? h.toFixed(1) : '-'}</td>`;
+        return `<td data-label="${dayLabels[i]}">${h > 0 ? h.toFixed(1) : '-'}</td>`;
       }).join('');
 
       if (timesheetBody) {
@@ -266,14 +267,14 @@ export async function loadTimesheets() {
         tr.dataset.isSalary = emp.is_salary;
         tr.dataset.payRate = emp.pay_rate;
         tr.innerHTML = `
-          <td>${displayName}</td>
-          <td><span style="color:${statusColor};font-weight:bold;">${emp.currentStatus}</span></td>
+          <td data-label="Employee">${displayName}</td>
+          <td data-label="Status"><span style="color:${statusColor};font-weight:bold;">${emp.currentStatus}</span></td>
           ${daysStr}
-          <td style="font-weight:bold;color:${totalColor};">${totalWeekHrs}</td>
-          <td style="font-weight:bold;color:var(--success);">${rateText}</td>
-          <td style="font-weight:bold;color:var(--success);">$${estWeeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(Fixed)</span>' : ''}</td>
-          <td style="color:var(--text-muted);">${totalLastWeekHrs}</td>
-          <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${safeName}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Manage</button></td>
+          <td data-label="Total" style="font-weight:bold;color:${totalColor};">${totalWeekHrs}</td>
+          <td data-label="Rate" style="font-weight:bold;color:var(--success);">${rateText}</td>
+          <td data-label="Est. Pay" style="font-weight:bold;color:var(--success);">$${estWeeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(Fixed)</span>' : ''}</td>
+          <td data-label="Last Week" style="color:var(--text-muted);">${totalLastWeekHrs}</td>
+          <td data-label="Actions"><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${safeName}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Manage</button></td>
         `;
         timesheetBody.appendChild(tr);
       }
