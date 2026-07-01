@@ -619,6 +619,17 @@
               </div>
               <div class="action-label">Add New Employee</div>
             </div>
+            <div id="btn-show-edit-employees" class="action-card">
+              <div class="action-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L16 11l-4 1 1-4 5.5-5.5z" />
+                </svg>
+              </div>
+              <div class="action-label">Edit Employees</div>
+            </div>
             <div id="btn-scroll-approvals" class="action-card">
               <div id="approval-badge" class="badge hidden">0</div>
               <div class="action-icon">
@@ -985,11 +996,17 @@
                   <button id="btn-save-employee-details" class="btn-primary"
                     style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Save Changes</button>
                 </div>
+                <div id="edit-employee-password-wrap" class="hidden" style="margin-top: 12px;">
+                  <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Manager
+                    Password <span style="font-weight: normal;">(dashboard login for leadership roles)</span></label>
+                  <input type="password" id="edit-employee-password" class="input-field" style="margin-bottom: 0;"
+                    placeholder="Set or change dashboard password" autocomplete="new-password" />
+                </div>
                 <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">* Changing the username will
                   affect their login. The First/Last name will be used for reports.</p>
               </div>
 
-              <div style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
+              <div id="manage-manual-punch-section" style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
                 <h4>Add Manual Punch</h4>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                   <select id="new-log-action" class="input-field" style="width: auto; margin-bottom: 0;">
@@ -1004,7 +1021,7 @@
                 </div>
               </div>
 
-              <div class="table-container">
+              <div id="manage-logs-table-section" class="table-container">
                 <table class="data-table">
                   <thead>
                     <tr>
@@ -1021,6 +1038,34 @@
                 </table>
               </div>
 
+            </div>
+          </div>
+
+          <!-- Edit Employees Modal -->
+          <div id="modal-edit-employees" class="modal hidden">
+            <div class="modal-content" style="width: 700px; max-width: 95vw; max-height: 80vh; overflow-y: auto;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">Edit Employees</h3>
+                <button id="btn-close-edit-employees" class="btn-ghost"
+                  style="border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px 15px;">Close</button>
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Edit an employee's details,
+                role, filing status, and (for leadership roles) their manager password.</p>
+              <input type="text" id="edit-employees-search" class="input-field" placeholder="Search by name..." />
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="edit-employees-body">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
