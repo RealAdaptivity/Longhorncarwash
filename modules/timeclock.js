@@ -140,7 +140,7 @@ export async function logTime(action, tips = 0) {
   try {
     if (navigator.onLine) {
       const { data: lastLog, error: logErr } = await window.supabaseClient
-        .from('time_logs').select('action').eq('user_id', state.currentUser.id).eq('site', state.currentSite)
+        .from('time_logs').select('action').eq('user_id', state.currentUser.id)
         .order('created_at', { ascending: false }).limit(1);
 
       if (!logErr && lastLog && lastLog.length > 0) {
@@ -165,7 +165,6 @@ export async function logTime(action, tips = 0) {
 
     if (!navigator.onLine) {
       const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
-  offlineLogs.forEach(l => l.site = l.site || state.currentSite);
       const offlineEntry = { user_id: state.currentUser.id, action, created_at: new Date().toISOString() };
       if (location) { offlineEntry.punch_lat = location.lat; offlineEntry.punch_lon = location.lon; offlineEntry.punch_accuracy = location.accuracy; }
       offlineLogs.push(offlineEntry);
@@ -201,7 +200,6 @@ export async function logTime(action, tips = 0) {
 // --- Offline Sync ---
 export async function syncOfflineLogs() {
   const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
-  offlineLogs.forEach(l => l.site = l.site || state.currentSite);
   if (offlineLogs.length === 0 || !navigator.onLine) return;
 
   showToast(`Syncing ${offlineLogs.length} offline punches...`);
@@ -243,7 +241,7 @@ function initTimesheetSigning() {
         const { getStartOfWeek } = await import('./utils.js');
         const weekStart = getStartOfWeek();
         const { data, error } = await window.supabaseClient.from('time_logs')
-          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id).eq('site', state.currentSite)
+          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id)
           .gte('created_at', weekStart.toISOString())
           .order('created_at', { ascending: true });
 
@@ -287,7 +285,7 @@ function initTimesheetSigning() {
       btnApproveSign.disabled = true;
       btnApproveSign.textContent = 'Approving...';
       try {
-        const { error } = await window.supabaseClient.from('time_logs').insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED', site: state.currentSite }]);
+        const { error } = await window.supabaseClient.from('time_logs').insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED' }]);
         if (error) throw error;
         showToast('Timesheet Digitally Signed!');
         modalSignTimesheet.classList.add('hidden');
@@ -430,7 +428,6 @@ export function init() {
         const { error } = await window.supabaseClient.from('early_clockin_approvals').insert([{
           user_id: state.currentUser.id,
           employee_name: state.currentUser.name,
-          site: state.currentSite,
           shift_date: modalEarlyClockin.dataset.shiftDate,
           shift_start: modalEarlyClockin.dataset.shiftStart,
           status: 'pending'
@@ -477,7 +474,7 @@ async function checkAndClockIn() {
       const todayAbbr = dayNames[chicagoNow.getDay()];
 
       const { data: schedules } = await window.supabaseClient
-        .from('schedules').select('content').eq('site', state.currentSite).order('created_at', { ascending: false }).limit(5);
+        .from('schedules').select('content').order('created_at', { ascending: false }).limit(5);
 
       if (schedules && schedules.length > 0) {
         for (const sched of schedules) {

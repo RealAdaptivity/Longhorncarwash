@@ -167,7 +167,7 @@ export async function fetchSettings() {
   const db = window.supabaseClient;
 
   try {
-    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').eq('site', state.currentSite).limit(1);
+    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').limit(1);
     if (!error && data && data.length > 0) {
       state.activeAnnouncement = data[0].value;
       if (announcementInput) announcementInput.value = data[0].value;
@@ -177,38 +177,38 @@ export async function fetchSettings() {
   }
 
   try {
-    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').eq('site', state.currentSite).limit(1);
+    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').limit(1);
     if (geoData && geoData.length > 0) {
       state.ALLOWED_RADIUS_METERS = parseInt(geoData[0].value, 10);
     }
     if (geofenceInput) geofenceInput.value = state.ALLOWED_RADIUS_METERS;
 
-    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').eq('site', state.currentSite).limit(1);
+    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').limit(1);
     if (latData && latData.length > 0) state.CAR_WASH_LAT = parseFloat(latData[0].value);
     if (geofenceLatInput) geofenceLatInput.value = state.CAR_WASH_LAT;
 
-    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').eq('site', state.currentSite).limit(1);
+    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').limit(1);
     if (lonData && lonData.length > 0) state.CAR_WASH_LON = parseFloat(lonData[0].value);
     if (geofenceLonInput) geofenceLonInput.value = state.CAR_WASH_LON;
 
-    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').eq('site', state.currentSite).limit(1);
+    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').limit(1);
     if (enabledData && enabledData.length > 0) {
       state.GEOFENCE_ENABLED = enabledData[0].value === 'true';
     }
     updateGeofenceUI();
 
-    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').eq('site', state.currentSite).limit(1);
+    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').limit(1);
     if (abData && abData.length > 0) {
       state.ANTI_BUDDY_ENABLED = abData[0].value === 'true';
     }
     updateAntiBuddyUI();
 
     // Load WiFi Lock
-    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').eq('site', state.currentSite).limit(1);
+    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').limit(1);
     if (wifiEnabledData && wifiEnabledData.length > 0) {
       state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
     }
-    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').eq('site', state.currentSite).limit(1);
+    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').limit(1);
     if (wifiIpData && wifiIpData.length > 0) {
       state.WIFI_IP_ADDRESS = wifiIpData[0].value;
       if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
@@ -216,20 +216,20 @@ export async function fetchSettings() {
     updateWifiLockUI();
 
 
-    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').eq('site', state.currentSite).limit(1);
+    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').limit(1);
     if (ebData && ebData.length > 0) {
       state.EARLY_CLOCKIN_BLOCK_ENABLED = ebData[0].value === 'true';
     }
     updateEarlyBlockUI();
 
-    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').eq('site', state.currentSite).limit(1);
+    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
     if (revData && revData.length > 0) {
       state.dailyRevenueGoal = parseFloat(revData[0].value) || 0;
       const dailyRevenueInput = document.getElementById('daily-revenue-input');
       if (dailyRevenueInput) dailyRevenueInput.value = state.dailyRevenueGoal;
     }
 
-    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').eq('site', state.currentSite).limit(1);
+    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').limit(1);
     if (goalData && goalData.length > 0) {
       state.laborCostGoalPercent = parseFloat(goalData[0].value) || 25;
       const laborGoalInput = document.getElementById('labor-goal-input');
@@ -362,11 +362,11 @@ export function init() {
         updateAntiBuddyUI();
 
     // Load WiFi Lock
-    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').eq('site', state.currentSite).limit(1);
+    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').limit(1);
     if (wifiEnabledData && wifiEnabledData.length > 0) {
       state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
     }
-    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').eq('site', state.currentSite).limit(1);
+    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').limit(1);
     if (wifiIpData && wifiIpData.length > 0) {
       state.WIFI_IP_ADDRESS = wifiIpData[0].value;
       if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
