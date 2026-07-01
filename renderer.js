@@ -131,7 +131,7 @@ if (navOps) navOps.addEventListener('click', () => switchView('ops'));
 if (navSettings) navSettings.addEventListener('click', () => switchView('settings'));
 
 // --- Bootstrap ---
-const savedTheme = localStorage.getItem('theme') || 'dark';
+const savedTheme = localStorage.getItem('theme') || 'light';
 applyTheme(savedTheme);
 document.body.classList.add('logged-out');
 
