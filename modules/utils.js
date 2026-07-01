@@ -27,6 +27,7 @@ export const state = {
   ANTI_BUDDY_ENABLED: true,
   EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
+  currentSite: 'Site 1 - Justin TX',
 };
 
 // Initialize site selectors
