@@ -12,10 +12,28 @@ export async function loadEmployeePortal(userId, name) {
     try {
       const { data: uData } = await window.supabaseClient.from('users').select('avatar').eq('id', userId).single();
       const avatarImg = document.getElementById('emp-profile-avatar');
+      const uploadIcon = document.getElementById('avatar-upload-icon');
+      const subText = document.getElementById('employee-portal-welcome-sub');
+      const fileInput = document.getElementById('avatar-upload-input');
+      
       if (uData && uData.avatar && avatarImg) {
         avatarImg.src = uData.avatar;
+        // Lock it!
+        avatarImg.onclick = null;
+        avatarImg.style.cursor = 'default';
+        if (uploadIcon) uploadIcon.style.display = 'none';
+        if (subText) subText.textContent = 'Profile picture saved.';
+        if (fileInput) fileInput.disabled = true;
+      } else {
+        // Unlock if no avatar (e.g. testing)
+        avatarImg.onclick = () => fileInput.click();
+        avatarImg.style.cursor = 'pointer';
+        if (uploadIcon) uploadIcon.style.display = 'flex';
+        if (subText) subText.textContent = 'Tap to take a profile picture (One time only!)';
+        if (fileInput) fileInput.disabled = false;
       }
     } catch (e) {}
+
 
     // Avatar upload listener
     const avatarInput = document.getElementById('avatar-upload-input');
@@ -48,12 +66,25 @@ export async function loadEmployeePortal(userId, name) {
             // Update UI
             document.getElementById('emp-profile-avatar').src = base64Avatar;
             
+            
             // Save to DB
             try {
               const { error } = await window.supabaseClient.from('users').update({ avatar: base64Avatar }).eq('id', userId);
               if (error) throw error;
-              showToast('Profile picture updated successfully!');
+              showToast('Profile picture saved successfully!');
+              
+              // Lock it!
+              document.getElementById('emp-profile-avatar').onclick = null;
+              document.getElementById('emp-profile-avatar').style.cursor = 'default';
+              const uploadIcon = document.getElementById('avatar-upload-icon');
+              if (uploadIcon) uploadIcon.style.display = 'none';
+              const subText = document.getElementById('employee-portal-welcome-sub');
+              if (subText) subText.textContent = 'Profile picture saved.';
+              const fileInput = document.getElementById('avatar-upload-input');
+              if (fileInput) fileInput.disabled = true;
+              
             } catch (err) {
+
               showToast('Failed to save profile picture', 'error');
             }
           };
