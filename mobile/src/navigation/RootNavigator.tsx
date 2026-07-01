@@ -3,7 +3,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, ROLE_ACCESS } from '../context/AuthContext';
 import { colors } from '../theme';
 
 import { PinScreen } from '../screens/PinScreen';
@@ -32,7 +32,8 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 function MainTabs() {
-  const { isManagerUnlocked } = useAuth();
+  const { isManagerUnlocked, managerRole } = useAuth();
+  const access = managerRole ? (ROLE_ACCESS[managerRole] ?? {}) : {};
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -45,7 +46,9 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Clock" component={TimeclockScreen} />
-      <Tab.Screen name="Schedule" component={ScheduleScreen} />
+      {(access.schedule || !isManagerUnlocked) && (
+        <Tab.Screen name="Schedule" component={ScheduleScreen} />
+      )}
       <Tab.Screen name="My Hours" component={MyHoursScreen} />
       {isManagerUnlocked && (
         <Tab.Screen name="Manager" component={ManagerNavigator} />

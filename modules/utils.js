@@ -4,6 +4,7 @@ export const state = {
   currentUser: null,
   managerLoggedIn: false,
   currentManager: null,
+  currentManagerRole: null,
   pending2FAUser: null,
   pendingLoginTarget: 'manager',
   employeeMap: {},

@@ -42,7 +42,7 @@
           <span class="mobile-hide">Employee Dashboard</span>
           <span class="mobile-only">Employee</span>
         </button>
-        <button id="nav-manager" class="nav-btn">Manager</button>
+        <button id="nav-manager" class="nav-btn">Site Manager</button>
         <button id="nav-payroll" class="nav-btn">Payroll</button>
         <button id="nav-schedule" class="nav-btn">Schedule</button>
         <button id="nav-ops" class="nav-btn">
@@ -945,10 +945,11 @@
                 class="input-field" style="margin-bottom: 20px;" />
               <input type="password" id="new-user-password" placeholder="Create a Dashboard Password"
                 class="input-field hidden" />
-              <div class="role-select" style="margin-top: 10px; margin-bottom: 20px;">
+              <div class="role-select" style="margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px;">
                 <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
-                <label style="margin-left: 15px;"><input type="radio" name="new-user-role" value="Manager">
-                  Manager</label>
+                <label><input type="radio" name="new-user-role" value="Supervisor"> Supervisor</label>
+                <label><input type="radio" name="new-user-role" value="Assistant Site Manager"> Asst. Site Manager</label>
+                <label><input type="radio" name="new-user-role" value="Site Manager"> Site Manager</label>
               </div>
               <div class="modal-actions" style="margin-top: 30px;">
                 <button id="btn-cancel-create" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
@@ -1359,7 +1360,9 @@
               Required</label>
             <select id="checklist-role" class="input-field">
               <option value="Employee">Employee</option>
-              <option value="Manager">Manager</option>
+              <option value="Supervisor">Supervisor</option>
+              <option value="Assistant Site Manager">Asst. Site Manager</option>
+              <option value="Site Manager">Site Manager</option>
             </select>
           </div>
 

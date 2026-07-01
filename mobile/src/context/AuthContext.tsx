@@ -4,9 +4,18 @@ import { supabase } from '../lib/supabase';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
 import { User } from '../types';
 
+const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor'];
+
+export const ROLE_ACCESS: Record<string, Record<string, boolean>> = {
+  'Site Manager':           { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
+  'Assistant Site Manager': { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false },
+  'Supervisor':             { payroll: false, schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false },
+};
+
 interface AuthContextType {
   user: User | null;
   isManagerUnlocked: boolean;
+  managerRole: string | null;
   loading: boolean;
   login: (pin: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -19,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isManagerUnlocked, setIsManagerUnlocked] = useState(false);
+  const [managerRole, setManagerRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
     await SecureStore.setItemAsync('lcw_user', JSON.stringify(u));
 
+    // Auto-unlock manager access for management roles
+    if (MANAGEMENT_ROLES.includes(data.role)) {
+      setIsManagerUnlocked(true);
+      setManagerRole(data.role);
+    }
+
     // Register for push notifications and save token
     try {
       const token = await registerForPushNotificationsAsync();
@@ -69,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout() {
     setUser(null);
     setIsManagerUnlocked(false);
+    setManagerRole(null);
     await SecureStore.deleteItemAsync('lcw_user');
   }
 
@@ -82,18 +99,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .limit(1)
       .single();
 
-    if (error || !data) return { success: false, error: 'Invalid manager credentials' };
+    if (error || !data) return { success: false, error: 'Invalid credentials' };
+    if (!MANAGEMENT_ROLES.includes(data.role)) return { success: false, error: 'Not a management account' };
 
     setIsManagerUnlocked(true);
+    setManagerRole(data.role);
     return { success: true };
   }
 
   function lockManager() {
     setIsManagerUnlocked(false);
+    setManagerRole(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, isManagerUnlocked, loading, login, logout, unlockManager, lockManager }}>
+    <AuthContext.Provider value={{ user, isManagerUnlocked, managerRole, loading, login, logout, unlockManager, lockManager }}>
       {children}
     </AuthContext.Provider>
   );

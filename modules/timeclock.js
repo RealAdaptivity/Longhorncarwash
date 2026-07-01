@@ -315,6 +315,12 @@ export function init() {
         if (pinPad) pinPad.classList.add('hidden');
         if (pinDisplay) pinDisplay.classList.add('hidden');
 
+        // Management roles unlock their sections via PIN (no username/password needed)
+        if (data.role !== 'Employee') {
+          const { unlockManagerByPin } = await import('./manager.js');
+          unlockManagerByPin(data);
+        }
+
         if (state.activeAnnouncement && state.activeAnnouncement.trim() !== '') {
           if (announcementText) announcementText.textContent = state.activeAnnouncement;
           if (modalAnnouncement) modalAnnouncement.classList.remove('hidden');

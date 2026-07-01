@@ -1,16 +1,61 @@
 import { state, showToast, getStartOfWeek, getBiweeklyWeeks, formatNameLastFirst, calculateEstimatedTaxes, calculatePayWithOvertime, downloadCsv } from './utils.js';
 
+// Role hierarchy: what each role can access
+const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor'];
+const ROLE_ACCESS = {
+  'Site Manager':             { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
+  'Assistant Site Manager':   { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false, dashboard: true,  addEmployee: true  },
+  'Supervisor':               { payroll: false, schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false, dashboard: true,  addEmployee: false },
+};
+
+function applyRolePermissions(role) {
+  const p = ROLE_ACCESS[role] ?? {};
+  const hide = (id) => document.getElementById(id)?.classList.add('hidden');
+  const show = (id) => document.getElementById(id)?.classList.remove('hidden');
+
+  if (p.payroll)   show('nav-payroll');   else hide('nav-payroll');
+  if (p.schedule)  show('nav-schedule');  else hide('nav-schedule');
+  if (p.employee)  show('nav-employee');  else hide('nav-employee');
+  if (p.ops)       show('nav-ops');       else hide('nav-ops');
+  if (p.settings)  show('nav-settings'); else hide('nav-settings');
+
+  // Show/hide add-employee button inside the dashboard
+  const btnShowCreateUser = document.getElementById('btn-show-create-user');
+  if (btnShowCreateUser) {
+    if (p.addEmployee) btnShowCreateUser.style.display = '';
+    else btnShowCreateUser.style.display = 'none';
+  }
+
+  // Schedule post/edit controls
+  const btnShowPostSchedule = document.getElementById('btn-show-post-schedule');
+  if (btnShowPostSchedule) {
+    if (p.scheduleEdit) btnShowPostSchedule.classList.remove('hidden');
+    else btnShowPostSchedule.classList.add('hidden');
+  }
+  const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
+  if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.add('hidden');
+}
+
+function resetRolePermissions() {
+  // Restore all nav items to visible (pre-login state)
+  ['nav-payroll', 'nav-schedule', 'nav-employee', 'nav-ops', 'nav-settings'].forEach(id => {
+    document.getElementById(id)?.classList.remove('hidden');
+  });
+  document.getElementById('btn-show-post-schedule')?.classList.add('hidden');
+  document.getElementById('btn-schedule-manager-login')?.classList.remove('hidden');
+}
+
 // --- Manager Authentication ---
 export function completeManagerLogin(data) {
   state.managerLoggedIn = true;
   state.currentManager = data;
+  state.currentManagerRole = data.role;
 
-  const btnShowPostSchedule = document.getElementById('btn-show-post-schedule');
-  const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
-  if (btnShowPostSchedule) btnShowPostSchedule.classList.remove('hidden');
-  if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.add('hidden');
+  applyRolePermissions(data.role);
 
-  if (state.pendingLoginTarget === 'payroll') {
+  const p = ROLE_ACCESS[data.role] ?? {};
+
+  if (state.pendingLoginTarget === 'payroll' && p.payroll) {
     const payrollAuth = document.getElementById('payroll-auth');
     const payrollDashboard = document.getElementById('payroll-dashboard');
     const payrollUsernameInput = document.getElementById('payroll-username-input');
@@ -32,14 +77,27 @@ export function completeManagerLogin(data) {
   loadTimesheets();
 }
 
+// PIN-based role unlock — called from timeclock after a management-role PIN is entered
+export function unlockManagerByPin(userData) {
+  state.managerLoggedIn = true;
+  state.currentManager = userData;
+  state.currentManagerRole = userData.role;
+  applyRolePermissions(userData.role);
+
+  const managerAuth = document.getElementById('manager-auth');
+  const managerDashboard = document.getElementById('manager-dashboard');
+  if (managerAuth) managerAuth.classList.add('hidden');
+  if (managerDashboard) managerDashboard.classList.remove('hidden');
+}
+
 export function logoutManager() {
   state.managerLoggedIn = false;
   state.currentManager = null;
+  state.currentManagerRole = null;
   state.pending2FAUser = null;
 
-  document.getElementById('btn-show-post-schedule')?.classList.add('hidden');
+  resetRolePermissions();
   document.getElementById('post-schedule-section')?.classList.add('hidden');
-  document.getElementById('btn-schedule-manager-login')?.classList.remove('hidden');
   document.getElementById('schedule-manager-auth')?.classList.add('hidden');
   document.getElementById('manager-dashboard')?.classList.add('hidden');
   document.getElementById('manager-auth')?.classList.remove('hidden');
@@ -52,11 +110,11 @@ async function attemptManagerLogin(username, password) {
   const { data: rawData, error } = await window.supabaseClient
     .from('users').select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
     .eq('name', username).eq('password', password)
-    .eq('role', 'Manager').eq('is_approved', true)
+    .in('role', MANAGEMENT_ROLES).eq('is_approved', true)
     .not('password', 'is', null).limit(1);
 
   if (error || !rawData || rawData.length === 0) {
-    showToast('Invalid Manager Username or Password', 'error');
+    showToast('Invalid credentials', 'error');
     return null;
   }
   return rawData[0];
@@ -273,7 +331,7 @@ export async function loadTimesheets() {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${u.name}</td>
-            <td><span style="color:var(--warning);font-weight:bold;">New Account (${u.role})</span></td>
+            <td><span style="color:var(--warning);font-weight:bold;">New Account</span><br><span style="font-size:0.8rem;color:var(--text-muted);">${u.role}</span></td>
             <td>Pending</td>
             <td>
               <button class="btn-success btn-approve-account" data-id="${u.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Approve</button>
@@ -932,7 +990,7 @@ export function init() {
     radio.addEventListener('change', (e) => {
       const pwd = document.getElementById('new-user-password');
       if (pwd) {
-        if (e.target.value === 'Manager') pwd.classList.remove('hidden');
+        if (e.target.value !== 'Employee') pwd.classList.remove('hidden');
         else { pwd.classList.add('hidden'); pwd.value = ''; }
       }
     });
@@ -951,8 +1009,8 @@ export function init() {
         showToast('Fill in all fields and enter a 4-digit PIN', 'error');
         return;
       }
-      if (role === 'Manager' && !password) {
-        showToast('Managers must have a dashboard password', 'error');
+      if (role !== 'Employee' && !password) {
+        showToast('Management roles require a dashboard password', 'error');
         return;
       }
 
@@ -962,7 +1020,7 @@ export function init() {
 
         const { error } = await window.supabaseClient.from('users').insert([{
           name, payroll_name: `${lastName}, ${firstName}`, pin, role,
-          password: role === 'Manager' ? password : null, is_approved: false
+          password: role !== 'Employee' ? password : null, is_approved: false
         }]);
         if (error) throw error;
 
@@ -999,8 +1057,8 @@ export function init() {
         const newPwd = forgotPwdNew?.value;
         if (!name || !newPwd) { showToast('Enter username and new password', 'error'); return; }
         try {
-          const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).eq('role', 'Manager').single();
-          if (error || !user) { showToast('Manager username not found', 'error'); return; }
+          const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).in('role', MANAGEMENT_ROLES).single();
+          if (error || !user) { showToast('Username not found', 'error'); return; }
           await window.supabaseClient.from('users').update({ pending_password: newPwd }).eq('id', user.id);
           showToast('Password reset requested! Another manager must approve it.');
           if (modalForgotPwd) modalForgotPwd.classList.add('hidden');
