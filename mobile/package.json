@@ -17,7 +17,7 @@
     "@react-navigation/native-stack": "^7.0.0",
     "@supabase/supabase-js": "^2.45.4",
     "expo": "~56.0.13",
-    "expo-device": "~56.0.4",
+    "expo-device": "~57.0.0",
     "expo-location": "~56.0.19",
     "expo-notifications": "~56.0.19",
     "expo-secure-store": "~56.0.4",
