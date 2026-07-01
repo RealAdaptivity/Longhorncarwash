@@ -912,142 +912,6 @@
           </div><!-- END manager-security-section -->
 
 
-          <!-- MANAGE LOGS MODAL -->
-          <div id="modal-manage-logs" class="modal hidden">
-            <div class="modal-content" style="width: 850px; max-width: 95vw; max-height: 80vh; overflow-y: auto;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 id="manage-logs-title" style="margin: 0;">Manage Logs</h3>
-                <div style="display: flex; gap: 10px;">
-                  <button id="btn-delete-employee" class="btn-danger"
-                    style="padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
-                  <button id="btn-close-manage" class="btn-ghost"
-                    style="border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px 15px;">Close</button>
-                </div>
-              </div>
-
-              <div
-                style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
-                <h4 style="margin-bottom: 10px; color: var(--primary);">Employee Details</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                  <div>
-                    <label
-                      style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">First
-                      Name</label>
-                    <input type="text" id="edit-employee-first-name" class="input-field" style="margin-bottom: 0;"
-                      placeholder="First Name" />
-                  </div>
-                  <div>
-                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Last
-                      Name</label>
-                    <input type="text" id="edit-employee-last-name" class="input-field" style="margin-bottom: 0;"
-                      placeholder="Last Name" />
-                  </div>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: flex-end;">
-                  <div style="flex: 1;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Username</label>
-                    <input type="text" id="edit-employee-login-name" class="input-field"
-                      style="padding: 8px; font-size: 0.9rem;" />
-                  </div>
-                  <div style="flex: 0.5;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Rate / Salary ($)</label>
-                    <input type="number" id="edit-employee-pay-rate" step="0.01" class="input-field"
-                      style="padding: 8px; font-size: 0.9rem;" placeholder="0.00" />
-                  </div>
-                  <div style="flex: 0.6;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Tax Filing Status</label>
-                    <select id="edit-employee-tax-status" class="input-field" style="padding: 8px; font-size: 0.9rem;">
-                      <option value="">None</option>
-                      <option value="Single">Single</option>
-                      <option value="Married Filing Jointly">Married Filing Jointly</option>
-                      <option value="Married Filing Separately">Married Filing Separately</option>
-                      <option value="Head of Household">Head of Household</option>
-                    </select>
-                  </div>
-                  <div style="flex: 0.6;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Role</label>
-                    <select id="edit-employee-role" class="input-field" style="padding: 8px; font-size: 0.9rem;">
-                      <option value="Employee">Employee</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Assistant Site Manager">Asst. Site Manager</option>
-                      <option value="Site Manager">Site Manager</option>
-                      <option value="Manager">Manager</option>
-                      <option value="Admin">Admin</option>
-                      <option value="Payroll">Payroll</option>
-                    </select>
-                  </div>
-                  <div
-                    style="flex: 0.3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px;">
-                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Salary?</label>
-                    <input type="checkbox" id="edit-employee-is-salary"
-                      style="width: 20px; height: 20px; cursor: pointer;" />
-                  </div>
-                  <button id="btn-save-employee-details" class="btn-primary"
-                    style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Save Changes</button>
-                </div>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">* Changing the username will
-                  affect their login. The First/Last name will be used for reports.</p>
-              </div>
-
-              <div style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
-                <h4>Add Manual Punch</h4>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                  <select id="new-log-action" class="input-field" style="width: auto; margin-bottom: 0;">
-                    <option value="IN">Clock IN</option>
-                    <option value="OUT">Clock OUT</option>
-                    <option value="START_LUNCH">Start Lunch</option>
-                    <option value="END_LUNCH">End Lunch</option>
-                  </select>
-                  <input type="datetime-local" id="new-log-time" class="input-field" style="margin-bottom: 0;" />
-                  <button id="btn-add-log" class="btn-primary"
-                    style="padding: 10px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
-                </div>
-              </div>
-
-              <div class="table-container">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Photo</th>
-                      <th>Action</th>
-                      <th>Time</th>
-                      <th>Edited By</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="manage-logs-body">
-                    <!-- Populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- Edit Punch Modal -->
-          <div id="modal-edit-punch" class="modal hidden">
-            <div class="modal-content" style="width: 400px; text-align: left; z-index: 1000;">
-              <h3 style="margin-bottom: 15px;">Edit Time Punch</h3>
-
-              <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Action Type</label>
-              <select id="edit-punch-action" class="input-field" style="margin-bottom: 15px;">
-                <option value="IN">Clock IN</option>
-                <option value="OUT">Clock OUT</option>
-                <option value="START_LUNCH">Start Lunch</option>
-                <option value="END_LUNCH">End Lunch</option>
-              </select>
-
-              <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Date & Time</label>
-              <input type="datetime-local" id="edit-punch-datetime" class="input-field" style="margin-bottom: 20px;" />
-
-              <div class="modal-actions" style="display: flex; gap: 10px;">
-                <button id="btn-cancel-edit-punch" class="btn-ghost"
-                  style="border: 1px solid var(--border); padding: 10px;">Cancel</button>
-                <button id="btn-save-edit-punch" class="btn-primary"
-                  style="padding: 10px 20px; border-radius: 8px;">Save Changes</button>
-              </div>
-            </div>
-          </div>
 
           <!-- Approvals Modal -->
           <div id="modal-approvals" class="modal hidden">
@@ -1640,6 +1504,143 @@
         </div>
       </div>
 
+      <!-- Manager modals relocated to top level so they overlay from any tab (not trapped inside a display:none view) -->
+          <!-- MANAGE LOGS MODAL -->
+          <div id="modal-manage-logs" class="modal hidden">
+            <div class="modal-content" style="width: 850px; max-width: 95vw; max-height: 80vh; overflow-y: auto;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="manage-logs-title" style="margin: 0;">Manage Logs</h3>
+                <div style="display: flex; gap: 10px;">
+                  <button id="btn-delete-employee" class="btn-danger"
+                    style="padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
+                  <button id="btn-close-manage" class="btn-ghost"
+                    style="border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px 15px;">Close</button>
+                </div>
+              </div>
+
+              <div
+                style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 10px; color: var(--primary);">Employee Details</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                  <div>
+                    <label
+                      style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">First
+                      Name</label>
+                    <input type="text" id="edit-employee-first-name" class="input-field" style="margin-bottom: 0;"
+                      placeholder="First Name" />
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Last
+                      Name</label>
+                    <input type="text" id="edit-employee-last-name" class="input-field" style="margin-bottom: 0;"
+                      placeholder="Last Name" />
+                  </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                  <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Username</label>
+                    <input type="text" id="edit-employee-login-name" class="input-field"
+                      style="padding: 8px; font-size: 0.9rem;" />
+                  </div>
+                  <div style="flex: 0.5;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Rate / Salary ($)</label>
+                    <input type="number" id="edit-employee-pay-rate" step="0.01" class="input-field"
+                      style="padding: 8px; font-size: 0.9rem;" placeholder="0.00" />
+                  </div>
+                  <div style="flex: 0.6;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Tax Filing Status</label>
+                    <select id="edit-employee-tax-status" class="input-field" style="padding: 8px; font-size: 0.9rem;">
+                      <option value="">None</option>
+                      <option value="Single">Single</option>
+                      <option value="Married Filing Jointly">Married Filing Jointly</option>
+                      <option value="Married Filing Separately">Married Filing Separately</option>
+                      <option value="Head of Household">Head of Household</option>
+                    </select>
+                  </div>
+                  <div style="flex: 0.6;">
+                    <label style="font-size: 0.8rem; color: var(--text-muted);">Role</label>
+                    <select id="edit-employee-role" class="input-field" style="padding: 8px; font-size: 0.9rem;">
+                      <option value="Employee">Employee</option>
+                      <option value="Supervisor">Supervisor</option>
+                      <option value="Assistant Site Manager">Asst. Site Manager</option>
+                      <option value="Site Manager">Site Manager</option>
+                      <option value="Manager">Manager</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Payroll">Payroll</option>
+                    </select>
+                  </div>
+                  <div
+                    style="flex: 0.3; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px;">
+                    <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">Salary?</label>
+                    <input type="checkbox" id="edit-employee-is-salary"
+                      style="width: 20px; height: 20px; cursor: pointer;" />
+                  </div>
+                  <button id="btn-save-employee-details" class="btn-primary"
+                    style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Save Changes</button>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">* Changing the username will
+                  affect their login. The First/Last name will be used for reports.</p>
+              </div>
+
+              <div style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
+                <h4>Add Manual Punch</h4>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <select id="new-log-action" class="input-field" style="width: auto; margin-bottom: 0;">
+                    <option value="IN">Clock IN</option>
+                    <option value="OUT">Clock OUT</option>
+                    <option value="START_LUNCH">Start Lunch</option>
+                    <option value="END_LUNCH">End Lunch</option>
+                  </select>
+                  <input type="datetime-local" id="new-log-time" class="input-field" style="margin-bottom: 0;" />
+                  <button id="btn-add-log" class="btn-primary"
+                    style="padding: 10px; border-radius: 8px; border: none; cursor: pointer;">Add</button>
+                </div>
+              </div>
+
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Photo</th>
+                      <th>Action</th>
+                      <th>Time</th>
+                      <th>Edited By</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="manage-logs-body">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Edit Punch Modal -->
+          <div id="modal-edit-punch" class="modal hidden">
+            <div class="modal-content" style="width: 400px; text-align: left; z-index: 1000;">
+              <h3 style="margin-bottom: 15px;">Edit Time Punch</h3>
+
+              <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Action Type</label>
+              <select id="edit-punch-action" class="input-field" style="margin-bottom: 15px;">
+                <option value="IN">Clock IN</option>
+                <option value="OUT">Clock OUT</option>
+                <option value="START_LUNCH">Start Lunch</option>
+                <option value="END_LUNCH">End Lunch</option>
+              </select>
+
+              <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Date & Time</label>
+              <input type="datetime-local" id="edit-punch-datetime" class="input-field" style="margin-bottom: 20px;" />
+
+              <div class="modal-actions" style="display: flex; gap: 10px;">
+                <button id="btn-cancel-edit-punch" class="btn-ghost"
+                  style="border: 1px solid var(--border); padding: 10px;">Cancel</button>
+                <button id="btn-save-edit-punch" class="btn-primary"
+                  style="padding: 10px 20px; border-radius: 8px;">Save Changes</button>
+              </div>
+            </div>
+          </div>
     </main>
   </div>
 
