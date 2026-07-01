@@ -255,39 +255,6 @@ export function parseShiftHours(shiftStr) {
   } catch (e) { return 0; }
 }
 
-// --- Weather ---
-export async function loadWeather() {
-  const weatherIcon = document.getElementById('weather-icon');
-  const weatherTemp = document.getElementById('weather-temp');
-  const weatherDesc = document.getElementById('weather-desc');
-  if (!weatherIcon || !weatherTemp || !weatherDesc) return;
-
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.CAR_WASH_LAT}&longitude=${state.CAR_WASH_LON}&current_weather=true&temperature_unit=fahrenheit&windspeed_unit=mph`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error('Weather fetch failed');
-    const data = await response.json();
-    const weather = data.current_weather;
-    if (!weather) throw new Error('No weather data');
-
-    const code = weather.weathercode;
-    let icon = '☁️', desc = 'Cloudy';
-    if (code === 0) { icon = '☀️'; desc = 'Clear'; }
-    else if (code <= 3) { icon = '⛅'; desc = 'Partly Cloudy'; }
-    else if (code <= 48) { icon = '🌫️'; desc = 'Fog'; }
-    else if (code <= 67) { icon = '🌧️'; desc = 'Rain'; }
-    else if (code <= 82) { icon = '❄️'; desc = 'Snow'; }
-    else if (code >= 95) { icon = '⛈️'; desc = 'Thunderstorm'; }
-
-    weatherIcon.textContent = icon;
-    weatherTemp.textContent = `${Math.round(weather.temperature)}°F`;
-    weatherDesc.textContent = desc;
-  } catch (e) {
-    if (weatherDesc) weatherDesc.textContent = 'Weather Unavailable';
-    if (weatherTemp) weatherTemp.textContent = '--°F';
-  }
-}
-
 // --- CSV Download Helper ---
 export function downloadCsv(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
