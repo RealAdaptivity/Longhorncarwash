@@ -8,6 +8,10 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # Electron is a dev dependency but the lint/test jobs don't need its
+    # prebuilt binary, so skip the ~100MB download during install.
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@v4
 
@@ -25,6 +29,15 @@ jobs:
             echo "node --check $f"
             node --check "$f"
           done
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
   mobile:
     # Type-checks the Expo/React Native app so type errors are caught before release.

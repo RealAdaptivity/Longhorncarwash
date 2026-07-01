@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { calcHours } from '../_shared/hours.mjs';
 
 const BOT = '8729010258:AAEh2We1rFbEiC1WoEbz0Gz5qOyDr5Kyo4c';
 const CHAT = '-5595038862';
@@ -24,19 +25,6 @@ function getWeekStart(): string {
   const ws = new Date(ct);
   ws.setDate(ct.getDate() - daysFromFri);
   return ws.toLocaleDateString('en-CA'); // YYYY-MM-DD
-}
-
-function calcHours(logs: Array<{ action: string; created_at: string }>): number {
-  const sorted = [...logs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  let total = 0, lastIn: number | null = null;
-  for (const l of sorted) {
-    const t = new Date(l.created_at).getTime();
-    if (l.action === 'IN' || l.action === 'END_LUNCH') { lastIn = t; }
-    else if ((l.action === 'START_LUNCH' || l.action === 'OUT') && lastIn !== null) {
-      total += (t - lastIn) / 3600000; lastIn = null;
-    }
-  }
-  return total;
 }
 
 Deno.serve(async (req: Request) => {
