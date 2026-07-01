@@ -184,7 +184,7 @@ export async function fetchSettings() {
 
 export function init() {
   // Apply saved theme immediately
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   applyTheme(savedTheme);
 
   // Load payroll format
