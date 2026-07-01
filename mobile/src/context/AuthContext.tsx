@@ -38,7 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function restoreSession() {
     try {
       const saved = await SecureStore.getItemAsync('lcw_user');
-      if (saved) setUser(JSON.parse(saved));
+      if (saved) {
+        const userData = JSON.parse(saved);
+        setUser(userData);
+        // Restore management access so managers don't lose their tabs on reopen
+        if (MANAGEMENT_ROLES.includes(userData.role)) {
+          setIsManagerUnlocked(true);
+          setManagerRole(userData.role);
+        }
+      }
     } catch {
       // ignore
     } finally {
