@@ -68,7 +68,11 @@
         </div>
 
         <div class="pin-pad-container">
-          <h3>Enter PIN</h3>
+          <div class="login-logo-wrap">
+            <img src="app_icon_longhorn_1777337011552.png" class="login-logo" alt="Longhorn Car Wash" />
+          </div>
+          <h2 class="login-heading">Welcome Back</h2>
+          <p class="login-subheading">Enter your PIN to sign in</p>
           <div class="pin-display-wrapper">
             <input type="password" id="pin-display" readonly placeholder="----" maxlength="4" />
           </div>
@@ -90,7 +94,8 @@
 
           <p id="btn-forgot-pin"
             style="margin-top: 20px; color: var(--text-muted); cursor: pointer; text-decoration: underline; font-size: 0.9rem;">
-            Forgot PIN?</p>
+            Forgot PIN? Contact your manager.</p>
+          <p class="login-credit">Built by RealAdaptivity LLC</p>
 
           <div class="action-buttons hidden" id="action-buttons">
 
@@ -102,7 +107,12 @@
             <canvas id="photo-canvas" style="display: none;"></canvas>
 
             <h2 id="employee-welcome" style="margin-bottom: 25px; color: var(--text);">Welcome, Name</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+
+            <div id="salary-employee-msg" style="display: none; margin-bottom: 20px; padding: 20px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.95rem; text-align: center; font-style: italic;">
+              Salaried employees do not clock in.
+            </div>
+
+            <div id="clock-action-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
               <button id="btn-clock-in" class="btn-action btn-success"
                 style="margin:0; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);">
                 <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK IN</span>
@@ -124,7 +134,8 @@
               style="margin: 0 0 10px 0; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px;">
               Review & Sign Timesheet
             </button>
-            <button id="btn-cancel-action" class="btn-action btn-ghost" style="margin:0;">Cancel / Go Back</button>
+            <button id="btn-cancel-action" class="btn-action btn-ghost" style="margin:0 0 10px 0;">Back</button>
+            <button onclick="window.signOut()" class="btn-action btn-ghost" style="margin:0; border: 1px solid var(--primary); color: var(--primary);">Sign Out</button>
           </div>
         </div>
 
@@ -951,6 +962,10 @@
                 <label><input type="radio" name="new-user-role" value="Assistant Site Manager"> Asst. Site Manager</label>
                 <label><input type="radio" name="new-user-role" value="Site Manager"> Site Manager</label>
               </div>
+              <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem;">
+                <input type="checkbox" id="new-user-is-salary" style="width: 16px; height: 16px; cursor: pointer;">
+                Salaried employee (does not clock in)
+              </label>
               <div class="modal-actions" style="margin-top: 30px;">
                 <button id="btn-cancel-create" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
                 <button id="btn-confirm-create" class="btn-primary"

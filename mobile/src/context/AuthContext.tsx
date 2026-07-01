@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
 import { User } from '../types';
 
-const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor'];
+const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'];
 
 export const ROLE_ACCESS: Record<string, Record<string, boolean>> = {
   'Site Manager':           { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true  },
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, role, is_approved')
+      .select('id, name, role, is_approved, is_salary')
       .eq('pin', pin)
       .limit(1)
       .single();
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error || !data) return { success: false, error: 'Invalid PIN' };
     if (!data.is_approved) return { success: false, error: 'Account not approved. Contact a manager.' };
 
-    const u: User = { id: data.id, name: data.name, role: data.role, is_approved: data.is_approved };
+    const u: User = { id: data.id, name: data.name, role: data.role, is_approved: data.is_approved, is_salary: data.is_salary ?? false };
     setUser(u);
     await SecureStore.setItemAsync('lcw_user', JSON.stringify(u));
 

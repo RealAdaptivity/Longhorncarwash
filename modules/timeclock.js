@@ -54,7 +54,61 @@ export function resetIdleTimeout() {
   }
 }
 
+function showUserSession(userData) {
+  state.currentUser = userData;
+  const pinPad = document.querySelector('.pin-pad');
+  const pinDisplay = document.getElementById('pin-display');
+  const actionButtons = document.getElementById('action-buttons');
+  const employeeWelcome = document.getElementById('employee-welcome');
+  const clockGrid = document.getElementById('clock-action-grid');
+  const salaryMsg = document.getElementById('salary-employee-msg');
+
+  if (employeeWelcome) employeeWelcome.textContent = `Welcome, ${userData.name}`;
+  if (pinPad) pinPad.classList.add('hidden');
+  if (pinDisplay) pinDisplay.classList.add('hidden');
+  if (clockGrid) clockGrid.style.display = userData.is_salary ? 'none' : '';
+  if (salaryMsg) salaryMsg.style.display = userData.is_salary ? 'block' : 'none';
+  if (actionButtons) actionButtons.classList.remove('hidden');
+  document.body.classList.remove('logged-out');
+}
+
 export function resetTimeclockState() {
+  if (state.idleTimeout) { clearTimeout(state.idleTimeout); state.idleTimeout = null; }
+  stopCamera();
+  state.currentPin = '';
+
+  const modalAnnouncement = document.getElementById('modal-announcement');
+  if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
+
+  const saved = localStorage.getItem('lcw_web_user');
+  if (saved) {
+    try {
+      const userData = JSON.parse(saved);
+      showUserSession(userData);
+      if (userData.role && userData.role !== 'Employee') {
+        import('./manager.js').then(({ unlockManagerByPin }) => unlockManagerByPin(userData));
+      }
+      resetIdleTimeout();
+      return;
+    } catch {
+      localStorage.removeItem('lcw_web_user');
+    }
+  }
+
+  state.currentUser = null;
+  const pinDisplay = document.getElementById('pin-display');
+  const pinPad = document.querySelector('.pin-pad');
+  const actionButtons = document.getElementById('action-buttons');
+
+  if (pinDisplay) { pinDisplay.value = ''; }
+  if (pinPad) pinPad.classList.remove('hidden');
+  if (pinDisplay) pinDisplay.classList.remove('hidden');
+  if (actionButtons) actionButtons.classList.add('hidden');
+  document.body.classList.add('logged-out');
+}
+
+export function signOut() {
+  localStorage.removeItem('lcw_web_user');
   if (state.idleTimeout) { clearTimeout(state.idleTimeout); state.idleTimeout = null; }
   stopCamera();
   state.currentPin = '';
@@ -70,6 +124,9 @@ export function resetTimeclockState() {
   if (pinDisplay) pinDisplay.classList.remove('hidden');
   if (actionButtons) actionButtons.classList.add('hidden');
   if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
+  document.body.classList.add('logged-out');
+
+  import('./manager.js').then(({ logoutManager }) => logoutManager());
 }
 
 // --- Log Time ---
@@ -291,7 +348,7 @@ export function init() {
       try {
         const { data, error } = await window.supabaseClient
           .from('users')
-          .select('id, name, role, is_approved')
+          .select('id, name, role, is_approved, is_salary')
           .eq('pin', state.currentPin)
           .single();
 
@@ -309,11 +366,8 @@ export function init() {
           return;
         }
 
-        state.currentUser = data;
-        if (employeeWelcome) employeeWelcome.textContent = `Welcome, ${data.name}`;
-        const pinPad = document.querySelector('.pin-pad');
-        if (pinPad) pinPad.classList.add('hidden');
-        if (pinDisplay) pinDisplay.classList.add('hidden');
+        localStorage.setItem('lcw_web_user', JSON.stringify(data));
+        showUserSession(data);
 
         // Management roles unlock their sections via PIN (no username/password needed)
         if (data.role !== 'Employee') {
@@ -323,9 +377,9 @@ export function init() {
 
         if (state.activeAnnouncement && state.activeAnnouncement.trim() !== '') {
           if (announcementText) announcementText.textContent = state.activeAnnouncement;
+          if (actionButtons) actionButtons.classList.add('hidden');
           if (modalAnnouncement) modalAnnouncement.classList.remove('hidden');
-        } else {
-          if (actionButtons) actionButtons.classList.remove('hidden');
+        } else if (!data.is_salary) {
           startCamera();
         }
         resetIdleTimeout();
@@ -343,7 +397,7 @@ export function init() {
     btnAcknowledgeAnnouncement.addEventListener('click', () => {
       if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
       if (actionButtons) actionButtons.classList.remove('hidden');
-      startCamera();
+      if (!state.currentUser?.is_salary) startCamera();
     });
   }
 
@@ -482,4 +536,22 @@ export function init() {
   purgeOldChecklists();
 
   initTimesheetSigning();
+
+  // Auto-restore persistent session on page load
+  (async () => {
+    const saved = localStorage.getItem('lcw_web_user');
+    if (saved) {
+      try {
+        const userData = JSON.parse(saved);
+        showUserSession(userData);
+        if (userData.role && userData.role !== 'Employee') {
+          const { unlockManagerByPin } = await import('./manager.js');
+          unlockManagerByPin(userData);
+        }
+        resetIdleTimeout();
+      } catch {
+        localStorage.removeItem('lcw_web_user');
+      }
+    }
+  })();
 }

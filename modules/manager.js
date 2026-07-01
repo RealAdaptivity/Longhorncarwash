@@ -1,7 +1,7 @@
 import { state, showToast, getStartOfWeek, getBiweeklyWeeks, formatNameLastFirst, calculateEstimatedTaxes, calculatePayWithOvertime, downloadCsv } from './utils.js';
 
 // Role hierarchy: what each role can access
-const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor'];
+const MANAGEMENT_ROLES = ['Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'];
 const ROLE_ACCESS = {
   'Site Manager':             { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
   'Assistant Site Manager':   { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: false, dashboard: true,  addEmployee: true  },
@@ -1018,9 +1018,11 @@ export function init() {
         const { data: existing } = await window.supabaseClient.from('users').select('id').eq('pin', pin).single();
         if (existing) { showToast('PIN is already in use.', 'error'); return; }
 
+        const isSalaryNew = document.getElementById('new-user-is-salary')?.checked || false;
         const { error } = await window.supabaseClient.from('users').insert([{
           name, payroll_name: `${lastName}, ${firstName}`, pin, role,
-          password: role !== 'Employee' ? password : null, is_approved: false
+          password: role !== 'Employee' ? password : null, is_approved: false,
+          is_salary: isSalaryNew,
         }]);
         if (error) throw error;
 
@@ -1028,6 +1030,8 @@ export function init() {
         ['new-user-first-name', 'new-user-last-name', 'new-user-login-name', 'new-user-pin', 'new-user-password'].forEach(id => {
           const el = document.getElementById(id); if (el) el.value = '';
         });
+        const salaryCheckbox = document.getElementById('new-user-is-salary');
+        if (salaryCheckbox) salaryCheckbox.checked = false;
         if (modalCreateUser) modalCreateUser.classList.add('hidden');
         loadTimesheets();
       } catch (err) { showToast('Failed to create user.', 'error'); }
