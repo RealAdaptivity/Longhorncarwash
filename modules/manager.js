@@ -330,42 +330,114 @@ export async function loadTimesheets() {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${u.name}</td>
-            <td><span style="color:var(--warning);font-weight:bold;">New Account</span><br><span style="font-size:0.8rem;color:var(--text-muted);">${u.role}</span></td>
-            <td>Pending</td>
-            <td>
-              <button class="btn-success btn-approve-account" data-id="${u.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Approve</button>
-              <button class="btn-ghost btn-reject-account" data-id="${u.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Reject</button>
-            </td>`;
+      
+      const getBadgeClass = (hrs) => {
+        if (hrs == 0) return 'badge-subtle';
+        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
+        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
+        return 'badge-regular';
+      };
+
+      const getWeekBadgeClass = (hrs) => {
+        if (hrs >= 40) return 'badge-danger';
+        if (hrs >= 36) return 'badge-warning';
+        return 'badge-regular';
+      };
+
+      tr.innerHTML = `
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+          ${safeName}
+        </td>
+        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
+        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
+        <td data-label="Tips">$$0.00</td>
+        <td data-label="Action">
+          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
+        </td>
+      `;
           pendingPinsBody.appendChild(tr);
         }
         if (u.pending_pin) {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${u.name}</td>
-            <td><span style="color:var(--primary);font-weight:bold;">PIN Change</span></td>
-            <td>New PIN Requested</td>
-            <td>
-              <button class="btn-success btn-approve-pin" data-id="${u.id}" data-val="${u.pending_pin}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Approve</button>
-              <button class="btn-ghost btn-reject-pin" data-id="${u.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Reject</button>
-            </td>`;
+      
+      const getBadgeClass = (hrs) => {
+        if (hrs == 0) return 'badge-subtle';
+        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
+        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
+        return 'badge-regular';
+      };
+
+      const getWeekBadgeClass = (hrs) => {
+        if (hrs >= 40) return 'badge-danger';
+        if (hrs >= 36) return 'badge-warning';
+        return 'badge-regular';
+      };
+
+      tr.innerHTML = `
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+          ${safeName}
+        </td>
+        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
+        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
+        <td data-label="Tips">$$0.00</td>
+        <td data-label="Action">
+          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
+        </td>
+      `;
           pendingPinsBody.appendChild(tr);
         }
         if (u.pending_password) {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${u.name}</td>
-            <td><span style="color:var(--success);font-weight:bold;">Password Reset</span></td>
-            <td>New Password Requested</td>
-            <td>
-              <button class="btn-success btn-approve-pwd" data-id="${u.id}" data-val="${u.pending_password}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Approve</button>
-              <button class="btn-ghost btn-reject-pwd" data-id="${u.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Reject</button>
-            </td>`;
+      
+      const getBadgeClass = (hrs) => {
+        if (hrs == 0) return 'badge-subtle';
+        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
+        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
+        return 'badge-regular';
+      };
+
+      const getWeekBadgeClass = (hrs) => {
+        if (hrs >= 40) return 'badge-danger';
+        if (hrs >= 36) return 'badge-warning';
+        return 'badge-regular';
+      };
+
+      tr.innerHTML = `
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+          ${safeName}
+        </td>
+        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
+        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
+        <td data-label="Tips">$$0.00</td>
+        <td data-label="Action">
+          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
+        </td>
+      `;
           pendingPinsBody.appendChild(tr);
         }
       });
@@ -385,14 +457,38 @@ export async function loadTimesheets() {
           pendingCount++;
           const empName = state.employeeMap[req.user_id] ? state.employeeMap[req.user_id].name : 'Unknown';
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${empName}</td>
-            <td>${req.start_date} to ${req.end_date}</td>
-            <td>${req.reason}</td>
-            <td>
-              <button class="btn-success btn-approve-timeoff" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Approve</button>
-              <button class="btn-danger btn-deny-timeoff" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Deny</button>
-            </td>`;
+      
+      const getBadgeClass = (hrs) => {
+        if (hrs == 0) return 'badge-subtle';
+        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
+        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
+        return 'badge-regular';
+      };
+
+      const getWeekBadgeClass = (hrs) => {
+        if (hrs >= 40) return 'badge-danger';
+        if (hrs >= 36) return 'badge-warning';
+        return 'badge-regular';
+      };
+
+      tr.innerHTML = `
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+          ${safeName}
+        </td>
+        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
+        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
+        <td data-label="Tips">$$0.00</td>
+        <td data-label="Action">
+          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
+        </td>
+      `;
           managerTimeoffBody.appendChild(tr);
         });
       } else {
@@ -416,14 +512,38 @@ export async function loadTimesheets() {
           pendingCount++;
           const requestedAt = new Date(req.requested_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
           const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${req.employee_name}</td>
-            <td>${req.shift_start}</td>
-            <td>${requestedAt}</td>
-            <td>
-              <button class="btn-success btn-approve-early" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:4px;">Approve</button>
-              <button class="btn-ghost btn-deny-early" data-id="${req.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Deny</button>
-            </td>`;
+      
+      const getBadgeClass = (hrs) => {
+        if (hrs == 0) return 'badge-subtle';
+        if (hrs >= 10) return 'badge-danger'; // 10+ hours in a day
+        if (hrs >= 8) return 'badge-warning'; // 8-10 hours in a day
+        return 'badge-regular';
+      };
+
+      const getWeekBadgeClass = (hrs) => {
+        if (hrs >= 40) return 'badge-danger';
+        if (hrs >= 36) return 'badge-warning';
+        return 'badge-regular';
+      };
+
+      tr.innerHTML = `
+        <td style="color: ${statusColor}; font-weight: bold; border-left: 4px solid ${statusColor};">
+          ${safeName}
+        </td>
+        <td data-label="Mon"><span class="badge ${getBadgeClass((emp.weekMs[0] / 3600000).toFixed(2))}">${(emp.weekMs[0] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Tue"><span class="badge ${getBadgeClass((emp.weekMs[1] / 3600000).toFixed(2))}">${(emp.weekMs[1] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Wed"><span class="badge ${getBadgeClass((emp.weekMs[2] / 3600000).toFixed(2))}">${(emp.weekMs[2] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Thu"><span class="badge ${getBadgeClass((emp.weekMs[3] / 3600000).toFixed(2))}">${(emp.weekMs[3] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Fri"><span class="badge ${getBadgeClass((emp.weekMs[4] / 3600000).toFixed(2))}">${(emp.weekMs[4] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sat"><span class="badge ${getBadgeClass((emp.weekMs[5] / 3600000).toFixed(2))}">${(emp.weekMs[5] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Sun"><span class="badge ${getBadgeClass((emp.weekMs[6] / 3600000).toFixed(2))}">${(emp.weekMs[6] / 3600000).toFixed(2)}</span></td>
+        <td data-label="Total Hrs"><span class="badge ${getWeekBadgeClass(totalWeekHrs)}">${totalWeekHrs}</span></td>
+        <td data-label="Reg/OT">${(Math.min(40, totalWeekHrsVal)).toFixed(2)} / <span style="color:var(--danger);">${Math.max(0, totalWeekHrsVal - 40).toFixed(2)}</span></td>
+        <td data-label="Tips">$$0.00</td>
+        <td data-label="Action">
+          <button class="btn btn-primary btn-sm" onclick="showEditTimesheetModal('${emp.id}')" style="font-size: 0.75rem; padding: 4px 8px;">Edit</button>
+        </td>
+      `;
           earlyBody.appendChild(tr);
         });
         if (earlySection) earlySection.classList.remove('hidden');

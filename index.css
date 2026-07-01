@@ -1142,3 +1142,146 @@ nav {
     font-size: 10pt !important;
   }
 }
+/* ── Premium Data Table ── */
+.premium-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px; /* space between rows */
+  margin-top: 10px;
+}
+
+.premium-table th {
+  padding: 12px 15px;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.premium-table th:first-child {
+  text-align: left;
+}
+
+.premium-table tbody tr {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.premium-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.premium-table td {
+  padding: 16px 15px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.premium-table td:first-child {
+  text-align: left;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.premium-table td:last-child {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 45px;
+  text-align: center;
+}
+
+.badge-regular {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.badge-warning {
+  background: rgba(241, 196, 15, 0.2);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.badge-danger {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.badge-subtle {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+}
+
+/* ── Mobile List View for Tables ── */
+@media (max-width: 768px) {
+  .premium-table, 
+  .premium-table tbody, 
+  .premium-table tr, 
+  .premium-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .premium-table thead {
+    display: none; /* Hide headers on mobile */
+  }
+  
+  .premium-table tr {
+    margin-bottom: 15px;
+    padding: 15px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .premium-table td {
+    text-align: right;
+    padding: 8px 0;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* Use data-label attribute to show header text on mobile */
+  .premium-table td::before {
+    content: attr(data-label);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .premium-table td:first-child {
+    font-size: 1.1rem;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+  
+  .premium-table td:first-child::before {
+    display: none; /* Don't show "Employee" label, just center the name */
+  }
+}
