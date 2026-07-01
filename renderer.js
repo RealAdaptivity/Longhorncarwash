@@ -92,7 +92,7 @@ export function switchView(view) {
       if (managerDashboard) managerDashboard.classList.add('hidden');
       switchView('manager'); // Redirect to login
     } else {
-      if (window.loadTimesheets) window.loadTimesheets();
+      loadTimesheets();
     }
 
   } else if (view === 'payroll') {
