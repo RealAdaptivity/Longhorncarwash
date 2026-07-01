@@ -853,7 +853,15 @@
           <!-- MANAGE LOGS MODAL -->
           <div id="modal-manage-logs" class="modal hidden">
             <div class="modal-content" style="width: 850px; max-width: 95vw; max-height: 80vh; overflow-y: auto;">
-              <h3 id="manage-logs-title">Manage Logs</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="manage-logs-title" style="margin: 0;">Manage Logs</h3>
+                <div style="display: flex; gap: 10px;">
+                  <button id="btn-delete-employee" class="btn-danger"
+                    style="padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
+                  <button id="btn-close-manage" class="btn-ghost"
+                    style="border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px 15px;">Close</button>
+                </div>
+              </div>
 
               <div
                 style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
@@ -939,12 +947,6 @@
                 </table>
               </div>
 
-              <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
-                <button id="btn-delete-employee" class="btn-danger"
-                  style="padding: 10px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
-                <button id="btn-close-manage" class="btn-ghost"
-                  style="border: none; cursor: pointer; padding: 10px;">Close</button>
-              </div>
             </div>
           </div>
 
