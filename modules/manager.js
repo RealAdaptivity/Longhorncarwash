@@ -152,7 +152,7 @@ async function checkAndSendPaydayNotification() {
     if (today.getDay() !== 5) return;
 
     // Calculate biweekly weeks to verify if today is the payday Friday of the cycle
-    const { week1Start, week2Start } = getBiweeklyWeeks(today);
+    const { week2Start } = getBiweeklyWeeks(today);
     // Cycle ends the second Tuesday (week2Start + 6 days). Payday is the Friday after (week2Start + 9 days).
     const payday = new Date(week2Start.getTime() + 9 * 24 * 60 * 60 * 1000);
     payday.setHours(0, 0, 0, 0);
@@ -1434,7 +1434,7 @@ export function init() {
           csv += `"${count++}","${formatNameLastFirst(emp.name)}",${hrs.toFixed(2)},0.00\n`;
         });
 
-        const safe = currentLabel.replace(/[\/\\]/g, '-').replace(/\s*-\s*/g, '_').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+        const safe = currentLabel.replace(/[/\\]/g, '-').replace(/\s*-\s*/g, '_').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
         downloadCsv(csv, `Payroll_Export_${safe}.csv`);
       } catch (err) { showToast('Error exporting payroll: ' + (err.message || ''), 'error'); }
     });

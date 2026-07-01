@@ -345,7 +345,6 @@ export function init() {
   const btnClear = document.getElementById('btn-clear');
   const btnSubmit = document.getElementById('btn-submit');
   const actionButtons = document.getElementById('action-buttons');
-  const employeeWelcome = document.getElementById('employee-welcome');
   const btnCancelAction = document.getElementById('btn-cancel-action');
   const announcementText = document.getElementById('announcement-text');
   const modalAnnouncement = document.getElementById('modal-announcement');
