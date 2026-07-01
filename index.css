@@ -537,6 +537,14 @@ nav {
   font-weight: 800;
   color: var(--primary);
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-icon svg {
+  width: 2.5rem;
+  height: 2.5rem;
 }
 
 .action-label {
@@ -975,6 +983,7 @@ nav {
   }
   .action-card { padding: 18px 10px; }
   .action-icon { font-size: 1.8rem; }
+  .action-icon svg { width: 1.8rem; height: 1.8rem; }
   .action-label { font-size: 0.82rem; }
   #manager-anti-buddy { grid-column: span 2 !important; }
 

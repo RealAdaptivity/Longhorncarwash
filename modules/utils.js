@@ -55,8 +55,8 @@ export function getStartOfWeek() {
 }
 
 export function getBiweeklyWeeks(date) {
-  // Anchor on Wednesday May 20, 2026 (start of first bi-weekly cycle, week runs Wed–Tue)
-  const anchor = new Date(2026, 4, 20);
+  // Anchor on Friday May 22, 2026 — pay cycles run Fri–Thu, payday is the Friday after each 14-day cycle ends
+  const anchor = new Date(2026, 4, 22);
   anchor.setHours(0, 0, 0, 0);
 
   // Use UTC day arithmetic to avoid DST drift
