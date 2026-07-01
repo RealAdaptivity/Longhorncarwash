@@ -798,10 +798,12 @@ nav {
   /* ── Mobile header ── */
   .mobile-header {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     background: var(--primary);
-    padding: 0 16px env(safe-area-inset-bottom, 0) 16px;
     padding-top: env(safe-area-inset-top, 0);
+    padding-right: 16px;
+    padding-bottom: 10px;
+    padding-left: 16px;
     position: fixed;
     top: 0;
     left: 0;
