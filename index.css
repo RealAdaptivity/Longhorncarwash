@@ -32,6 +32,43 @@
   --modal-backdrop: rgba(0, 0, 0, 0.4);
 }
 
+/* Light mode: sidebar and nav use dark colors (hardcoded whites become invisible on white bg) */
+:root.light-mode .sidebar {
+  border-right-color: rgba(0, 0, 0, 0.08);
+}
+
+:root.light-mode .brand {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+:root.light-mode .brand h1 {
+  color: var(--primary);
+}
+
+:root.light-mode .brand p {
+  color: var(--text-muted);
+}
+
+:root.light-mode .nav-btn {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+:root.light-mode .nav-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.85);
+}
+
+:root.light-mode .nav-btn.active {
+  color: var(--primary);
+  background-color: rgba(169, 59, 47, 0.08);
+  border-left-color: var(--primary);
+}
+
+:root.light-mode .sidebar-footer {
+  color: var(--text-muted);
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
