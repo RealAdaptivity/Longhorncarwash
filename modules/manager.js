@@ -11,6 +11,13 @@ const ROLE_ACCESS = {
   'Payroll':                  { payroll: true,  schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false, dashboard: true,  addEmployee: false },
 };
 
+// Modals defined inside #view-manager stay hidden if opened while another view
+// (e.g. the timesheet view) is active, because their ancestor view is display:none.
+// Relocating them to <body> lets them render on top regardless of the active view.
+function ensureModalTopLevel(el) {
+  if (el && el.parentElement !== document.body) document.body.appendChild(el);
+}
+
 function applyRolePermissions(role) {
   const p = ROLE_ACCESS[role] ?? {};
   const hide = (id) => document.getElementById(id)?.classList.add('hidden');
@@ -1059,7 +1066,10 @@ export function init() {
         const d = new Date(e.target.dataset.time);
         const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
         if (editPunchDatetime) editPunchDatetime.value = localISO;
-        if (modalEditPunch) modalEditPunch.classList.remove('hidden');
+        if (modalEditPunch) {
+          ensureModalTopLevel(modalEditPunch);
+          modalEditPunch.classList.remove('hidden');
+        }
       } else if (e.target.dataset.fullPhoto === 'true') {
         openFullPhoto(e.target.src);
       }
@@ -1343,7 +1353,7 @@ export function init() {
 function openFullPhoto(src) {
   const modal = document.getElementById('modal-view-photo');
   const fullImg = document.getElementById('full-size-photo');
-  if (modal && fullImg) { fullImg.src = src; modal.classList.remove('hidden'); }
+  if (modal && fullImg) { ensureModalTopLevel(modal); fullImg.src = src; modal.classList.remove('hidden'); }
 }
 
 export async function openManageLogs(userId, userName) {
@@ -1375,7 +1385,10 @@ export async function openManageLogs(userId, userName) {
   const manageLogsTitle = document.getElementById('manage-logs-title');
   const modalManageLogs = document.getElementById('modal-manage-logs');
   if (manageLogsTitle) manageLogsTitle.textContent = `Manage Logs: ${userName}`;
-  if (modalManageLogs) modalManageLogs.classList.remove('hidden');
+  if (modalManageLogs) {
+    ensureModalTopLevel(modalManageLogs);
+    modalManageLogs.classList.remove('hidden');
+  }
 
   await loadEmployeeLogs();
 }
