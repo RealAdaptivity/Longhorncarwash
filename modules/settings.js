@@ -274,8 +274,40 @@ export function init() {
         await saveSettingRobust('announcement', msg);
         state.activeAnnouncement = msg;
         showToast('Announcement posted successfully!', 'success');
+
+        // Send push notifications to all employees with the app installed
+        const { data: employees, error: fetchErr } = await window.supabaseClient
+          .from('users')
+          .select('push_token')
+          .eq('role', 'Employee')
+          .not('push_token', 'is', null);
+
+        if (!fetchErr && employees && employees.length > 0) {
+          const tokens = employees.map(emp => emp.push_token).filter(Boolean);
+          if (tokens.length > 0) {
+            const messages = tokens.map(token => ({
+              to: token,
+              sound: 'default',
+              title: 'New Shift Announcement',
+              body: msg,
+              data: { type: 'announcement', message: msg }
+            }));
+
+            await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(messages),
+            });
+            console.log(`Sent announcements to ${tokens.length} employees.`);
+          }
+        }
       } catch (e) {
-        showToast('Failed to post. (Does "settings" table exist?)', 'error');
+        console.error(e);
+        showToast('Failed to post or send notifications.', 'error');
       }
     });
   }
