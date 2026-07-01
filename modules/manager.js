@@ -123,9 +123,9 @@ async function attemptManagerLogin(username, password) {
 
 // --- Load Timesheets (main data fetch) ---
 export async function loadTimesheets() {
-  const timesheetTableBody = document.getElementById('timesheet-table-body');
-  if (!timesheetTableBody) return;
-  timesheetTableBody.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading timesheets...</td></tr>';
+  const timesheetBody = document.getElementById('timesheet-body');
+  if (!timesheetBody) return;
+  timesheetBody.innerHTML = '<tr><td colspan="12" style="text-align: center;">Loading timesheets...</td></tr>';
 
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
