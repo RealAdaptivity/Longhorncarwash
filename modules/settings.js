@@ -1,4 +1,4 @@
-import { state, showToast, saveSettingRobust, loadWeather } from './utils.js';
+import { state, showToast, saveSettingRobust } from './utils.js';
 
 // --- Announcement ---
 const announcementInput = document.getElementById('announcement-input');
@@ -204,7 +204,6 @@ export async function fetchSettings() {
     console.error('Failed to load geofence/anti-buddy settings:', e);
   }
 
-  loadWeather();
 }
 
 export function init() {
@@ -277,8 +276,7 @@ export function init() {
         state.CAR_WASH_LAT = lat;
         state.CAR_WASH_LON = lon;
         showToast('Geofence settings updated!', 'success');
-        loadWeather();
-      } catch (err) {
+            } catch (err) {
         showToast('Error: ' + (err.message || 'Check database table and RLS policies.'), 'error');
       }
     });
