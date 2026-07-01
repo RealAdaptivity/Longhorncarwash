@@ -970,87 +970,73 @@
             </div>
           </div>
 
-          <!-- Pending Approvals -->
-          <div id="pending-pins-section" class="hidden"
-            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
-            <h3 style="color: var(--primary); margin-bottom: 15px;">Pending Account Approvals</h3>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Type</th>
-                    <th>Requested Value</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="pending-pins-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <!-- Approvals Modal -->
+          <div id="modal-approvals" class="modal hidden">
+            <div class="modal-content" style="width: 800px; max-height: 80vh; overflow-y: auto;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--primary);">Pending Approvals</h2>
+                <button id="btn-close-approvals" class="btn-ghost" style="padding: 5px 10px; font-weight: bold; border: 1px solid var(--border);">Close</button>
+              </div>
 
-          <!-- Pending Time Off Requests -->
-          <div id="pending-timeoff-section" class="hidden"
-            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
-            <h3 style="color: var(--warning); margin-bottom: 15px;">Pending Time Off Requests</h3>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Dates</th>
-                    <th>Reason</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="manager-timeoff-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+              <!-- Pending Approvals -->
+              <div id="pending-pins-section" class="hidden" style="margin-bottom: 30px;">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">Pending Account Approvals</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Type</th>
+                        <th>Requested Value</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pending-pins-body">
+                      <!-- Populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-          <!-- Pending Early Clock-In Requests -->
-          <div id="pending-early-clockin-section" class="hidden"
-            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
-            <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
-            <div class="table-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Shift Starts</th>
-                    <th>Requested At</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="early-clockin-body">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+              <!-- Pending Time Off Requests -->
+              <div id="pending-timeoff-section" class="hidden" style="margin-bottom: 30px;">
+                <h3 style="color: var(--warning); margin-bottom: 15px;">Pending Time Off Requests</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Dates</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="manager-timeoff-body">
+                      <!-- Populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-          <!-- Pending Early Clock-In Requests -->
-          <div id="pending-early-clockin-section" class="hidden"
-            style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
-            <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
-            <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Shift Starts</th>
-                  <th>Requested At</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="early-clockin-body">
-                <!-- Populated by JS -->
-              </tbody>
-            </table>
+              <!-- Pending Early Clock-In Requests -->
+              <div id="pending-early-clockin-section" class="hidden" style="margin-bottom: 10px;">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">Early Clock-In Requests</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Shift Starts</th>
+                        <th>Requested At</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="early-clockin-body">
+                      <!-- Populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
 

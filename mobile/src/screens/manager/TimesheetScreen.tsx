@@ -187,12 +187,11 @@ export function TimesheetScreen() {
                 ))}
               </View>
               <TextInput
-                style={styles.timeInput}
+                style={[styles.timeInput, { color: colors.text }]}
                 placeholder="YYYY-MM-DDTHH:MM (local)"
                 placeholderTextColor={colors.textMuted}
                 value={newTime}
                 onChangeText={setNewTime}
-                color={colors.text}
               />
               <TouchableOpacity style={styles.addBtn} onPress={addLog} disabled={addingLog}>
                 {addingLog ? <ActivityIndicator color={colors.white} /> : <Text style={styles.addBtnText}>Add Punch</Text>}

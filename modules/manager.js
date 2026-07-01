@@ -1130,11 +1130,19 @@ export function init() {
     }
   }
 
-  // Scroll to approvals
+  // Open approvals modal
   const btnScrollApprovals = document.getElementById('btn-scroll-approvals');
-  if (btnScrollApprovals) {
+  const modalApprovals = document.getElementById('modal-approvals');
+  const btnCloseApprovals = document.getElementById('btn-close-approvals');
+  
+  if (btnScrollApprovals && modalApprovals) {
     btnScrollApprovals.addEventListener('click', () => {
-      document.getElementById('pending-pins-section')?.scrollIntoView({ behavior: 'smooth' });
+      modalApprovals.classList.remove('hidden');
+    });
+  }
+  if (btnCloseApprovals && modalApprovals) {
+    btnCloseApprovals.addEventListener('click', () => {
+      modalApprovals.classList.add('hidden');
     });
   }
 
