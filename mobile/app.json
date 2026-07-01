@@ -49,8 +49,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "5f44d0dc-80b7-40b8-b60b-79c29b7f58c6"
+        "projectId": "5738d76c-665f-4844-8a99-cd5d37822abd"
       }
-    }
+    },
+    "owner": "versareal"
   }
 }
