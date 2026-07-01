@@ -1,5 +1,5 @@
 import { state } from './modules/utils.js';
-import { init as initTimeclock, resetTimeclockState } from './modules/timeclock.js';
+import { init as initTimeclock, resetTimeclockState, signOut } from './modules/timeclock.js';
 import { init as initManager, logoutManager, loadTimesheets } from './modules/manager.js';
 import { init as initEmployee, loadEmployeePortal } from './modules/employee.js';
 import { init as initSchedule, loadSchedules } from './modules/schedule.js';
@@ -48,7 +48,9 @@ export function switchView(view) {
     viewTimeclock.classList.add('active');
     navTimeclock.classList.add('active');
     resetTimeclockState();
-    logoutManager();
+    const _savedSession = localStorage.getItem('lcw_web_user');
+    const _savedUser = _savedSession ? JSON.parse(_savedSession) : null;
+    if (!_savedUser || _savedUser.role === 'Employee') logoutManager();
     logoutEmployeePortal();
 
   } else if (view === 'manager') {
@@ -99,6 +101,7 @@ export function switchView(view) {
 }
 
 window.switchView = switchView;
+window.signOut = signOut;
 
 // --- Nav Event Listeners ---
 if (navTimeclock) navTimeclock.addEventListener('click', () => switchView('timeclock'));
@@ -122,6 +125,7 @@ if (navSettings) navSettings.addEventListener('click', () => switchView('setting
 // --- Bootstrap ---
 const savedTheme = localStorage.getItem('theme') || 'dark';
 applyTheme(savedTheme);
+document.body.classList.add('logged-out');
 
 initSettings();
 initTimeclock();

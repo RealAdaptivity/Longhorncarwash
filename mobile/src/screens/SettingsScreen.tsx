@@ -8,7 +8,9 @@ import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, font } from '../theme';
 
 export function SettingsScreen() {
-  const { user, logout, isManagerUnlocked, unlockManager, lockManager } = useAuth();
+  const { user, logout, isManagerUnlocked, managerRole, unlockManager, lockManager } = useAuth();
+  // Management-role users are auto-unlocked by their PIN — no separate manager login needed
+  const isAutoUnlocked = isManagerUnlocked && !!user?.role && user.role !== 'Employee';
   const [showManagerModal, setShowManagerModal] = useState(false);
   const [mgUsername, setMgUsername] = useState('');
   const [mgPassword, setMgPassword] = useState('');
@@ -32,9 +34,9 @@ export function SettingsScreen() {
   }
 
   function confirmLogout() {
-    Alert.alert('Log Out', `Log out as ${user?.name}?`, [
+    Alert.alert('Sign Out', `Sign out as ${user?.name}?`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: logout },
+      { text: 'Sign Out', style: 'destructive', onPress: logout },
     ]);
   }
 
@@ -46,13 +48,14 @@ export function SettingsScreen() {
   }
 
   const rows = [
-    {
+    // Only show manager login toggle for Employee-role users (management roles auto-unlock)
+    ...(!isAutoUnlocked ? [{
       label: isManagerUnlocked ? 'Lock Manager Access' : 'Manager Login',
       onPress: isManagerUnlocked ? confirmLockManager : () => setShowManagerModal(true),
       color: isManagerUnlocked ? colors.warning : colors.primary,
-    },
+    }] : []),
     {
-      label: 'Log Out',
+      label: 'Sign Out',
       onPress: confirmLogout,
       color: colors.danger,
     },
@@ -73,7 +76,12 @@ export function SettingsScreen() {
           </View>
           {isManagerUnlocked && (
             <View style={styles.managerBadge}>
-              <Text style={styles.managerBadgeText}>MANAGER</Text>
+              <Text style={styles.managerBadgeText}>
+                {managerRole === 'Site Manager' ? 'SITE MGR'
+                  : managerRole === 'Assistant Site Manager' ? 'ASST MGR'
+                  : managerRole === 'Supervisor' ? 'SUPERVISOR'
+                  : 'MANAGER'}
+              </Text>
             </View>
           )}
         </View>

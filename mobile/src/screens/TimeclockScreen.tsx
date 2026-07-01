@@ -254,8 +254,12 @@ export function TimeclockScreen() {
           )}
         </View>
 
-        {/* Punch buttons */}
-        {loading ? (
+        {/* Punch buttons - hidden for salary employees */}
+        {user?.is_salary ? (
+          <View style={styles.salaryCard}>
+            <Text style={styles.salaryText}>Salaried employees do not clock in.</Text>
+          </View>
+        ) : loading ? (
           <ActivityIndicator color={colors.primary} size="large" style={{ marginTop: spacing.xl }} />
         ) : (
           <View style={styles.buttonGrid}>
@@ -379,6 +383,19 @@ const styles = StyleSheet.create({
   },
   punchBtnDisabled: {
     opacity: 0.4,
+  },
+  salaryCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  salaryText: {
+    color: colors.textMuted,
+    fontSize: font.base,
+    fontStyle: 'italic',
   },
   logCard: {
     backgroundColor: colors.surface,

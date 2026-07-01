@@ -3,6 +3,7 @@ export interface User {
   name: string;
   role: string;
   is_approved: boolean;
+  is_salary?: boolean;
 }
 
 export interface TimeLog {
