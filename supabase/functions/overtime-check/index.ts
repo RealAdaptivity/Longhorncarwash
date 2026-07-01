@@ -16,13 +16,13 @@ async function tg(msg: string) {
 }
 
 function getWeekStart(): string {
-  // Week starts on Wednesday (business rule)
+  // Week starts on Friday (pay cycle: Fri–Thu)
   const now = new Date();
   const ct = new Date(now.toLocaleString('en-US', { timeZone: TZ }));
-  const day = ct.getDay(); // 0=Sun, 3=Wed
-  const daysFromWed = (day + 7 - 3) % 7;
+  const day = ct.getDay(); // 0=Sun, 5=Fri
+  const daysFromFri = (day + 7 - 5) % 7;
   const ws = new Date(ct);
-  ws.setDate(ct.getDate() - daysFromWed);
+  ws.setDate(ct.getDate() - daysFromFri);
   return ws.toLocaleDateString('en-CA'); // YYYY-MM-DD
 }
 
@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
     .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
     .order('created_at', { ascending: true });
 
-  // Only keep logs from this week (Wednesday onward) in CT
+  // Only keep logs from this week (Friday onward) in CT
   const logs = (allLogs ?? []).filter(l =>
     new Date(l.created_at).toLocaleDateString('en-CA', { timeZone: TZ }) >= weekStart
   );
