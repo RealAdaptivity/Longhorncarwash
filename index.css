@@ -960,8 +960,7 @@ nav {
   }
 
   /* ── Payroll: scrollable tables ── */
-  #payroll-dashboard { overflow-x: hidden; }
-  #payroll-dashboard .table-container { overflow-x: auto; }
+  #payroll-dashboard .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
   /* ── Manager timesheet / logs: ensure horizontal scroll works ── */
   #manager-dashboard .table-container {
