@@ -1,7 +1,7 @@
 import { state, showToast, getStartOfWeek, getBiweeklyWeeks, formatNameLastFirst, calculateEstimatedTaxes, calculatePayWithOvertime, downloadCsv } from './utils.js';
 
 // Role hierarchy: what each role can access
-const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager', 'Payroll'];
+const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Payroll'];
 const ROLE_ACCESS = {
   'Admin':                    { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
   'Manager':                  { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
