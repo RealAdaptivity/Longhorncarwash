@@ -325,37 +325,18 @@ export function init() {
 
       // Send push notifications in the background (isolated so CORS/network failures don't block the post)
       try {
-        const { data: usersToNotify, error: fetchErr } = await window.supabaseClient
-          .from('users')
-          .select('push_token')
-          .eq('is_approved', true)
-          .not('push_token', 'is', null);
+        const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
+          'send_push_notification',
+          { message: msg },
+        );
 
-        if (!fetchErr && usersToNotify && usersToNotify.length > 0) {
-          const tokens = usersToNotify.map((u) => u.push_token).filter(Boolean);
-          if (tokens.length > 0) {
-            const messages = tokens.map((token) => ({
-              to: token,
-              sound: 'default',
-              title: 'New Shift Announcement',
-              body: msg,
-              data: { type: 'announcement', message: msg },
-            }));
-
-            await fetch('https://exp.host/--/api/v2/push/send', {
-              method: 'POST',
-              headers: {
-                Accept: 'application/json',
-                'Accept-encoding': 'gzip, deflate',
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(messages),
-            });
-            console.log(`Sent announcements to ${tokens.length} users.`);
-          }
+        if (rpcErr) {
+          console.warn('Failed to send push notifications via database RPC:', rpcErr);
+        } else {
+          console.log('Push notification RPC result:', rpcData);
         }
       } catch (pushErr) {
-        console.warn('Failed to send push notifications (CORS or network restriction):', pushErr);
+        console.warn('Failed to invoke push notification RPC:', pushErr);
       }
     });
   }
