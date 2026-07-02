@@ -1,0 +1,35 @@
+name: Desktop build (macOS)
+
+# Builds the Electron dashboard into a macOS .dmg. Manual trigger only —
+# packaging is slow and not needed on every push. Must run on macOS.
+on:
+  workflow_dispatch:
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS DMG
+        env:
+          # Build unsigned by default. To produce a signed + notarized build,
+          # remove/override this and set the secrets below (see docs/desktop-build.md):
+          #   CSC_LINK, CSC_KEY_PASSWORD (Developer ID cert),
+          #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID (notarization).
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: longhorn-car-wash-macos-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
