@@ -9,17 +9,53 @@
     "test": "node --test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "pack": "electron-builder --dir",
+    "dist:mac": "electron-builder --mac"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "electron": "^43.0.0",
-    "electron-squirrel-startup": "^1.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.39.4",
     "globals": "^17.7.0",
     "prettier": "^3.9.4"
+  },
+  "build": {
+    "appId": "com.longhorncarwash.pos",
+    "productName": "Longhorn Car Wash",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "index.js",
+      "preload.js",
+      "renderer.js",
+      "sw.js",
+      "index.html",
+      "index.css",
+      "manifest.json",
+      "supabaseConfig.js",
+      "logo.png",
+      "modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    }
   }
 }
