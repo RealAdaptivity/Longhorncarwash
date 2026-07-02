@@ -3,7 +3,7 @@
 
 <head>
   <script>
-    (function() {
+    (function () {
       const savedTheme = localStorage.getItem('theme') || 'light';
       if (savedTheme === 'light') {
         document.documentElement.classList.add('light-mode');
@@ -42,38 +42,38 @@
   </script>
   <div id="app">
 
-  <!-- Splash Screen -->
-  <div id="splash-screen" class="splash-screen">
-    <div class="splash-logo-container">
-      <div class="splash-glow-ring"></div>
-      <img src="logo.png" alt="Longhorn Car Wash" class="splash-logo" />
-      <h1 class="splash-title">LONGHORN</h1>
-      <div class="splash-loader">
-        <div class="splash-loader-bar"></div>
+    <!-- Splash Screen -->
+    <div id="splash-screen" class="splash-screen">
+      <div class="splash-logo-container">
+        <div class="splash-glow-ring"></div>
+        <img src="logo.png" alt="Longhorn Car Wash" class="splash-logo" />
+        <h1 class="splash-title">LONGHORN</h1>
+        <div class="splash-loader">
+          <div class="splash-loader-bar"></div>
+        </div>
+        <p class="splash-subtitle">Initializing Secure Terminal...</p>
       </div>
-      <p class="splash-subtitle">Initializing Secure Terminal...</p>
     </div>
-  </div>
 
-  <!-- Clock In Overlay -->
-  <div id="clockin-overlay" class="clockin-overlay hidden">
-    <div class="clockin-content" id="clockin-loading">
-      <div class="clockin-spinner"></div>
-      <p class="clockin-text" id="clockin-status-text">Authenticating...</p>
-    </div>
-    <div class="clockin-content hidden" id="clockin-success">
-      <div class="clockin-checkmark">
-        <svg viewBox="0 0 52 52">
-          <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
-          <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-        </svg>
+    <!-- Clock In Overlay -->
+    <div id="clockin-overlay" class="clockin-overlay hidden">
+      <div class="clockin-content" id="clockin-loading">
+        <div class="clockin-spinner"></div>
+        <p class="clockin-text" id="clockin-status-text">Authenticating...</p>
       </div>
-      <h2 class="clockin-success-text" id="clockin-success-message">Success!</h2>
+      <div class="clockin-content hidden" id="clockin-success">
+        <div class="clockin-checkmark">
+          <svg viewBox="0 0 52 52">
+            <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+            <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+          </svg>
+        </div>
+        <h2 class="clockin-success-text" id="clockin-success-message">Success!</h2>
+      </div>
     </div>
-  </div>
 
     <!-- Mobile top header — hidden on desktop, hidden when logged out -->
-        <div class="mobile-header" style="justify-content: space-between;">
+    <div class="mobile-header" style="justify-content: space-between;">
       <div style="display: flex; align-items: center; gap: 10px;">
         <div class="mobile-header-logo-box">
           <img src="logo.png" class="mobile-header-logo" alt="Longhorn" />
@@ -108,9 +108,9 @@
           <span class="nav-label"><span class="mobile-hide">Employee Dashboard</span><span
               class="mobile-only">Employee</span></span>
         </button>
-        
+
         <div class="nav-separator"></div>
-        
+
         <button id="nav-manager" class="nav-btn">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -235,7 +235,8 @@
 
             <div id="clock-action-grid" class="clock-action-grid">
               <button id="btn-clock-in" class="action-card-btn action-in">
-                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
                   <polyline points="10 17 15 12 10 7" />
                   <line x1="15" y1="12" x2="3" y2="12" />
@@ -243,7 +244,8 @@
                 <span>CLOCK IN</span>
               </button>
               <button id="btn-clock-out" class="action-card-btn action-out">
-                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <polyline points="16 17 21 12 16 7" />
                   <line x1="21" y1="12" x2="9" y2="12" />
@@ -251,7 +253,8 @@
                 <span>CLOCK OUT</span>
               </button>
               <button id="btn-start-lunch" class="action-card-btn action-lunch-start">
-                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
                   <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
                   <line x1="6" y1="1" x2="6" y2="4" />
@@ -261,7 +264,8 @@
                 <span>START LUNCH</span>
               </button>
               <button id="btn-end-lunch" class="action-card-btn action-lunch-end">
-                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 3l14 9-14 9V3z" />
                 </svg>
                 <span>END LUNCH</span>
@@ -271,20 +275,23 @@
             <div class="admin-action-list">
               <button id="btn-go-to-manager" class="admin-list-item" style="display: none;">
                 <div class="admin-list-item-content">
-                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
                   <span>Go to Manager Dashboard</span>
                 </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
 
               <button id="btn-show-sign-timesheet" class="admin-list-item">
                 <div class="admin-list-item-content">
-                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" />
@@ -293,14 +300,16 @@
                   </svg>
                   <span>Review & Sign Timesheet</span>
                 </div>
-                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
             </div>
 
             <button onclick="window.signOut()" class="btn-signout-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
@@ -455,21 +464,29 @@
         <!-- Employee Dashboard -->
         <div id="employee-dashboard" class="hidden" style="margin-top: 5vh;">
           <div class="dashboard-header" style="justify-content: center; margin-bottom: 40px; border-bottom: none;">
-            
-        <div class="avatar-upload-container">
-          <div style="position: relative;" id="avatar-img-wrapper">
-            <img id="emp-profile-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23aaa'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" class="avatar-large" alt="Profile" onclick="document.getElementById('avatar-upload-input').click()" />
-            <div id="avatar-upload-icon" style="position: absolute; bottom: 0; right: 0; background: var(--primary); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; pointer-events: none; border: 2px solid var(--card);">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="white"><path d="M3 4V1H5V4H8V6H5V9H3V6H0V4H3ZM6 10V7H9V4H16L17.8 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10H6ZM13 19C15.76 19 18 16.76 18 14C18 11.24 15.76 9 13 9C10.24 9 8 11.24 8 14C8 16.76 10.24 19 13 19ZM13 11C14.65 11 16 12.35 16 14C16 15.65 14.65 17 13 17C11.35 17 10 15.65 10 14C10 12.35 11.35 11 13 11Z"/></svg>
+
+            <div class="avatar-upload-container">
+              <div style="position: relative;" id="avatar-img-wrapper">
+                <img id="emp-profile-avatar"
+                  src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23aaa'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>"
+                  class="avatar-large" alt="Profile" onclick="document.getElementById('avatar-upload-input').click()" />
+                <div id="avatar-upload-icon"
+                  style="position: absolute; bottom: 0; right: 0; background: var(--primary); border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; pointer-events: none; border: 2px solid var(--card);">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
+                    <path
+                      d="M3 4V1H5V4H8V6H5V9H3V6H0V4H3ZM6 10V7H9V4H16L17.8 6H21C22.1 6 23 6.9 23 8V20C23 21.1 22.1 22 21 22H5C3.9 22 3 21.1 3 20V10H6ZM13 19C15.76 19 18 16.76 18 14C18 11.24 15.76 9 13 9C10.24 9 8 11.24 8 14C8 16.76 10.24 19 13 19ZM13 11C14.65 11 16 12.35 16 14C16 15.65 14.65 17 13 17C11.35 17 10 15.65 10 14C10 12.35 11.35 11 13 11Z" />
+                  </svg>
+                </div>
+                <!-- capture="user" forces front-facing camera on mobile -->
+                <input type="file" id="avatar-upload-input" accept="image/*" capture="user" style="display: none;" />
+              </div>
+              <div>
+                <h2 id="employee-portal-welcome" style="margin: 0; margin-bottom: 5px; color: var(--text);">Employee
+                  Dashboard</h2>
+                <p id="employee-portal-welcome-sub" style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Tap
+                  to take a profile picture (One time only!)</p>
+              </div>
             </div>
-            <!-- capture="user" forces front-facing camera on mobile -->
-            <input type="file" id="avatar-upload-input" accept="image/*" capture="user" style="display: none;" />
-          </div>
-          <div>
-            <h2 id="employee-portal-welcome" style="margin: 0; margin-bottom: 5px; color: var(--text);">Employee Dashboard</h2>
-            <p id="employee-portal-welcome-sub" style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Tap to take a profile picture (One time only!)</p>
-          </div>
-        </div>
 
           </div>
 
@@ -848,142 +865,173 @@
                       Metrics</button>
                   </div>
                 </div>
+              </div>
             </div>
-          </div>
 
           </div><!-- END manager-analytics-section -->
           <div id="manager-security-section" class="hidden" style="margin-bottom: 30px;">
             <div class="table-container">
-            <div id="manager-settings-grid"
-              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
-              <!-- Announcement Setting -->
-              <div id="manager-announcements"
-                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-                <h3 style="color: var(--primary); margin-bottom: 10px;">Shift Announcement</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Post a message that
-                  employees must read before clocking in.</p>
-                <textarea id="announcement-input" class="input-field"
-                  placeholder="e.g. Staff meeting tomorrow at 7 AM. Be on time!"
-                  style="min-height: 80px; resize: vertical; margin-bottom: 10px;"></textarea>
-                <div style="display: flex; gap: 10px;">
-                  <button id="btn-post-announcement" class="btn-primary"
-                    style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Post Message</button>
-                  <button id="btn-clear-announcement" class="btn-ghost"
-                    style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Clear
-                    Active Message</button>
-                </div>
-              </div>
-              <!-- Security Settings -->
-              <div id="manager-security-settings"
-                style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
-                <h3 style="color: var(--primary); margin-bottom: 20px;">Security & Access Settings</h3>
-                
-                <!-- 2-Step Verification -->
-                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div>
-                      <h4 style="margin: 0; color: var(--text);">2-Step Verification</h4>
-                      <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require a PIN to log into the manager dashboard.</p>
-                    </div>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                      <input type="checkbox" id="enable-2fa" style="width: 20px; height: 20px;">
-                    </label>
-                  </div>
-                  <div id="setup-2fa-section" class="hidden" style="margin-top: 10px;">
-                    <input type="password" id="setup-2fa-pin" placeholder="Enter 4-Digit PIN" maxlength="4" class="input-field" style="max-width: 200px; margin-bottom: 0;" />
-                    <button id="btn-save-security" class="btn-primary" style="padding: 8px 15px; border-radius: 8px; margin-left: 10px;">Save PIN</button>
-                  </div>
-                </div>
-
-                <!-- Anti-Buddy Punching -->
-                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <h4 style="margin: 0; color: var(--text);">Anti-Buddy Punching (Photo Verify)</h4>
-                      <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require camera photo on clock in/out.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <span id="anti-buddy-status-text" style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
-                      <button id="btn-toggle-anti-buddy" class="btn-danger" style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Early Clock-In Block -->
-                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <h4 style="margin: 0; color: var(--text);">Early Clock-In Block</h4>
-                      <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Prevent employees from clocking in before scheduled time.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <span id="early-block-status-text" style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
-                      <button id="btn-toggle-early-block" class="btn-danger" style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- WiFi Lock / IP Restriction -->
-                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div>
-                      <h4 style="margin: 0; color: var(--text);">Network / WiFi Lock</h4>
-                      <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Only allow clock-ins from the shop's network (IP address check).</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <span id="wifi-lock-status-text" style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
-                      <button id="btn-toggle-wifi-lock" class="btn-danger" style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
-                    </div>
-                  </div>
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="wifi-ip-input" class="input-field" placeholder="e.g. 192.168.1.1" style="max-width: 200px; margin-bottom: 0;" />
-                    <button id="btn-get-current-ip" class="btn-ghost" style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);">Set to Current IP</button>
-                    <button id="btn-save-wifi-ip" class="btn-primary" style="padding: 8px 15px; border-radius: 8px; border: none;">Save IP</button>
-                  </div>
-                </div>
-
-                <!-- Geofence & Location -->
-                <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div>
-                      <h4 style="margin: 0; color: var(--text);">Geofence & Location</h4>
-                      <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require employees to be physically near the shop.</p>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <span id="geofence-status-text" style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
-                      <button id="btn-toggle-geofence" class="btn-danger" style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
-                    </div>
-                  </div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                    <div>
-                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Latitude</label>
-                      <input type="text" id="geofence-lat" class="input-field" placeholder="e.g. 33.06734" style="margin-bottom: 0;" />
-                    </div>
-                    <div>
-                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Longitude</label>
-                      <input type="text" id="geofence-lon" class="input-field" placeholder="e.g. -97.29654" style="margin-bottom: 0;" />
-                    </div>
-                  </div>
-                  <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-                    <label style="font-size: 0.8rem; color: var(--text-muted);">Radius:</label>
-                    <input type="number" id="geofence-input" class="input-field" placeholder="e.g. 100" style="margin-bottom: 0; width: 100px;" />
-                    <span style="color: var(--text-muted); font-size: 0.9rem;">meters</span>
-                  </div>
+              <div id="manager-settings-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <!-- Announcement Setting -->
+                <div id="manager-announcements"
+                  style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+                  <h3 style="color: var(--primary); margin-bottom: 10px;">Shift Announcement</h3>
+                  <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Post a message that
+                    employees must read before clocking in.</p>
+                  <textarea id="announcement-input" class="input-field"
+                    placeholder="e.g. Staff meeting tomorrow at 7 AM. Be on time!"
+                    style="min-height: 80px; resize: vertical; margin-bottom: 10px;"></textarea>
                   <div style="display: flex; gap: 10px;">
-                    <button id="btn-get-current-location" class="btn-ghost" style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">Use Current Location</button>
-                    <button id="btn-save-geofence" class="btn-primary" style="padding: 8px 20px; border-radius: 8px; border: none;">Save Coordinates</button>
+                    <button id="btn-post-announcement" class="btn-primary"
+                      style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Post
+                      Message</button>
+                    <button id="btn-clear-announcement" class="btn-ghost"
+                      style="padding: 10px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">Clear
+                      Active Message</button>
                   </div>
                 </div>
+                <!-- Security Settings -->
+                <div id="manager-security-settings"
+                  style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); grid-column: span 2;">
+                  <h3 style="color: var(--primary); margin-bottom: 20px;">Security & Access Settings</h3>
+
+                  <!-- 2-Step Verification -->
+                  <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                      <div>
+                        <h4 style="margin: 0; color: var(--text);">2-Step Verification</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require a PIN to log
+                          into the manager dashboard.</p>
+                      </div>
+                      <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="enable-2fa" style="width: 20px; height: 20px;">
+                      </label>
+                    </div>
+                    <div id="setup-2fa-section" class="hidden" style="margin-top: 10px;">
+                      <input type="password" id="setup-2fa-pin" placeholder="Enter 4-Digit PIN" maxlength="4"
+                        class="input-field" style="max-width: 200px; margin-bottom: 0;" />
+                      <button id="btn-save-security" class="btn-primary"
+                        style="padding: 8px 15px; border-radius: 8px; margin-left: 10px;">Save PIN</button>
+                    </div>
+                  </div>
+
+                  <!-- Anti-Buddy Punching -->
+                  <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <h4 style="margin: 0; color: var(--text);">Anti-Buddy Punching (Photo Verify)</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require camera photo
+                          on clock in/out.</p>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="anti-buddy-status-text"
+                          style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
+                        <button id="btn-toggle-anti-buddy" class="btn-danger"
+                          style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Early Clock-In Block -->
+                  <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div>
+                        <h4 style="margin: 0; color: var(--text);">Early Clock-In Block</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Prevent employees
+                          from clocking in before scheduled time.</p>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="early-block-status-text"
+                          style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
+                        <button id="btn-toggle-early-block" class="btn-danger"
+                          style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- WiFi Lock / IP Restriction -->
+                  <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                      <div>
+                        <h4 style="margin: 0; color: var(--text);">Network / WiFi Lock</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Only allow clock-ins
+                          from the shop's network (IP address check).</p>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="wifi-lock-status-text"
+                          style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
+                        <button id="btn-toggle-wifi-lock" class="btn-danger"
+                          style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                      <input type="text" id="wifi-ip-input" class="input-field" placeholder="e.g. 192.168.1.1"
+                        style="max-width: 200px; margin-bottom: 0;" />
+                      <button id="btn-get-current-ip" class="btn-ghost"
+                        style="padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);">Set to Current
+                        IP</button>
+                      <button id="btn-save-wifi-ip" class="btn-primary"
+                        style="padding: 8px 15px; border-radius: 8px; border: none;">Save IP</button>
+                    </div>
+                  </div>
+
+                  <!-- Geofence & Location -->
+                  <div>
+                    <div
+                      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                      <div>
+                        <h4 style="margin: 0; color: var(--text);">Geofence & Location</h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 5px 0 0 0;">Require employees to
+                          be physically near the shop.</p>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span id="geofence-status-text"
+                          style="font-weight: bold; color: var(--success); font-size: 0.9rem;">Enabled</span>
+                        <button id="btn-toggle-geofence" class="btn-danger"
+                          style="padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.8rem;">Disable</button>
+                      </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                      <div>
+                        <label
+                          style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Latitude</label>
+                        <input type="text" id="geofence-lat" class="input-field" placeholder="e.g. 33.06734"
+                          style="margin-bottom: 0;" />
+                      </div>
+                      <div>
+                        <label
+                          style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Longitude</label>
+                        <input type="text" id="geofence-lon" class="input-field" placeholder="e.g. -97.29654"
+                          style="margin-bottom: 0;" />
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+                      <label style="font-size: 0.8rem; color: var(--text-muted);">Radius:</label>
+                      <input type="number" id="geofence-input" class="input-field" placeholder="e.g. 100"
+                        style="margin-bottom: 0; width: 100px;" />
+                      <span style="color: var(--text-muted); font-size: 0.9rem;">meters</span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                      <button id="btn-get-current-location" class="btn-ghost"
+                        style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;">Use Current
+                        Location</button>
+                      <button id="btn-save-geofence" class="btn-primary"
+                        style="padding: 8px 20px; border-radius: 8px; border: none;">Save Coordinates</button>
+                    </div>
+                  </div>
+
+                </div>
+
+
+
+
+
+
 
               </div>
-
-              
-
-              
-
-              
-
-            </div>
             </div>
           </div><!-- END manager-security-section -->
 
@@ -995,7 +1043,8 @@
                 <h3 id="manage-logs-title" style="margin: 0;">Manage Logs</h3>
                 <div style="display: flex; gap: 10px;">
                   <button id="btn-delete-employee" class="btn-danger"
-                    style="padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer;">Delete Employee</button>
+                    style="padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer;">Delete
+                    Employee</button>
                   <button id="btn-close-manage" class="btn-ghost"
                     style="border: 1px solid var(--border); border-radius: 8px; cursor: pointer; padding: 8px 15px;">Close</button>
                 </div>
@@ -1062,7 +1111,8 @@
                     style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;">Save Changes</button>
                 </div>
                 <div id="edit-employee-password-wrap" class="hidden" style="margin-top: 12px;">
-                  <label style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Manager
+                  <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">Manager
                     Password <span style="font-weight: normal;">(dashboard login for leadership roles)</span></label>
                   <input type="password" id="edit-employee-password" class="input-field" style="margin-bottom: 0;"
                     placeholder="Set or change dashboard password" autocomplete="new-password" />
@@ -1071,7 +1121,8 @@
                   affect their login. The First/Last name will be used for reports.</p>
               </div>
 
-              <div id="manage-manual-punch-section" style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
+              <div id="manage-manual-punch-section"
+                style="margin-bottom: 20px; background: var(--bg); padding: 15px; border-radius: 8px;">
                 <h4>Add Manual Punch</h4>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                   <select id="new-log-action" class="input-field" style="width: auto; margin-bottom: 0;">
@@ -1164,7 +1215,8 @@
             <div class="modal-content" style="width: 800px; max-height: 80vh; overflow-y: auto;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0; color: var(--primary);">Pending Approvals</h2>
-                <button id="btn-close-approvals" class="btn-ghost" style="padding: 5px 10px; font-weight: bold; border: 1px solid var(--border);">Close</button>
+                <button id="btn-close-approvals" class="btn-ghost"
+                  style="padding: 5px 10px; font-weight: bold; border: 1px solid var(--border);">Close</button>
               </div>
 
               <!-- Pending Approvals -->
@@ -1289,7 +1341,8 @@
                 style="margin-top: 10px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 12px;">
                 <label><input type="radio" name="new-user-role" value="Employee" checked> Employee</label>
                 <label><input type="radio" name="new-user-role" value="Supervisor"> Supervisor</label>
-                <label><input type="radio" name="new-user-role" value="Assistant Site Manager"> Asst. Site Manager</label>
+                <label><input type="radio" name="new-user-role" value="Assistant Site Manager"> Asst. Site
+                  Manager</label>
                 <label><input type="radio" name="new-user-role" value="Site Manager"> Site Manager</label>
                 <label><input type="radio" name="new-user-role" value="Manager"> Manager</label>
                 <label><input type="radio" name="new-user-role" value="Admin"> Admin</label>
@@ -1308,7 +1361,7 @@
             </div>
           </div>
 
-          
+
 
           <!-- 2-STEP VERIFICATION MODAL (LOGIN FLOW) -->
           <div id="modal-2fa-verify" class="modal hidden">
@@ -1329,17 +1382,18 @@
 
       <!-- TIMESHEET VIEW -->
       <section id="view-timesheet" class="view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%; max-width: 1200px;">
-              <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet <span
-                  style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Wed – Tue)</span></h3>
-              <button id="btn-export-csv" class="btn-ghost"
-                style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
-                Export Weekly CSV
-              </button>
-            </div>
-            <div id="timesheet-grid" class="ts-grid">
-              <!-- Employee timesheet cards populated by JS -->
-            </div>
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; width: 100%; max-width: 1200px;">
+          <h3 style="color: var(--primary); margin: 0;">Weekly Timesheet <span
+              style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">(Wed – Tue)</span></h3>
+          <button id="btn-export-csv" class="btn-ghost"
+            style="padding: 8px 12px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px;">
+            Export Weekly CSV
+          </button>
+        </div>
+        <div id="timesheet-grid" class="ts-grid">
+          <!-- Employee timesheet cards populated by JS -->
+        </div>
       </section>
       <!-- PAYROLL VIEW -->
       <section id="view-payroll" class="view">
