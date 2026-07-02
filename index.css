@@ -1774,6 +1774,25 @@ nav {
   }
 }
 
+/* Light mode splash screen overrides */
+:root.light-mode .splash-screen {
+  background: radial-gradient(circle at center, #ffffff 0%, #e4e4e7 100%);
+}
+:root.light-mode .splash-title {
+  color: #111111;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+:root.light-mode .splash-loader {
+  background: rgba(0, 0, 0, 0.08);
+}
+:root.light-mode .splash-glow-ring {
+  background: radial-gradient(
+    circle,
+    rgba(169, 59, 47, 0.12) 0%,
+    rgba(169, 59, 47, 0) 70%
+  );
+}
+
 /* ── Clock In Animation ── */
 .clockin-overlay {
   position: fixed;
