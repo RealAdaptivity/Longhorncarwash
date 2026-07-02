@@ -1,6 +1,6 @@
 // Bumping this name forces the activate handler below to purge every older
 // cache (including any that captured a broken/blank index.html during a deploy).
-const CACHE_NAME = 'longhorn-timeclock-v3';
+const CACHE_NAME = 'longhorn-timeclock-v4';
 const CORE_ASSETS = [
   './',
   './index.html',
