@@ -17,7 +17,9 @@ export async function loadSchedules() {
             const year = new Date(sched.created_at).getFullYear();
             return new Date(year, parseInt(match[1]) - 1, parseInt(match[2]));
           }
-        } catch (e) { console.error('Failed to parse schedule date for sort:', e); }
+        } catch (e) {
+          console.error('Failed to parse schedule date for sort:', e);
+        }
         return new Date(sched.created_at);
       }
       return getStart(a) - getStart(b);
@@ -28,55 +30,94 @@ export async function loadSchedules() {
     scheduleList.innerHTML = '';
 
     if (!data || data.length === 0) {
-      scheduleList.innerHTML = '<div style="background:var(--card);padding:30px;border-radius:15px;text-align:center;color:var(--text-muted);">No schedules posted yet.</div>';
+      scheduleList.innerHTML =
+        '<div style="background:var(--card);padding:30px;border-radius:15px;text-align:center;color:var(--text-muted);">No schedules posted yet.</div>';
       return;
     }
 
     data.forEach((sched, index) => {
       let parsed;
-      try { parsed = JSON.parse(sched.content); } catch (e) { parsed = null; }
-      const weekRange = parsed ? (parsed.weekRange || 'Weekly Schedule') : 'Weekly Schedule';
+      try {
+        parsed = JSON.parse(sched.content);
+      } catch (e) {
+        parsed = null;
+      }
+      const weekRange = parsed ? parsed.weekRange || 'Weekly Schedule' : 'Weekly Schedule';
 
       if (scheduleSelector) {
         const btn = document.createElement('button');
         btn.className = 'btn-ghost';
-        btn.style.cssText = 'padding:8px 15px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;';
+        btn.style.cssText =
+          'padding:8px 15px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;';
         btn.textContent = weekRange;
         btn.onclick = () => {
-          document.querySelectorAll('.schedule-card').forEach(c => c.classList.add('hidden'));
+          document.querySelectorAll('.schedule-card').forEach((c) => c.classList.add('hidden'));
           document.getElementById(`schedule-card-${sched.id}`)?.classList.remove('hidden');
-          Array.from(scheduleSelector.children).forEach(b => { b.style.borderColor = 'var(--border)'; b.style.background = 'none'; });
+          Array.from(scheduleSelector.children).forEach((b) => {
+            b.style.borderColor = 'var(--border)';
+            b.style.background = 'none';
+          });
           btn.style.borderColor = 'var(--primary)';
           btn.style.background = 'rgba(169,59,47,0.1)';
         };
-        if (index === data.length - 1) { btn.style.borderColor = 'var(--primary)'; btn.style.background = 'rgba(169,59,47,0.1)'; }
+        if (index === data.length - 1) {
+          btn.style.borderColor = 'var(--primary)';
+          btn.style.background = 'rgba(169,59,47,0.1)';
+        }
         scheduleSelector.appendChild(btn);
       }
 
       const div = document.createElement('div');
       div.id = `schedule-card-${sched.id}`;
       div.className = 'schedule-card' + (index === data.length - 1 ? '' : ' hidden');
-      div.style.cssText = 'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
+      div.style.cssText =
+        'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
 
-      const time = new Date(sched.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      const time = new Date(sched.created_at).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
 
       let contentHtml = '';
       if (parsed) {
         try {
-          const headersHtml = parsed.headers.map(h => `<th class="sched-day-header">${h}</th>`).join('');
-          const activeRows = parsed.rows.filter(r => r.shifts.some(s => s && s !== '-' && s.trim() !== ''));
+          const headersHtml = parsed.headers
+            .map((h) => `<th class="sched-day-header">${h}</th>`)
+            .join('');
+          const activeRows = parsed.rows.filter((r) =>
+            r.shifts.some((s) => s && s !== '-' && s.trim() !== ''),
+          );
 
-          const rowsHtml = activeRows.map(r => {
-            let rowTotal = 0;
-            const cellsHtml = r.shifts.map(s => {
-              rowTotal += parseShiftHours(s);
-              const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
-              return `<td class="sched-shift-cell${isOff ? ' sched-off' : ''}">${s || '-'}</td>`;
-            }).join('');
-            const rowDataEncoded = encodeURIComponent(JSON.stringify({ employee: r.employee, shifts: r.shifts, weekRange: parsed.weekRange, headers: parsed.headers }));
-            const swapBtn = (state.currentPortalEmployee && r.employee.toLowerCase().includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0]))
-              ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:2px 5px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>` : '';
-            return `<tr>
+          const rowsHtml = activeRows
+            .map((r) => {
+              let rowTotal = 0;
+              const cellsHtml = r.shifts
+                .map((s) => {
+                  rowTotal += parseShiftHours(s);
+                  const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
+                  return `<td class="sched-shift-cell${isOff ? ' sched-off' : ''}">${s || '-'}</td>`;
+                })
+                .join('');
+              const rowDataEncoded = encodeURIComponent(
+                JSON.stringify({
+                  employee: r.employee,
+                  shifts: r.shifts,
+                  weekRange: parsed.weekRange,
+                  headers: parsed.headers,
+                }),
+              );
+              const swapBtn =
+                state.currentPortalEmployee &&
+                r.employee
+                  .toLowerCase()
+                  .includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0])
+                  ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:2px 5px;font-size:0.7rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>`
+                  : '';
+              return `<tr>
               <td class="sched-emp-cell"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px;"><strong>${r.employee}</strong>
               <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
                 <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
@@ -85,23 +126,39 @@ export async function loadSchedules() {
               ${cellsHtml}
               <td class="sched-total-cell">${rowTotal.toFixed(1)}</td>
             </tr>`;
-          }).join('');
+            })
+            .join('');
 
           // Mobile cards — one per employee
-          const cardsHtml = activeRows.map(r => {
-            let rowTotal = 0;
-            const shiftItems = r.shifts.map((s, i) => {
-              rowTotal += parseShiftHours(s);
-              const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
-              return `<div class="sched-card-day${isOff ? ' sched-off' : ''}">
+          const cardsHtml = activeRows
+            .map((r) => {
+              let rowTotal = 0;
+              const shiftItems = r.shifts
+                .map((s, i) => {
+                  rowTotal += parseShiftHours(s);
+                  const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
+                  return `<div class="sched-card-day${isOff ? ' sched-off' : ''}">
                 <span class="sched-card-day-label">${parsed.headers[i] || ''}</span>
                 <span class="sched-card-shift">${s || '-'}</span>
               </div>`;
-            }).join('');
-            const rowDataEncoded = encodeURIComponent(JSON.stringify({ employee: r.employee, shifts: r.shifts, weekRange: parsed.weekRange, headers: parsed.headers }));
-            const swapBtn = (state.currentPortalEmployee && r.employee.toLowerCase().includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0]))
-              ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.75rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>` : '';
-            return `<div class="sched-emp-card">
+                })
+                .join('');
+              const rowDataEncoded = encodeURIComponent(
+                JSON.stringify({
+                  employee: r.employee,
+                  shifts: r.shifts,
+                  weekRange: parsed.weekRange,
+                  headers: parsed.headers,
+                }),
+              );
+              const swapBtn =
+                state.currentPortalEmployee &&
+                r.employee
+                  .toLowerCase()
+                  .includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0])
+                  ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.75rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>`
+                  : '';
+              return `<div class="sched-emp-card">
               <div class="sched-emp-card-header">
                 <strong>${r.employee}</strong>
                 <div style="display:flex;gap:6px;align-items:center;">
@@ -112,7 +169,8 @@ export async function loadSchedules() {
               </div>
               <div class="sched-card-days">${shiftItems}</div>
             </div>`;
-          }).join('');
+            })
+            .join('');
 
           contentHtml = `<h4 style="margin-bottom:15px;color:var(--primary);">${parsed.weekRange || 'Weekly Schedule'}</h4>
             <div class="schedule-desktop-table"><div class="sched-table-scroll"><table class="data-table schedule-full-table"><thead><tr><th>Employee</th>${headersHtml}<th>Total</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>
@@ -125,18 +183,20 @@ export async function loadSchedules() {
       }
 
       const editBtn = state.managerLoggedIn
-        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>` : '';
+        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
+        : '';
       const deleteBtn = state.managerLoggedIn
-        ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>` : '';
+        ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>`
+        : '';
 
       div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
         <span>Posted on ${time}</span><div>${editBtn}${deleteBtn}</div></div>${contentHtml}`;
 
       scheduleList.appendChild(div);
     });
-
   } catch (e) {
-    scheduleList.innerHTML = '<div style="background:var(--card);padding:30px;border-radius:15px;text-align:center;color:var(--danger);">Failed to load schedules.</div>';
+    scheduleList.innerHTML =
+      '<div style="background:var(--card);padding:30px;border-radius:15px;text-align:center;color:var(--danger);">Failed to load schedules.</div>';
   }
 }
 
@@ -149,7 +209,7 @@ window.downloadCalendar = function downloadCalendar(encodedData) {
     let baseDate = new Date();
 
     try {
-      const parts = weekRange.split('-').map(p => p.trim());
+      const parts = weekRange.split('-').map((p) => p.trim());
       const startPart = parts[0];
       if (startPart.includes('/')) {
         const [m, d] = startPart.split('/').map(Number);
@@ -158,9 +218,17 @@ window.downloadCalendar = function downloadCalendar(encodedData) {
         const p = new Date(`${startPart}, ${year}`);
         if (!isNaN(p.getTime())) baseDate = p;
       }
-    } catch (e) { console.error('Failed to parse week range for calendar:', e); }
+    } catch (e) {
+      console.error('Failed to parse week range for calendar:', e);
+    }
 
-    let icsContent = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Longhorn Car Wash//Timeclock//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Longhorn Car Wash//Timeclock//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+    ];
 
     shifts.forEach((s, idx) => {
       if (!s || s === '-' || s.toLowerCase() === 'off' || s.toLowerCase() === 'oc') return;
@@ -175,7 +243,8 @@ window.downloadCalendar = function downloadCalendar(encodedData) {
 
       const start = parseTime(hours[0].trim());
       const end = parseTime(hours[1].trim());
-      let sh = start.h, eh = end.h;
+      let sh = start.h,
+        eh = end.h;
       if (sh >= 1 && sh < 7) sh += 12;
       if (eh <= sh && eh !== 0) eh += 12;
 
@@ -183,19 +252,30 @@ window.downloadCalendar = function downloadCalendar(encodedData) {
         const d = new Date(baseDate);
         d.setDate(baseDate.getDate() + offset);
         d.setHours(h, m, 0);
-        const pad = n => String(n).padStart(2, '0');
+        const pad = (n) => String(n).padStart(2, '0');
         return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
       };
 
       const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
       const uid = `shift-${employee.replace(/\s+/g, '-')}-${idx}-${Date.now()}@longhorn.com`;
-      icsContent.push('BEGIN:VEVENT', `UID:${uid}`, `DTSTAMP:${dtStamp}`, `SUMMARY:Car Wash Shift: ${employee}`, `DTSTART:${formatDate(idx, sh, start.m)}`, `DTEND:${formatDate(idx, eh, end.m)}`, 'LOCATION:Longhorn Car Wash', 'END:VEVENT');
+      icsContent.push(
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${dtStamp}`,
+        `SUMMARY:Car Wash Shift: ${employee}`,
+        `DTSTART:${formatDate(idx, sh, start.m)}`,
+        `DTEND:${formatDate(idx, eh, end.m)}`,
+        'LOCATION:Longhorn Car Wash',
+        'END:VEVENT',
+      );
     });
 
     icsContent.push('END:VCALENDAR');
     const content = icsContent.join('\r\n');
     const fileName = `${employee}_Schedule.ics`;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     if (isIOS) {
       window.location.href = `data:text/calendar;base64,${btoa(unescape(encodeURIComponent(content)))}`;
@@ -246,18 +326,32 @@ export function init() {
 
       if (postScheduleSection && !postScheduleSection.classList.contains('hidden')) {
         try {
-          const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).order('name', { ascending: true });
+          const { data: users } = await window.supabaseClient
+            .from('users')
+            .select('name')
+            .eq('is_approved', true)
+            .order('name', { ascending: true });
           if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
           if (users) {
-            users.forEach(u => {
+            users.forEach((u) => {
               const tr = document.createElement('tr');
-              const inputs = Array(7).fill(0).map(() => `<td><input type="text" class="input-field sched-cell" placeholder="-" style="padding:5px;text-align:center;margin-bottom:0;"></td>`).join('');
+              const inputs = Array(7)
+                .fill(0)
+                .map(
+                  () =>
+                    `<td><input type="text" class="input-field sched-cell" placeholder="-" style="padding:5px;text-align:center;margin-bottom:0;"></td>`,
+                )
+                .join('');
               tr.innerHTML = `<td><strong>${u.name}</strong></td>${inputs}<td style="text-align:center;font-weight:bold;">-</td>`;
               scheduleEditorBody.appendChild(tr);
             });
           }
-          scheduleHeaderInputs.forEach((inp, idx) => { inp.value = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx]; });
-        } catch (e) { showToast('Failed to load employees for schedule editor.', 'error'); }
+          scheduleHeaderInputs.forEach((inp, idx) => {
+            inp.value = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx];
+          });
+        } catch (e) {
+          showToast('Failed to load employees for schedule editor.', 'error');
+        }
       }
     });
   }
@@ -269,14 +363,20 @@ export function init() {
       try {
         const match = val.match(/(\d+)\/(\d+)/);
         if (!match) return;
-        const startDate = new Date(new Date().getFullYear(), parseInt(match[1]) - 1, parseInt(match[2]));
+        const startDate = new Date(
+          new Date().getFullYear(),
+          parseInt(match[1]) - 1,
+          parseInt(match[2]),
+        );
         if (isNaN(startDate.getTime())) return;
         scheduleHeaderInputs.forEach((inp, idx) => {
           const d = new Date(startDate);
           d.setDate(startDate.getDate() + idx);
           inp.value = `${['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx]} ${d.getMonth() + 1}/${d.getDate()}`;
         });
-      } catch (e) { console.error('Failed to auto-fill schedule date headers:', e); }
+      } catch (e) {
+        console.error('Failed to auto-fill schedule date headers:', e);
+      }
     });
   }
 
@@ -285,12 +385,16 @@ export function init() {
       btnSubmitSchedule.disabled = true;
       btnSubmitSchedule.style.opacity = '0.5';
 
-      const weekRange = scheduleWeekRange ? (scheduleWeekRange.value.trim() || 'Weekly Schedule') : 'Weekly Schedule';
-      const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(i => i.value || '-');
+      const weekRange = scheduleWeekRange
+        ? scheduleWeekRange.value.trim() || 'Weekly Schedule'
+        : 'Weekly Schedule';
+      const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(
+        (i) => i.value || '-',
+      );
       const rows = [];
-      scheduleEditorBody?.querySelectorAll('tr').forEach(tr => {
+      scheduleEditorBody?.querySelectorAll('tr').forEach((tr) => {
         const employee = tr.querySelector('td strong')?.innerText || '';
-        const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map(i => i.value || '-');
+        const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map((i) => i.value || '-');
         rows.push({ employee, shifts });
       });
 
@@ -298,57 +402,66 @@ export function init() {
 
       // Conflict detection
       try {
-        const { data: timeoffs } = await window.supabaseClient.from('time_off_requests').select('*').eq('status', 'Approved');
+        const { data: timeoffs } = await window.supabaseClient
+          .from('time_off_requests')
+          .select('*')
+          .eq('status', 'Approved');
         if (timeoffs) {
-          const conflicts = rows.filter(row => {
-            const emp = Object.values(state.employeeMap).find(e => e.name.toLowerCase() === row.employee.toLowerCase());
-            if (!emp) return false;
-            const hasShifts = row.shifts.some(s => s && s !== '-' && s.trim() !== '');
-            return hasShifts && timeoffs.some(t => t.user_id === emp.id);
-          }).map(r => r.employee);
+          const conflicts = rows
+            .filter((row) => {
+              const emp = Object.values(state.employeeMap).find(
+                (e) => e.name.toLowerCase() === row.employee.toLowerCase(),
+              );
+              if (!emp) return false;
+              const hasShifts = row.shifts.some((s) => s && s !== '-' && s.trim() !== '');
+              return hasShifts && timeoffs.some((t) => t.user_id === emp.id);
+            })
+            .map((r) => r.employee);
 
-          if (conflicts.length > 0 && !confirm(`Warning: These employees have approved time-off: ${conflicts.join(', ')}. Proceed?`)) {
+          if (
+            conflicts.length > 0 &&
+            !confirm(
+              `Warning: These employees have approved time-off: ${conflicts.join(', ')}. Proceed?`,
+            )
+          ) {
             btnSubmitSchedule.disabled = false;
             btnSubmitSchedule.style.opacity = '1';
             return;
           }
         }
-      } catch (e) { console.error('Conflict detection error', e); }
+      } catch (e) {
+        console.error('Conflict detection error', e);
+      }
 
       try {
         let error;
         if (state.editingScheduleId) {
-          ({ error } = await window.supabaseClient.from('schedules').update({ content: JSON.stringify(scheduleData) }).eq('id', state.editingScheduleId));
+          ({ error } = await window.supabaseClient
+            .from('schedules')
+            .update({ content: JSON.stringify(scheduleData) })
+            .eq('id', state.editingScheduleId));
         } else {
-          ({ error } = await window.supabaseClient.from('schedules').insert([{ content: JSON.stringify(scheduleData) }]));
+          ({ error } = await window.supabaseClient
+            .from('schedules')
+            .insert([{ content: JSON.stringify(scheduleData) }]));
         }
         if (error) throw error;
-        
-        // Notify employees about schedule update
-        try {
-          const employeeNames = rows.map(r => r.employee);
-          const { data: users } = await window.supabaseClient.from('users').select('name, push_token').in('name', employeeNames).not('push_token', 'is', null);
-          if (users && users.length > 0) {
-            const messages = users.map(u => ({
-              to: u.push_token,
-              sound: 'default',
-              title: '📅 Schedule Posted/Updated',
-              body: `Your schedule for the week ${weekRange} has been posted/updated.`
-            }));
 
-            await fetch('https://exp.host/--/api/v2/push/send', {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Accept-encoding': 'gzip, deflate',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(messages)
-            });
-            console.log(`Sent schedule updates to ${messages.length} employees.`);
+        // Notify employees about schedule update (isolated so CORS/network failures don't block the post)
+        try {
+          const employeeNames = rows.map((r) => r.employee);
+          const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
+            'send_schedule_notifications',
+            { employee_names: employeeNames, week_range: weekRange },
+          );
+
+          if (rpcErr) {
+            console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
+          } else {
+            console.log('Schedule push notifications RPC result:', rpcData);
           }
         } catch (pushErr) {
-          console.error('Failed to send push notifications', pushErr);
+          console.warn('Failed to invoke schedule notifications RPC:', pushErr);
         }
 
         showToast(state.editingScheduleId ? 'Schedule updated!' : 'Schedule posted!');
@@ -372,36 +485,54 @@ export function init() {
         try {
           const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
           if (scheduleWeekRange) scheduleWeekRange.value = parsed.weekRange || '';
-          parsed.headers.forEach((h, idx) => { if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h; });
+          parsed.headers.forEach((h, idx) => {
+            if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h;
+          });
           if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
 
-          const { data: currentUsers } = await window.supabaseClient.from('users').select('name').eq('is_approved', true).order('name', { ascending: true });
-          (currentUsers || []).forEach(u => {
-            const savedRow = parsed.rows.find(r => r.employee === u.name);
+          const { data: currentUsers } = await window.supabaseClient
+            .from('users')
+            .select('name')
+            .eq('is_approved', true)
+            .order('name', { ascending: true });
+          (currentUsers || []).forEach((u) => {
+            const savedRow = parsed.rows.find((r) => r.employee === u.name);
             const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
             let rowTotal = 0;
-            const cellsHtml = shifts.map(s => { rowTotal += parseShiftHours(s); return `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding:5px;text-align:center;margin-bottom:0;"></td>`; }).join('');
+            const cellsHtml = shifts
+              .map((s) => {
+                rowTotal += parseShiftHours(s);
+                return `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding:5px;text-align:center;margin-bottom:0;"></td>`;
+              })
+              .join('');
             const tr = document.createElement('tr');
             tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
             scheduleEditorBody?.appendChild(tr);
           });
 
           if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Changes';
-          if (postScheduleSection) { postScheduleSection.classList.remove('hidden'); postScheduleSection.scrollIntoView({ behavior: 'smooth' }); }
-        } catch (err) { showToast('Could not load schedule for editing.', 'error'); }
-
+          if (postScheduleSection) {
+            postScheduleSection.classList.remove('hidden');
+            postScheduleSection.scrollIntoView({ behavior: 'smooth' });
+          }
+        } catch (err) {
+          showToast('Could not load schedule for editing.', 'error');
+        }
       } else if (e.target.classList.contains('btn-delete-schedule')) {
         if (!confirm('Delete this schedule?')) return;
         try {
-          const { error } = await window.supabaseClient.from('schedules').delete().eq('id', e.target.dataset.id);
+          const { error } = await window.supabaseClient
+            .from('schedules')
+            .delete()
+            .eq('id', e.target.dataset.id);
           if (error) throw error;
           showToast('Schedule deleted');
           loadSchedules();
-        } catch (err) { showToast('Failed to delete schedule.', 'error'); }
-
+        } catch (err) {
+          showToast('Failed to delete schedule.', 'error');
+        }
       } else if (e.target.classList.contains('btn-calendar')) {
         window.downloadCalendar(e.target.dataset.calendar);
-
       } else if (e.target.classList.contains('btn-request-swap')) {
         const emp = e.target.dataset.employee;
         const week = e.target.dataset.week;
@@ -410,19 +541,29 @@ export function init() {
 
         if (swapTargetEmployee) {
           try {
-            const { data: users } = await window.supabaseClient.from('users').select('name').eq('is_approved', true);
+            const { data: users } = await window.supabaseClient
+              .from('users')
+              .select('name')
+              .eq('is_approved', true);
             swapTargetEmployee.innerHTML = '<option value="">Select a teammate...</option>';
-            (users || []).forEach(u => {
+            (users || []).forEach((u) => {
               if (u.name !== emp) {
                 const opt = document.createElement('option');
-                opt.value = u.name; opt.textContent = u.name;
+                opt.value = u.name;
+                opt.textContent = u.name;
                 swapTargetEmployee.appendChild(opt);
               }
             });
-          } catch (e) { showToast('Failed to load employees for swap.', 'error'); }
+          } catch (e) {
+            showToast('Failed to load employees for swap.', 'error');
+          }
         }
 
-        if (modalShiftSwap) { modalShiftSwap.dataset.originator = emp; modalShiftSwap.dataset.week = week; modalShiftSwap.classList.remove('hidden'); }
+        if (modalShiftSwap) {
+          modalShiftSwap.dataset.originator = emp;
+          modalShiftSwap.dataset.week = week;
+          modalShiftSwap.classList.remove('hidden');
+        }
       }
     });
   }
@@ -432,22 +573,34 @@ export function init() {
   const btnSubmitSwap = document.getElementById('btn-submit-swap');
   const modalShiftSwap = document.getElementById('modal-shift-swap');
 
-  if (btnCancelSwap) btnCancelSwap.addEventListener('click', () => { if (modalShiftSwap) modalShiftSwap.classList.add('hidden'); });
+  if (btnCancelSwap)
+    btnCancelSwap.addEventListener('click', () => {
+      if (modalShiftSwap) modalShiftSwap.classList.add('hidden');
+    });
   if (btnSubmitSwap) {
     btnSubmitSwap.addEventListener('click', async () => {
       const target = document.getElementById('swap-target-employee')?.value;
       const details = document.getElementById('swap-details')?.value.trim();
-      if (!target || !details) { showToast('Please select a teammate and provide details.', 'error'); return; }
+      if (!target || !details) {
+        showToast('Please select a teammate and provide details.', 'error');
+        return;
+      }
       try {
-        const { error } = await window.supabaseClient.from('shift_swaps').insert([{
-          original_user_id: state.currentPortalEmployee?.id,
-          target_user_id: null, shift_date: new Date(),
-          status: 'Pending', created_at: new Date().toISOString()
-        }]);
+        const { error } = await window.supabaseClient.from('shift_swaps').insert([
+          {
+            original_user_id: state.currentPortalEmployee?.id,
+            target_user_id: null,
+            shift_date: new Date(),
+            status: 'Pending',
+            created_at: new Date().toISOString(),
+          },
+        ]);
         if (error) throw error;
         showToast('Swap request sent to manager!');
         if (modalShiftSwap) modalShiftSwap.classList.add('hidden');
-      } catch (e) { showToast('Failed to send swap request.', 'error'); }
+      } catch (e) {
+        showToast('Failed to send swap request.', 'error');
+      }
     });
   }
 
@@ -458,37 +611,52 @@ export function init() {
   if (btnSaveTemplate) {
     btnSaveTemplate.addEventListener('click', async () => {
       const rows = [];
-      document.querySelectorAll('#schedule-editor-table tbody tr').forEach(tr => {
+      document.querySelectorAll('#schedule-editor-table tbody tr').forEach((tr) => {
         const empName = tr.cells[0].textContent;
-        const shifts = Array.from(tr.querySelectorAll('.schedule-shift-input')).map(i => i.value);
+        const shifts = Array.from(tr.querySelectorAll('.schedule-shift-input')).map((i) => i.value);
         rows.push({ employee: empName, shifts });
       });
       try {
         const { saveSettingRobust } = await import('./utils.js');
         await saveSettingRobust('schedule_template_standard', JSON.stringify(rows));
         showToast('Schedule saved as standard template!');
-      } catch (e) { showToast('Failed to save template.', 'error'); }
+      } catch (e) {
+        showToast('Failed to save template.', 'error');
+      }
     });
   }
 
   if (btnLoadTemplate) {
     btnLoadTemplate.addEventListener('click', async () => {
       try {
-        const { data, error } = await window.supabaseClient.from('settings').select('value').eq('id', 'schedule_template_standard').limit(1);
-        if (error || !data || data.length === 0) { showToast('No template found.', 'error'); return; }
+        const { data, error } = await window.supabaseClient
+          .from('settings')
+          .select('value')
+          .eq('id', 'schedule_template_standard')
+          .limit(1);
+        if (error || !data || data.length === 0) {
+          showToast('No template found.', 'error');
+          return;
+        }
         const rows = JSON.parse(data[0].value);
         const tbody = document.querySelector('#schedule-editor-table tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
-        rows.forEach(r => {
+        rows.forEach((r) => {
           const tr = document.createElement('tr');
-          const cells = r.shifts.map(s => `<td><input type="text" class="input-field schedule-shift-input" value="${s}" style="width:70px;margin-bottom:0;text-align:center;" /></td>`).join('');
+          const cells = r.shifts
+            .map(
+              (s) =>
+                `<td><input type="text" class="input-field schedule-shift-input" value="${s}" style="width:70px;margin-bottom:0;text-align:center;" /></td>`,
+            )
+            .join('');
           tr.innerHTML = `<td>${r.employee}</td>${cells}`;
           tbody.appendChild(tr);
         });
         showToast('Template loaded!');
-      } catch (e) { showToast('Failed to load template.', 'error'); }
+      } catch (e) {
+        showToast('Failed to load template.', 'error');
+      }
     });
   }
-
 }
