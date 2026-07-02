@@ -131,17 +131,24 @@ export function logoutManager() {
 }
 
 async function attemptManagerLogin(username, password) {
-  const { data: rawData, error } = await window.supabaseClient
-    .from('users').select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
-    .eq('name', username).eq('password', password)
-    .in('role', MANAGEMENT_ROLES).eq('is_approved', true)
-    .not('password', 'is', null).limit(1);
+  // Verify the password server-side so it (and two_factor_pin) never travel to
+  // the client. Role/approval are non-secret checks and stay here.
+  const { data: rawData, error } = await window.supabaseClient.rpc('authenticate_manager', {
+    p_name: username,
+    p_password: password,
+  });
 
-  if (error || !rawData || rawData.length === 0) {
+  const data = Array.isArray(rawData) ? rawData[0] : rawData;
+  if (
+    error ||
+    !data ||
+    !data.is_approved ||
+    !MANAGEMENT_ROLES.includes(data.role)
+  ) {
     showToast('Invalid credentials', 'error');
     return null;
   }
-  return rawData[0];
+  return data;
 }
 
 // --- Check and Send Payday Notification ---
@@ -857,9 +864,16 @@ export function init() {
   const verify2FAPin = document.getElementById('verify-2fa-pin');
   const modal2FAVerify = document.getElementById('modal-2fa-verify');
   if (btnSubmit2FA) {
-    btnSubmit2FA.addEventListener('click', () => {
+    btnSubmit2FA.addEventListener('click', async () => {
       if (!state.pending2FAUser) return;
-      if (verify2FAPin && verify2FAPin.value === state.pending2FAUser.two_factor_pin) {
+      const entered = verify2FAPin ? verify2FAPin.value : '';
+      // Verify the 2-step PIN server-side; the two_factor_pin is never sent to
+      // the client.
+      const { data: ok, error } = await window.supabaseClient.rpc('verify_manager_2fa', {
+        p_name: state.pending2FAUser.name,
+        p_pin: entered,
+      });
+      if (!error && ok) {
         const user = state.pending2FAUser;
         state.pending2FAUser = null;
         if (modal2FAVerify) modal2FAVerify.classList.add('hidden');
@@ -1308,8 +1322,9 @@ export function init() {
       }
 
       try {
-        const { data: existing } = await window.supabaseClient.from('users').select('id').eq('pin', pin).single();
-        if (existing) { showToast('PIN is already in use.', 'error'); return; }
+        const { data: available, error: availErr } = await window.supabaseClient.rpc('pin_available', { p_pin: pin });
+        if (availErr) throw availErr;
+        if (!available) { showToast('PIN is already in use.', 'error'); return; }
 
         const isSalaryNew = document.getElementById('new-user-is-salary')?.checked || false;
         const { error } = await window.supabaseClient.from('users').insert([{

@@ -411,8 +411,13 @@ export function init() {
       if (!username || !pin) { showToast('Please enter Name and PIN', 'error'); return; }
 
       try {
-        const { data: user, error } = await window.supabaseClient.from('users')
-          .select('id, name, pay_rate, is_salary, tax_status').eq('name', username).eq('pin', pin).single();
+        // Verify name + PIN server-side so the plaintext pin is never used as a
+        // client-side query filter (see authenticate_employee RPC).
+        const { data: rows, error } = await window.supabaseClient.rpc('authenticate_employee', {
+          p_name: username,
+          p_pin: pin,
+        });
+        const user = Array.isArray(rows) ? rows[0] : rows;
         if (error || !user) { showToast('Invalid Name or PIN', 'error'); return; }
 
         state.currentPortalEmployee = user;

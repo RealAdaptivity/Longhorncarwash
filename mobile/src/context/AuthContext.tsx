@@ -60,12 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(pin: string): Promise<{ success: boolean; error?: string }> {
     if (pin.length !== 4) return { success: false, error: 'PIN must be 4 digits' };
 
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, role, is_approved, is_salary')
-      .eq('pin', pin)
-      .limit(1)
-      .single();
+    // Verify the PIN server-side so the plaintext credential columns are never
+    // selected into the client (see authenticate_pin RPC).
+    const { data: rows, error } = await supabase.rpc('authenticate_pin', { p_pin: pin });
+    const data = Array.isArray(rows) ? rows[0] : rows;
 
     if (error || !data) return { success: false, error: 'Invalid PIN' };
     if (!data.is_approved) return { success: false, error: 'Account not approved. Contact a manager.' };
@@ -101,14 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function unlockManager(username: string, password: string): Promise<{ success: boolean; error?: string }> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, name, role')
-      .eq('name', username)
-      .eq('password', password)
-      .not('password', 'is', null)
-      .limit(1)
-      .single();
+    // Verify the password server-side so it never travels to the client
+    // (see authenticate_manager RPC).
+    const { data: rows, error } = await supabase.rpc('authenticate_manager', {
+      p_name: username,
+      p_password: password,
+    });
+    const data = Array.isArray(rows) ? rows[0] : rows;
 
     if (error || !data) return { success: false, error: 'Invalid credentials' };
     if (!MANAGEMENT_ROLES.includes(data.role)) return { success: false, error: 'Not a management account' };

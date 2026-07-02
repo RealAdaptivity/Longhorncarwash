@@ -599,11 +599,12 @@ export function init() {
         return;
       }
       try {
-        const { data, error } = await window.supabaseClient
-          .from('users')
-          .select('id, name, role, is_approved, is_salary')
-          .eq('pin', state.currentPin)
-          .single();
+        // Verify the PIN server-side so the plaintext credential columns are
+        // never selected into the client (see authenticate_pin RPC).
+        const { data: rows, error } = await window.supabaseClient.rpc('authenticate_pin', {
+          p_pin: state.currentPin,
+        });
+        const data = Array.isArray(rows) ? rows[0] : rows;
 
         if (error || !data) {
           showToast('Invalid PIN', 'error');
@@ -899,12 +900,14 @@ export function init() {
             return;
           }
 
-          const { data: existing } = await window.supabaseClient
-            .from('users')
-            .select('id')
-            .eq('pin', newPin)
-            .single();
-          if (existing) {
+          // Check PIN uniqueness server-side (hashed pins can't be matched with
+          // a plain equality filter from the client).
+          const { data: available, error: availErr } = await window.supabaseClient.rpc(
+            'pin_available',
+            { p_pin: newPin },
+          );
+          if (availErr) throw availErr;
+          if (!available) {
             showToast('PIN is already in use', 'error');
             return;
           }
