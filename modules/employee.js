@@ -1,5 +1,66 @@
 import { state, showToast, getStartOfWeek, getBiweeklyWeeks, calculateEstimatedTaxes } from './utils.js';
 
+// Decode + compress a camera photo into a small square avatar without ever
+// holding the full-resolution bitmap in memory. Phone cameras produce
+// multi-megapixel images; decoding those at full size (e.g. via `new Image()`)
+// can exhaust memory and crash the whole PWA on kiosk/older devices. When the
+// browser supports createImageBitmap resize options we decode straight to a
+// tiny bitmap; otherwise we fall back to an Image element with full error
+// handling so a bad/undecodable file rejects cleanly instead of hanging.
+const AVATAR_SIZE = 150;
+
+function drawSquareToDataURL(source, width, height) {
+  const canvas = document.createElement('canvas');
+  canvas.width = AVATAR_SIZE;
+  canvas.height = AVATAR_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas not supported');
+  const minDim = Math.min(width, height);
+  const sx = (width - minDim) / 2;
+  const sy = (height - minDim) / 2;
+  ctx.drawImage(source, sx, sy, minDim, minDim, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+  return canvas.toDataURL('image/jpeg', 0.6);
+}
+
+async function compressAvatar(file) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      // Cap the decode resolution: we only need a slightly-larger-than-target
+      // square, so this keeps memory bounded regardless of the source size.
+      const bitmap = await createImageBitmap(file, {
+        resizeWidth: AVATAR_SIZE * 2,
+        resizeHeight: AVATAR_SIZE * 2,
+        resizeQuality: 'high',
+      });
+      try {
+        return drawSquareToDataURL(bitmap, bitmap.width, bitmap.height);
+      } finally {
+        if (typeof bitmap.close === 'function') bitmap.close();
+      }
+    } catch (err) {
+      // Fall through to the FileReader/Image path below.
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read image file'));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not decode image'));
+      img.onload = () => {
+        try {
+          resolve(drawSquareToDataURL(img, img.naturalWidth, img.naturalHeight));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function loadEmployeePortal(userId, name) {
   const employeePortalWelcome = document.getElementById('employee-portal-welcome');
   const empThisWeek = document.getElementById('emp-this-week');
@@ -40,57 +101,45 @@ export async function loadEmployeePortal(userId, name) {
     if (avatarInput && !avatarInput.dataset.bound) {
       avatarInput.dataset.bound = 'true';
       avatarInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
+        const input = e.target;
+        const file = input.files && input.files[0];
+        // Always clear the input so the same photo can be retaken and any
+        // in-memory file reference is released.
+        input.value = '';
         if (!file) return;
-        
-        // Compress image using canvas
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = new Image();
-          img.onload = async () => {
-            const canvas = document.createElement('canvas');
-            const size = 150;
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            
-            // Crop to center square
-            const minDim = Math.min(img.width, img.height);
-            const sx = (img.width - minDim) / 2;
-            const sy = (img.height - minDim) / 2;
-            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-            
-            // Compress to base64 jpeg
-            const base64Avatar = canvas.toDataURL('image/jpeg', 0.6);
-            
-            // Update UI
-            document.getElementById('emp-profile-avatar').src = base64Avatar;
-            
-            
-            // Save to DB
-            try {
-              const { error } = await window.supabaseClient.from('users').update({ avatar: base64Avatar }).eq('id', userId);
-              if (error) throw error;
-              showToast('Profile picture saved successfully!');
-              
-              // Lock it!
-              document.getElementById('emp-profile-avatar').onclick = null;
-              document.getElementById('emp-profile-avatar').style.cursor = 'default';
-              const uploadIcon = document.getElementById('avatar-upload-icon');
-              if (uploadIcon) uploadIcon.style.display = 'none';
-              const subText = document.getElementById('employee-portal-welcome-sub');
-              if (subText) subText.textContent = 'Profile picture saved.';
-              const fileInput = document.getElementById('avatar-upload-input');
-              if (fileInput) fileInput.disabled = true;
-              
-            } catch (err) {
 
-              showToast('Failed to save profile picture', 'error');
-            }
-          };
-          img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
+        if (!file.type || !file.type.startsWith('image/')) {
+          showToast('Please choose an image.', 'error');
+          return;
+        }
+
+        try {
+          const base64Avatar = await compressAvatar(file);
+
+          // Update UI
+          const avatarImg = document.getElementById('emp-profile-avatar');
+          if (avatarImg) avatarImg.src = base64Avatar;
+
+          // Save to DB
+          const { error } = await window.supabaseClient.from('users').update({ avatar: base64Avatar }).eq('id', userId);
+          if (error) throw error;
+          showToast('Profile picture saved successfully!');
+
+          // Lock it!
+          if (avatarImg) {
+            avatarImg.onclick = null;
+            avatarImg.style.cursor = 'default';
+          }
+          const uploadIcon = document.getElementById('avatar-upload-icon');
+          if (uploadIcon) uploadIcon.style.display = 'none';
+          const subText = document.getElementById('employee-portal-welcome-sub');
+          if (subText) subText.textContent = 'Profile picture saved.';
+          const fileInput = document.getElementById('avatar-upload-input');
+          if (fileInput) fileInput.disabled = true;
+        } catch (err) {
+          console.error('Avatar capture failed:', err);
+          showToast('Could not process that photo. Please try again.', 'error');
+        }
       });
     }
 
