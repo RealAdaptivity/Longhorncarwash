@@ -155,7 +155,8 @@ async function loadCustomPayrollFormat() {
       .limit(1);
     if (!error && data && data.length > 0) {
       state.customPayrollFormat = JSON.parse(data[0].value);
-      if (customCurrentFormatInput) customCurrentFormatInput.value = state.customPayrollFormat.current || '';
+      if (customCurrentFormatInput)
+        customCurrentFormatInput.value = state.customPayrollFormat.current || '';
       if (customNextFormatInput) customNextFormatInput.value = state.customPayrollFormat.next || '';
     }
   } catch (e) {
@@ -167,7 +168,11 @@ export async function fetchSettings() {
   const db = window.supabaseClient;
 
   try {
-    const { data, error } = await db.from('settings').select('value').eq('id', 'announcement').limit(1);
+    const { data, error } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'announcement')
+      .limit(1);
     if (!error && data && data.length > 0) {
       state.activeAnnouncement = data[0].value;
       if (announcementInput) announcementInput.value = data[0].value;
@@ -177,59 +182,98 @@ export async function fetchSettings() {
   }
 
   try {
-    const { data: geoData } = await db.from('settings').select('value').eq('id', 'geofence_radius').limit(1);
+    const { data: geoData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'geofence_radius')
+      .limit(1);
     if (geoData && geoData.length > 0) {
       state.ALLOWED_RADIUS_METERS = parseInt(geoData[0].value, 10);
     }
     if (geofenceInput) geofenceInput.value = state.ALLOWED_RADIUS_METERS;
 
-    const { data: latData } = await db.from('settings').select('value').eq('id', 'geofence_lat').limit(1);
+    const { data: latData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'geofence_lat')
+      .limit(1);
     if (latData && latData.length > 0) state.CAR_WASH_LAT = parseFloat(latData[0].value);
     if (geofenceLatInput) geofenceLatInput.value = state.CAR_WASH_LAT;
 
-    const { data: lonData } = await db.from('settings').select('value').eq('id', 'geofence_lon').limit(1);
+    const { data: lonData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'geofence_lon')
+      .limit(1);
     if (lonData && lonData.length > 0) state.CAR_WASH_LON = parseFloat(lonData[0].value);
     if (geofenceLonInput) geofenceLonInput.value = state.CAR_WASH_LON;
 
-    const { data: enabledData } = await db.from('settings').select('value').eq('id', 'geofence_enabled').limit(1);
+    const { data: enabledData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'geofence_enabled')
+      .limit(1);
     if (enabledData && enabledData.length > 0) {
       state.GEOFENCE_ENABLED = enabledData[0].value === 'true';
     }
     updateGeofenceUI();
 
-    const { data: abData } = await db.from('settings').select('value').eq('id', 'anti_buddy_enabled').limit(1);
+    const { data: abData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'anti_buddy_enabled')
+      .limit(1);
     if (abData && abData.length > 0) {
       state.ANTI_BUDDY_ENABLED = abData[0].value === 'true';
     }
     updateAntiBuddyUI();
 
     // Load WiFi Lock
-    const { data: wifiEnabledData } = await db.from('settings').select('value').eq('id', 'wifi_lock_enabled').limit(1);
+    const { data: wifiEnabledData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'wifi_lock_enabled')
+      .limit(1);
     if (wifiEnabledData && wifiEnabledData.length > 0) {
       state.WIFI_LOCK_ENABLED = wifiEnabledData[0].value === 'true';
     }
-    const { data: wifiIpData } = await db.from('settings').select('value').eq('id', 'wifi_ip_address').limit(1);
+    const { data: wifiIpData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'wifi_ip_address')
+      .limit(1);
     if (wifiIpData && wifiIpData.length > 0) {
       state.WIFI_IP_ADDRESS = wifiIpData[0].value;
       if (wifiIpInput) wifiIpInput.value = state.WIFI_IP_ADDRESS;
     }
     updateWifiLockUI();
 
-
-    const { data: ebData } = await db.from('settings').select('value').eq('id', 'early_clockin_block_enabled').limit(1);
+    const { data: ebData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'early_clockin_block_enabled')
+      .limit(1);
     if (ebData && ebData.length > 0) {
       state.EARLY_CLOCKIN_BLOCK_ENABLED = ebData[0].value === 'true';
     }
     updateEarlyBlockUI();
 
-    const { data: revData } = await db.from('settings').select('value').eq('id', 'daily_revenue_goal').limit(1);
+    const { data: revData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'daily_revenue_goal')
+      .limit(1);
     if (revData && revData.length > 0) {
       state.dailyRevenueGoal = parseFloat(revData[0].value) || 0;
       const dailyRevenueInput = document.getElementById('daily-revenue-input');
       if (dailyRevenueInput) dailyRevenueInput.value = state.dailyRevenueGoal;
     }
 
-    const { data: goalData } = await db.from('settings').select('value').eq('id', 'labor_cost_goal_percent').limit(1);
+    const { data: goalData } = await db
+      .from('settings')
+      .select('value')
+      .eq('id', 'labor_cost_goal_percent')
+      .limit(1);
     if (goalData && goalData.length > 0) {
       state.laborCostGoalPercent = parseFloat(goalData[0].value) || 25;
       const laborGoalInput = document.getElementById('labor-goal-input');
@@ -238,7 +282,6 @@ export async function fetchSettings() {
   } catch (e) {
     console.error('Failed to load geofence/anti-buddy settings:', e);
   }
-
 }
 
 export function init() {
@@ -275,34 +318,34 @@ export function init() {
         state.activeAnnouncement = msg;
         showToast('Announcement posted successfully!', 'success');
 
-        // Send push notifications to all employees with the app installed
-        const { data: employees, error: fetchErr } = await window.supabaseClient
+        // Send push notifications to all approved users with the app installed (employees and management)
+        const { data: usersToNotify, error: fetchErr } = await window.supabaseClient
           .from('users')
           .select('push_token')
-          .eq('role', 'Employee')
+          .eq('is_approved', true)
           .not('push_token', 'is', null);
 
-        if (!fetchErr && employees && employees.length > 0) {
-          const tokens = employees.map(emp => emp.push_token).filter(Boolean);
+        if (!fetchErr && usersToNotify && usersToNotify.length > 0) {
+          const tokens = usersToNotify.map((u) => u.push_token).filter(Boolean);
           if (tokens.length > 0) {
-            const messages = tokens.map(token => ({
+            const messages = tokens.map((token) => ({
               to: token,
               sound: 'default',
               title: 'New Shift Announcement',
               body: msg,
-              data: { type: 'announcement', message: msg }
+              data: { type: 'announcement', message: msg },
             }));
 
             await fetch('https://exp.host/--/api/v2/push/send', {
               method: 'POST',
               headers: {
-                'Accept': 'application/json',
+                Accept: 'application/json',
                 'Accept-encoding': 'gzip, deflate',
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify(messages),
             });
-            console.log(`Sent announcements to ${tokens.length} employees.`);
+            console.log(`Sent announcements to ${tokens.length} users.`);
           }
         }
       } catch (e) {
@@ -343,7 +386,7 @@ export function init() {
         state.CAR_WASH_LAT = lat;
         state.CAR_WASH_LON = lon;
         showToast('Geofence settings updated!', 'success');
-            } catch (err) {
+      } catch (err) {
         showToast('Error: ' + (err.message || 'Check database table and RLS policies.'), 'error');
       }
     });
@@ -373,13 +416,13 @@ export function init() {
       }
       showToast('Fetching your location...', 'success');
       navigator.geolocation.getCurrentPosition(
-        pos => {
+        (pos) => {
           if (geofenceLatInput) geofenceLatInput.value = pos.coords.latitude;
           if (geofenceLonInput) geofenceLonInput.value = pos.coords.longitude;
           showToast('Coordinates populated! Click Save Settings to apply.', 'success');
         },
         () => showToast('Failed to get location. Check permissions.', 'error'),
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     });
   }
@@ -414,7 +457,6 @@ export function init() {
       }
     });
   }
-
 
   // WiFi Lock Toggle
   if (btnToggleWifiLock) {
@@ -481,8 +523,12 @@ export function init() {
   }
   if (btnSavePayrollFormat) {
     btnSavePayrollFormat.addEventListener('click', async () => {
-      state.customPayrollFormat.current = customCurrentFormatInput ? customCurrentFormatInput.value.trim() : '';
-      state.customPayrollFormat.next = customNextFormatInput ? customNextFormatInput.value.trim() : '';
+      state.customPayrollFormat.current = customCurrentFormatInput
+        ? customCurrentFormatInput.value.trim()
+        : '';
+      state.customPayrollFormat.next = customNextFormatInput
+        ? customNextFormatInput.value.trim()
+        : '';
       try {
         await saveSettingRobust('custom_payroll_format', JSON.stringify(state.customPayrollFormat));
         showToast('Payroll format saved!', 'success');
@@ -494,11 +540,11 @@ export function init() {
   }
 
   // Security / 2FA
-    if (btnShowSecurity) {
+  if (btnShowSecurity) {
     btnShowSecurity.addEventListener('click', () => {
       const secSection = document.getElementById('manager-security-section');
       if (secSection) secSection.classList.toggle('hidden');
-      
+
       // Keep the 2FA initialization just in case it's opened
       if (!state.currentManager) return;
       if (enable2FA) {

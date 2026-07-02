@@ -1,23 +1,30 @@
-import { state, showToast, checkLocation, calculateTotalHoursForLogs, parseShiftStartTime } from './utils.js';
+import {
+  state,
+  showToast,
+  checkLocation,
+  calculateTotalHoursForLogs,
+  parseShiftStartTime,
+} from './utils.js';
 
 // --- Camera (Anti-Buddy Punching) ---
 export function startCamera() {
   const photoVideo = document.getElementById('photo-video');
   const cameraContainer = document.getElementById('camera-container');
   if (!photoVideo || !state.ANTI_BUDDY_ENABLED) return;
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
-    .then(stream => {
+  navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: 'user' } })
+    .then((stream) => {
       state.cameraStream = stream;
       photoVideo.srcObject = stream;
       if (cameraContainer) cameraContainer.style.display = 'block';
     })
-    .catch(err => console.error('Camera access denied or unavailable', err));
+    .catch((err) => console.error('Camera access denied or unavailable', err));
 }
 
 export function stopCamera() {
   const cameraContainer = document.getElementById('camera-container');
   if (state.cameraStream) {
-    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream.getTracks().forEach((t) => t.stop());
     state.cameraStream = null;
   }
   if (cameraContainer) cameraContainer.style.display = 'none';
@@ -39,8 +46,18 @@ function updateClock() {
   const clockDisplay = document.getElementById('clock-display');
   const dateDisplay = document.getElementById('date-display');
   const now = new Date();
-  if (clockDisplay) clockDisplay.textContent = now.toLocaleTimeString('en-US', { hour12: true, timeZone: 'America/Chicago' });
-  if (dateDisplay) dateDisplay.textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Chicago' });
+  if (clockDisplay)
+    clockDisplay.textContent = now.toLocaleTimeString('en-US', {
+      hour12: true,
+      timeZone: 'America/Chicago',
+    });
+  if (dateDisplay)
+    dateDisplay.textContent = now.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'America/Chicago',
+    });
 }
 
 // --- Idle Timeout ---
@@ -51,6 +68,87 @@ export function resetIdleTimeout() {
       resetTimeclockState();
       showToast('Session expired due to inactivity', 'warning');
     }, 45000);
+  }
+}
+
+async function updateClockActions() {
+  if (!state.currentUser || state.currentUser.is_salary) return;
+
+  const btnClockIn = document.getElementById('btn-clock-in');
+  const btnClockOut = document.getElementById('btn-clock-out');
+  const btnStartLunch = document.getElementById('btn-start-lunch');
+  const btnEndLunch = document.getElementById('btn-end-lunch');
+  const grid = document.getElementById('clock-action-grid');
+
+  if (!btnClockIn || !btnClockOut || !btnStartLunch || !btnEndLunch) return;
+
+  // Temporarily hide all while loading status
+  btnClockIn.style.display = 'none';
+  btnClockOut.style.display = 'none';
+  btnStartLunch.style.display = 'none';
+  btnEndLunch.style.display = 'none';
+
+  try {
+    const { data: logs, error } = await window.supabaseClient
+      .from('time_logs')
+      .select('action, created_at')
+      .eq('user_id', state.currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const lastAction = !error && logs && logs.length > 0 ? logs[0].action : 'OUT';
+    let statusText = 'Clocked Out';
+    let badgeClass = 'status-out';
+
+    if (lastAction === 'IN' || lastAction === 'END_LUNCH') {
+      // Clocked In: can Clock Out or Start Lunch
+      btnClockOut.style.display = 'flex';
+      btnStartLunch.style.display = 'flex';
+
+      const timeStr =
+        logs && logs[0]
+          ? new Date(logs[0].created_at).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+              timeZone: 'America/Chicago',
+            })
+          : '';
+      statusText = `Clocked In since ${timeStr}`;
+      badgeClass = 'status-in';
+      if (grid) grid.className = 'clock-action-grid cols-2';
+    } else if (lastAction === 'START_LUNCH') {
+      // On Lunch: can only End Lunch
+      btnEndLunch.style.display = 'flex';
+      statusText = 'On Lunch Break';
+      badgeClass = 'status-lunch';
+      if (grid) grid.className = 'clock-action-grid cols-1';
+    } else {
+      // Clocked Out: can only Clock In
+      btnClockIn.style.display = 'flex';
+      statusText = 'Clocked Out';
+      badgeClass = 'status-out';
+      if (grid) grid.className = 'clock-action-grid cols-1';
+    }
+
+    // Remove any existing status badge
+    const existingBadge = document.querySelector('.employee-status-badge');
+    if (existingBadge) existingBadge.remove();
+
+    // Insert new status badge into welcome card
+    const welcomeCard = document.querySelector('.employee-welcome-card');
+    if (welcomeCard) {
+      const badgeHtml = `
+        <div class="employee-status-badge ${badgeClass}">
+          <span class="status-indicator"></span>
+          <span>${statusText}</span>
+        </div>
+      `;
+      welcomeCard.insertAdjacentHTML('beforeend', badgeHtml);
+    }
+  } catch (e) {
+    console.error('Failed to update clock actions:', e);
+    btnClockIn.style.display = 'flex'; // Safe fallback
   }
 }
 
@@ -73,11 +171,29 @@ function showUserSession(userData) {
 
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) {
-    const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Supervisor', 'Payroll'].includes(userData.role);
+    const isManager =
+      userData.role &&
+      [
+        'Admin',
+        'Site Manager',
+        'Assistant Site Manager',
+        'Manager',
+        'Supervisor',
+        'Payroll',
+      ].includes(userData.role);
     btnGoToManager.style.display = isManager ? 'flex' : 'none';
   }
 
-  const isManager = userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Supervisor', 'Payroll'].includes(userData.role);
+  const isManager =
+    userData.role &&
+    [
+      'Admin',
+      'Site Manager',
+      'Assistant Site Manager',
+      'Manager',
+      'Supervisor',
+      'Payroll',
+    ].includes(userData.role);
   const navManager = document.getElementById('nav-manager');
   if (navManager) {
     if (isManager) navManager.classList.remove('hidden');
@@ -89,10 +205,20 @@ function showUserSession(userData) {
     if (isManager) navTimesheet.classList.remove('hidden');
     else navTimesheet.classList.add('hidden');
   }
+
+  // Hide login footer
+  const loginFooter = document.getElementById('login-footer');
+  if (loginFooter) loginFooter.classList.add('hidden');
+
+  // Fetch status and update button states dynamically
+  updateClockActions();
 }
 
 export function resetTimeclockState() {
-  if (state.idleTimeout) { clearTimeout(state.idleTimeout); state.idleTimeout = null; }
+  if (state.idleTimeout) {
+    clearTimeout(state.idleTimeout);
+    state.idleTimeout = null;
+  }
   stopCamera();
   state.currentPin = '';
 
@@ -113,7 +239,17 @@ export function resetTimeclockState() {
     try {
       const userData = JSON.parse(saved);
       showUserSession(userData);
-      if (userData.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Supervisor', 'Payroll'].includes(userData.role)) {
+      if (
+        userData.role &&
+        [
+          'Admin',
+          'Site Manager',
+          'Assistant Site Manager',
+          'Manager',
+          'Supervisor',
+          'Payroll',
+        ].includes(userData.role)
+      ) {
         import('./manager.js').then(({ unlockManagerByPin }) => unlockManagerByPin(userData));
       }
       resetIdleTimeout();
@@ -128,16 +264,29 @@ export function resetTimeclockState() {
   const pinPad = document.querySelector('.pin-pad');
   const actionButtons = document.getElementById('action-buttons');
 
-  if (pinDisplay) { pinDisplay.value = ''; }
+  if (pinDisplay) {
+    pinDisplay.value = '';
+  }
   if (pinPad) pinPad.classList.remove('hidden');
   if (pinDisplay) pinDisplay.classList.remove('hidden');
   if (actionButtons) actionButtons.classList.add('hidden');
   document.body.classList.add('logged-out');
+
+  // Show login footer
+  const loginFooter = document.getElementById('login-footer');
+  if (loginFooter) loginFooter.classList.remove('hidden');
+
+  // Clean status badge
+  const existingBadge = document.querySelector('.employee-status-badge');
+  if (existingBadge) existingBadge.remove();
 }
 
 export function signOut() {
   localStorage.removeItem('lcw_web_user');
-  if (state.idleTimeout) { clearTimeout(state.idleTimeout); state.idleTimeout = null; }
+  if (state.idleTimeout) {
+    clearTimeout(state.idleTimeout);
+    state.idleTimeout = null;
+  }
   stopCamera();
   state.currentPin = '';
   state.currentUser = null;
@@ -147,12 +296,22 @@ export function signOut() {
   const actionButtons = document.getElementById('action-buttons');
   const modalAnnouncement = document.getElementById('modal-announcement');
 
-  if (pinDisplay) { pinDisplay.value = ''; }
+  if (pinDisplay) {
+    pinDisplay.value = '';
+  }
   if (pinPad) pinPad.classList.remove('hidden');
   if (pinDisplay) pinDisplay.classList.remove('hidden');
   if (actionButtons) actionButtons.classList.add('hidden');
   if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
   document.body.classList.add('logged-out');
+
+  // Show login footer
+  const loginFooter = document.getElementById('login-footer');
+  if (loginFooter) loginFooter.classList.remove('hidden');
+
+  // Clean status badge
+  const existingBadge = document.querySelector('.employee-status-badge');
+  if (existingBadge) existingBadge.remove();
 
   import('./manager.js').then(({ logoutManager }) => logoutManager());
 }
@@ -161,15 +320,26 @@ export function signOut() {
 export async function logTime(action, tips = 0) {
   if (!state.currentUser) return;
 
-  const btnMap = { IN: 'btn-clock-in', OUT: 'btn-clock-out', START_LUNCH: 'btn-start-lunch', END_LUNCH: 'btn-end-lunch' };
+  const btnMap = {
+    IN: 'btn-clock-in',
+    OUT: 'btn-clock-out',
+    START_LUNCH: 'btn-start-lunch',
+    END_LUNCH: 'btn-end-lunch',
+  };
   const btn = document.getElementById(btnMap[action]);
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  }
 
   try {
     if (navigator.onLine) {
       const { data: lastLog, error: logErr } = await window.supabaseClient
-        .from('time_logs').select('action').eq('user_id', state.currentUser.id)
-        .order('created_at', { ascending: false }).limit(1);
+        .from('time_logs')
+        .select('action')
+        .eq('user_id', state.currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (!logErr && lastLog && lastLog.length > 0) {
         const last = lastLog[0].action;
@@ -180,7 +350,8 @@ export async function logTime(action, tips = 0) {
         if (action === 'IN' && isIn) throw new Error('You are already clocked in.');
         if (action === 'OUT' && isOut) throw new Error('You are already clocked out.');
         if (action === 'START_LUNCH' && isLunch) throw new Error('You are already on lunch.');
-        if (action === 'END_LUNCH' && !isLunch) throw new Error('You must be on lunch to end lunch.');
+        if (action === 'END_LUNCH' && !isLunch)
+          throw new Error('You must be on lunch to end lunch.');
         if ((action === 'START_LUNCH' || action === 'OUT') && !isIn && !isLunch) {
           throw new Error('You must clock in first.');
         }
@@ -193,8 +364,16 @@ export async function logTime(action, tips = 0) {
 
     if (!navigator.onLine) {
       const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
-      const offlineEntry = { user_id: state.currentUser.id, action, created_at: new Date().toISOString() };
-      if (location) { offlineEntry.punch_lat = location.lat; offlineEntry.punch_lon = location.lon; offlineEntry.punch_accuracy = location.accuracy; }
+      const offlineEntry = {
+        user_id: state.currentUser.id,
+        action,
+        created_at: new Date().toISOString(),
+      };
+      if (location) {
+        offlineEntry.punch_lat = location.lat;
+        offlineEntry.punch_lon = location.lon;
+        offlineEntry.punch_accuracy = location.accuracy;
+      }
       offlineLogs.push(offlineEntry);
       localStorage.setItem('offlineLogs', JSON.stringify(offlineLogs));
       showToast(`Offline: Saved ${action.replace('_', ' ')} locally.`);
@@ -205,7 +384,11 @@ export async function logTime(action, tips = 0) {
     const photoData = capturePhoto();
     const payload = { user_id: state.currentUser.id, action };
     if (photoData) payload.photo_base64 = photoData;
-    if (location) { payload.punch_lat = location.lat; payload.punch_lon = location.lon; payload.punch_accuracy = location.accuracy; }
+    if (location) {
+      payload.punch_lat = location.lat;
+      payload.punch_lon = location.lon;
+      payload.punch_accuracy = location.accuracy;
+    }
     if (action === 'OUT' && tips > 0) payload.tips_declared = tips;
 
     const { error } = await window.supabaseClient.from('time_logs').insert([payload]);
@@ -221,7 +404,10 @@ export async function logTime(action, tips = 0) {
   } catch (err) {
     showToast(err.message || 'Error saving log.', 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
   }
 }
 
@@ -268,8 +454,12 @@ function initTimesheetSigning() {
       try {
         const { getStartOfWeek } = await import('./utils.js');
         const weekStart = getStartOfWeek();
-        const { data, error } = await window.supabaseClient.from('time_logs')
-          .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy').eq('user_id', state.currentUser.id)
+        const { data, error } = await window.supabaseClient
+          .from('time_logs')
+          .select(
+            'id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy',
+          )
+          .eq('user_id', state.currentUser.id)
           .gte('created_at', weekStart.toISOString())
           .order('created_at', { ascending: true });
 
@@ -277,12 +467,19 @@ function initTimesheetSigning() {
         signTimesheetLoading.classList.add('hidden');
 
         let html = '';
-        data.forEach(log => {
+        data.forEach((log) => {
           if (log.action === 'TIMESHEET_APPROVED') return;
           const d = new Date(log.created_at);
           const dateStr = d.toLocaleDateString('en-US');
           const timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-          const colors = { IN: 'var(--success)', CLOCK_IN: 'var(--success)', OUT: 'var(--danger)', CLOCK_OUT: 'var(--danger)', START_LUNCH: 'var(--warning)', END_LUNCH: 'var(--primary)' };
+          const colors = {
+            IN: 'var(--success)',
+            CLOCK_IN: 'var(--success)',
+            OUT: 'var(--danger)',
+            CLOCK_OUT: 'var(--danger)',
+            START_LUNCH: 'var(--warning)',
+            END_LUNCH: 'var(--primary)',
+          };
           const color = colors[log.action] || 'var(--text)';
           html += `<tr style="border-bottom:1px solid var(--border);">
             <td style="padding:8px 5px;">${dateStr}</td>
@@ -291,7 +488,9 @@ function initTimesheetSigning() {
           </tr>`;
         });
 
-        signTimesheetBody.innerHTML = html || '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted);">No logs found for this week.</td></tr>';
+        signTimesheetBody.innerHTML =
+          html ||
+          '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted);">No logs found for this week.</td></tr>';
         signTimesheetTotal.textContent = calculateTotalHoursForLogs(data).toFixed(2);
       } catch (err) {
         if (signTimesheetLoading) signTimesheetLoading.textContent = 'Error loading logs.';
@@ -313,7 +512,9 @@ function initTimesheetSigning() {
       btnApproveSign.disabled = true;
       btnApproveSign.textContent = 'Approving...';
       try {
-        const { error } = await window.supabaseClient.from('time_logs').insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED' }]);
+        const { error } = await window.supabaseClient
+          .from('time_logs')
+          .insert([{ user_id: state.currentUser.id, action: 'TIMESHEET_APPROVED' }]);
         if (error) throw error;
         showToast('Timesheet Digitally Signed!');
         modalSignTimesheet.classList.add('hidden');
@@ -360,7 +561,7 @@ export function init() {
     });
   }
 
-  pinBtns.forEach(btn => {
+  pinBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       if (state.currentPin.length < 4) {
         state.currentPin += btn.dataset.val;
@@ -407,7 +608,17 @@ export function init() {
         showUserSession(data);
 
         // Management roles unlock their sections via PIN (no username/password needed)
-        if (data.role && ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Supervisor', 'Payroll'].includes(data.role)) {
+        if (
+          data.role &&
+          [
+            'Admin',
+            'Site Manager',
+            'Assistant Site Manager',
+            'Manager',
+            'Supervisor',
+            'Payroll',
+          ].includes(data.role)
+        ) {
           const { unlockManagerByPin } = await import('./manager.js');
           unlockManagerByPin(data);
         }
@@ -462,13 +673,15 @@ export function init() {
       btnRequestEarlyClockin.disabled = true;
       btnRequestEarlyClockin.textContent = 'Requesting...';
       try {
-        const { error } = await window.supabaseClient.from('early_clockin_approvals').insert([{
-          user_id: state.currentUser.id,
-          employee_name: state.currentUser.name,
-          shift_date: modalEarlyClockin.dataset.shiftDate,
-          shift_start: modalEarlyClockin.dataset.shiftStart,
-          status: 'pending'
-        }]);
+        const { error } = await window.supabaseClient.from('early_clockin_approvals').insert([
+          {
+            user_id: state.currentUser.id,
+            employee_name: state.currentUser.name,
+            shift_date: modalEarlyClockin.dataset.shiftDate,
+            shift_start: modalEarlyClockin.dataset.shiftStart,
+            status: 'pending',
+          },
+        ]);
         if (error) throw error;
         showToast('Request sent — check with your manager.', 'warning');
         modalEarlyClockin.classList.add('hidden');
@@ -480,7 +693,6 @@ export function init() {
       }
     });
   }
-
 
   async function checkWifiLock() {
     if (!state.WIFI_LOCK_ENABLED) return true;
@@ -497,11 +709,14 @@ export function init() {
     return false;
   }
 
-async function checkAndClockIn() {
+  async function checkAndClockIn() {
     if (!state.currentUser) return;
     const wifiOk = await checkWifiLock();
     if (!wifiOk) return;
-    if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) { logTime('IN'); return; }
+    if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) {
+      logTime('IN');
+      return;
+    }
     try {
       const now = new Date();
       const chicagoNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
@@ -511,17 +726,20 @@ async function checkAndClockIn() {
       const todayAbbr = dayNames[chicagoNow.getDay()];
 
       const { data: schedules } = await window.supabaseClient
-        .from('schedules').select('content').order('created_at', { ascending: false }).limit(5);
+        .from('schedules')
+        .select('content')
+        .order('created_at', { ascending: false })
+        .limit(5);
 
       if (schedules && schedules.length > 0) {
         for (const sched of schedules) {
           try {
             const parsed = JSON.parse(sched.content);
-            const myRow = parsed.rows?.find(r => r.employee === state.currentUser.name);
+            const myRow = parsed.rows?.find((r) => r.employee === state.currentUser.name);
             if (!myRow) continue;
 
-            const todayIdx = (parsed.headers || []).findIndex(h =>
-              h && h.toString().toUpperCase().startsWith(todayAbbr.toUpperCase())
+            const todayIdx = (parsed.headers || []).findIndex(
+              (h) => h && h.toString().toUpperCase().startsWith(todayAbbr.toUpperCase()),
             );
             if (todayIdx < 0) continue;
 
@@ -553,11 +771,17 @@ async function checkAndClockIn() {
             const shiftDisplay = `${h12}:${String(startTime.minute).padStart(2, '0')} ${ampm}`;
 
             if (approvalStatus === 'pending') {
-              showToast(`Shift starts at ${shiftDisplay}. Approval pending — check with your manager.`, 'warning');
+              showToast(
+                `Shift starts at ${shiftDisplay}. Approval pending — check with your manager.`,
+                'warning',
+              );
               return;
             }
             if (approvalStatus === 'denied') {
-              showToast(`Early clock-in was denied. Your shift starts at ${shiftDisplay}.`, 'error');
+              showToast(
+                `Early clock-in was denied. Your shift starts at ${shiftDisplay}.`,
+                'error',
+              );
               return;
             }
 
@@ -569,10 +793,15 @@ async function checkAndClockIn() {
               modalEarlyClockin.dataset.shiftStart = shiftDisplay;
               modalEarlyClockin.classList.remove('hidden');
             } else {
-              showToast(`Shift starts at ${shiftDisplay}. Request early clock-in from a manager.`, 'error');
+              showToast(
+                `Shift starts at ${shiftDisplay}. Request early clock-in from a manager.`,
+                'error',
+              );
             }
             return;
-          } catch (e) { continue; }
+          } catch (e) {
+            continue;
+          }
         }
       }
     } catch (e) {
@@ -582,8 +811,14 @@ async function checkAndClockIn() {
   }
 
   if (btnClockIn) btnClockIn.addEventListener('click', () => checkAndClockIn());
-if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (await checkWifiLock()) logTime('START_LUNCH'); });
-  if (btnEndLunch) btnEndLunch.addEventListener('click', async () => { if (await checkWifiLock()) logTime('END_LUNCH'); });
+  if (btnStartLunch)
+    btnStartLunch.addEventListener('click', async () => {
+      if (await checkWifiLock()) logTime('START_LUNCH');
+    });
+  if (btnEndLunch)
+    btnEndLunch.addEventListener('click', async () => {
+      if (await checkWifiLock()) logTime('END_LUNCH');
+    });
 
   if (btnClockOut) {
     btnClockOut.addEventListener('click', async () => {
@@ -630,7 +865,9 @@ if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (awa
     const btnCancelForgot = document.getElementById('btn-cancel-forgot');
     const btnSubmitForgot = document.getElementById('btn-submit-forgot');
 
-    btnForgotPin.addEventListener('click', () => { if (modalForgotPin) modalForgotPin.classList.remove('hidden'); });
+    btnForgotPin.addEventListener('click', () => {
+      if (modalForgotPin) modalForgotPin.classList.remove('hidden');
+    });
 
     if (btnCancelForgot) {
       btnCancelForgot.addEventListener('click', () => {
@@ -649,13 +886,30 @@ if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (awa
           return;
         }
         try {
-          const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).single();
-          if (error || !user) { showToast('User not found', 'error'); return; }
+          const { data: user, error } = await window.supabaseClient
+            .from('users')
+            .select('id')
+            .eq('name', name)
+            .single();
+          if (error || !user) {
+            showToast('User not found', 'error');
+            return;
+          }
 
-          const { data: existing } = await window.supabaseClient.from('users').select('id').eq('pin', newPin).single();
-          if (existing) { showToast('PIN is already in use', 'error'); return; }
+          const { data: existing } = await window.supabaseClient
+            .from('users')
+            .select('id')
+            .eq('pin', newPin)
+            .single();
+          if (existing) {
+            showToast('PIN is already in use', 'error');
+            return;
+          }
 
-          const { error: updateError } = await window.supabaseClient.from('users').update({ pending_pin: newPin }).eq('id', user.id);
+          const { error: updateError } = await window.supabaseClient
+            .from('users')
+            .update({ pending_pin: newPin })
+            .eq('id', user.id);
           if (updateError) throw updateError;
 
           showToast('PIN change requested! Waiting for manager approval.');
@@ -675,8 +929,12 @@ if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (awa
       const { data: users, error: uErr } = await window.supabaseClient.from('users').select('id');
       if (uErr || !users) return;
       for (const u of users) {
-        const { data: latestLog, error: logErr } = await window.supabaseClient.from('time_logs')
-          .select('action, created_at').eq('user_id', u.id).order('created_at', { ascending: false }).limit(1);
+        const { data: latestLog, error: logErr } = await window.supabaseClient
+          .from('time_logs')
+          .select('action, created_at')
+          .eq('user_id', u.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
         if (!logErr && latestLog && latestLog.length > 0) {
           const log = latestLog[0];
           if (log.action === 'IN' || log.action === 'START_LUNCH') {
@@ -686,26 +944,37 @@ if (btnStartLunch) btnStartLunch.addEventListener('click', async () => { if (awa
               const autoOut = new Date(logDate);
               autoOut.setHours(23, 59, 59, 999);
               await window.supabaseClient.from('time_logs').insert({
-                user_id: u.id, action: 'OUT',
+                user_id: u.id,
+                action: 'OUT',
                 created_at: autoOut.toISOString(),
-                edited_by_manager: 'System Auto-Sweep'
+                edited_by_manager: 'System Auto-Sweep',
               });
             }
           }
         }
       }
-    } catch (e) { console.error('Sweep failed:', e); }
+    } catch (e) {
+      console.error('Sweep failed:', e);
+    }
   }
 
   async function purgeOldChecklists() {
     try {
       const twoDaysAgo = new Date();
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-      await window.supabaseClient.from('checklist_completions').delete().lt('created_at', twoDaysAgo.toISOString());
-    } catch (e) { console.error('Checklist purge failed:', e); }
+      await window.supabaseClient
+        .from('checklist_completions')
+        .delete()
+        .lt('created_at', twoDaysAgo.toISOString());
+    } catch (e) {
+      console.error('Checklist purge failed:', e);
+    }
   }
 
-  setInterval(() => { performMidnightSweep(); purgeOldChecklists(); }, 3600000);
+  setInterval(() => {
+    performMidnightSweep();
+    purgeOldChecklists();
+  }, 3600000);
   performMidnightSweep();
   purgeOldChecklists();
 

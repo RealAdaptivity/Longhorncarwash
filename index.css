@@ -442,31 +442,256 @@ nav {
   transition: 0.2s;
 }
 
-.btn-success {
-  background-color: var(--success);
-  color: white;
+/* ── Redesigned Timeclock Action Panel ── */
+
+.employee-welcome-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  border-radius: 16px;
+  margin-bottom: 25px;
+  text-align: center;
+  box-shadow: 0 4px 15px var(--shadow-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
-.btn-success:hover {
-  background-color: #1B5E20;
-}
-
-.btn-danger {
-  background-color: var(--danger);
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #B71C1C;
-}
-
-.btn-ghost {
-  background: transparent;
+.welcome-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
   color: var(--text-muted);
+  letter-spacing: 1.5px;
+  font-weight: 700;
 }
 
-.btn-ghost:hover {
+#employee-welcome {
+  font-size: 1.6rem;
+  font-weight: 800;
   color: var(--text);
+  margin: 0;
+}
+
+.employee-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+
+.employee-status-badge.status-in {
+  background: rgba(46, 204, 113, 0.12);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.employee-status-badge.status-out {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.employee-status-badge.status-lunch {
+  background: rgba(241, 196, 15, 0.12);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.25);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: currentColor;
+  animation: statusPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes statusPulse {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 0.4; transform: scale(0.9); }
+}
+
+/* Punches Action Grid */
+.clock-action-grid {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+.clock-action-grid.cols-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.clock-action-grid.cols-1 {
+  grid-template-columns: 1fr;
+}
+
+.action-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #ffffff;
+}
+
+.action-card-btn:active {
+  transform: scale(0.96);
+}
+
+.action-btn-icon {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2.2;
+}
+
+/* Button colors */
+.action-in {
+  background: linear-gradient(135deg, #2E7D32, #1B5E20);
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.35);
+}
+.action-in:hover {
+  background: linear-gradient(135deg, #358f39, #206d25);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.45);
+}
+
+.action-out {
+  background: linear-gradient(135deg, #C62828, #B71C1C);
+  box-shadow: 0 4px 15px rgba(198, 40, 40, 0.35);
+}
+.action-out:hover {
+  background: linear-gradient(135deg, #d33030, #c82222);
+  box-shadow: 0 6px 20px rgba(198, 40, 40, 0.45);
+}
+
+.action-lunch-start {
+  background: linear-gradient(135deg, #D4820A, #B45309);
+  box-shadow: 0 4px 15px rgba(212, 130, 10, 0.35);
+}
+.action-lunch-start:hover {
+  background: linear-gradient(135deg, #e38f15, #c75e0d);
+  box-shadow: 0 6px 20px rgba(212, 130, 10, 0.45);
+}
+
+.action-lunch-end {
+  background: linear-gradient(135deg, #1565C0, #0D47A1);
+  box-shadow: 0 4px 15px rgba(21, 101, 192, 0.35);
+}
+.action-lunch-end:hover {
+  background: linear-gradient(135deg, #1a75dd, #1052b5);
+  box-shadow: 0 6px 20px rgba(21, 101, 192, 0.45);
+}
+
+/* Administrative Action List */
+.admin-action-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  width: 100%;
+  box-shadow: 0 4px 15px var(--shadow-strong);
+}
+
+.admin-list-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.admin-list-item:last-child {
+  border-bottom: none;
+}
+
+.admin-list-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.admin-list-item:active {
+  background-color: var(--border);
+}
+
+.admin-list-item-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
+}
+
+.chevron-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+
+.admin-list-item:hover .chevron-icon {
+  transform: translateX(3px);
+  opacity: 0.8;
+}
+
+/* Sign Out link */
+.btn-signout-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  margin: 10px auto 0 auto;
+}
+
+.btn-signout-link svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+}
+
+.btn-signout-link:hover {
+  background-color: rgba(231, 76, 60, 0.08);
+}
+
+.btn-signout-link:active {
+  transform: scale(0.96);
 }
 
 /* MANAGER */

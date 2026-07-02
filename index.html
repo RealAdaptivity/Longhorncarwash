@@ -192,10 +192,12 @@
             <button class="pin-btn btn-primary" id="btn-submit">OK</button>
           </div>
 
-          <p id="btn-forgot-pin"
-            style="margin-top: 20px; color: var(--text-muted); cursor: pointer; text-decoration: underline; font-size: 0.9rem;">
-            Forgot PIN? Contact your manager.</p>
-          <p class="login-credit">Built by RealAdaptivity LLC</p>
+          <div id="login-footer">
+            <p id="btn-forgot-pin"
+              style="margin-top: 20px; color: var(--text-muted); cursor: pointer; text-decoration: underline; font-size: 0.9rem;">
+              Forgot PIN? Contact your manager.</p>
+            <p class="login-credit">Built by RealAdaptivity LLC</p>
+          </div>
 
           <div class="action-buttons hidden" id="action-buttons">
 
@@ -206,42 +208,90 @@
             </div>
             <canvas id="photo-canvas" style="display: none;"></canvas>
 
-            <h2 id="employee-welcome" style="margin-bottom: 25px; color: var(--text);">Welcome, Name</h2>
+            <div class="employee-welcome-card">
+              <span class="welcome-label">Logged In As</span>
+              <h2 id="employee-welcome">Name</h2>
+            </div>
 
             <div id="salary-employee-msg"
               style="display: none; margin-bottom: 20px; padding: 20px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.95rem; text-align: center; font-style: italic;">
               Salaried employees do not clock in.
             </div>
 
-            <div id="clock-action-grid"
-              style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-              <button id="btn-clock-in" class="btn-action"
-                style="margin:0; background: #1C1C1E; color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);">
-                <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK IN</span>
+            <div id="clock-action-grid" class="clock-action-grid">
+              <button id="btn-clock-in" class="action-card-btn action-in">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
+                </svg>
+                <span>CLOCK IN</span>
               </button>
-              <button id="btn-clock-out" class="btn-action btn-danger"
-                style="margin:0; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(198, 40, 40, 0.2);">
-                <span style="font-size: 0.95rem; letter-spacing: 1px;">CLOCK OUT</span>
+              <button id="btn-clock-out" class="action-card-btn action-out">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>CLOCK OUT</span>
               </button>
-              <button id="btn-start-lunch" class="btn-action"
-                style="margin:0; background: #5C5C5E; color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);">
-                <span style="font-size: 0.95rem; letter-spacing: 1px;">START LUNCH</span>
+              <button id="btn-start-lunch" class="action-card-btn action-lunch-start">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+                  <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+                  <line x1="6" y1="1" x2="6" y2="4" />
+                  <line x1="10" y1="1" x2="10" y2="4" />
+                  <line x1="14" y1="1" x2="14" y2="4" />
+                </svg>
+                <span>START LUNCH</span>
               </button>
-              <button id="btn-end-lunch" class="btn-action"
-                style="margin:0; background: var(--primary); color: white; padding: 25px 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(169, 59, 47, 0.2);">
-                <span style="font-size: 0.95rem; letter-spacing: 1px;">END LUNCH</span>
+              <button id="btn-end-lunch" class="action-card-btn action-lunch-end">
+                <svg class="action-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 3l14 9-14 9V3z" />
+                </svg>
+                <span>END LUNCH</span>
               </button>
             </div>
-            <button id="btn-go-to-manager" class="btn-action"
-              style="margin: 0 0 10px 0; background: var(--primary); color: white; display: none; align-items: center; justify-content: center; gap: 8px;">
-              Go to Manager Dashboard
+
+            <div class="admin-action-list">
+              <button id="btn-go-to-manager" class="admin-list-item" style="display: none;">
+                <div class="admin-list-item-content">
+                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <span>Go to Manager Dashboard</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+
+              <button id="btn-show-sign-timesheet" class="admin-list-item">
+                <div class="admin-list-item-content">
+                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  <span>Review & Sign Timesheet</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+
+            <button onclick="window.signOut()" class="btn-signout-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Sign Out</span>
             </button>
-            <button id="btn-show-sign-timesheet" class="btn-action"
-              style="margin: 0 0 10px 0; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px;">
-              Review & Sign Timesheet
-            </button>
-            <button onclick="window.signOut()" class="btn-action btn-ghost"
-              style="margin:0; border: 1px solid var(--primary); color: var(--primary);">Sign Out</button>
           </div>
         </div>
 

@@ -9,17 +9,73 @@
     "test": "node --test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "pack:mac": "electron-builder --mac dmg",
+    "pack:win": "electron-builder --win nsis",
+    "pack:all": "electron-builder --mac --win"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "electron": "^43.0.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
     "electron-squirrel-startup": "^1.0.0",
     "eslint": "^9.39.4",
     "globals": "^17.7.0",
     "prettier": "^3.9.4"
+  },
+  "build": {
+    "appId": "com.longhorncarwash.pos",
+    "productName": "Longhorn Car Wash POS",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "index.html",
+      "index.js",
+      "preload.js",
+      "renderer.js",
+      "logo.png",
+      "supabaseConfig.js",
+      "modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.png"
+    },
+    "dmg": {
+      "title": "Install Longhorn Car Wash POS",
+      "icon": "build/icon.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Longhorn Car Wash POS"
+    }
   }
 }
