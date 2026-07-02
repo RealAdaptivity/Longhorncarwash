@@ -11,14 +11,26 @@ export function startCamera() {
   const photoVideo = document.getElementById('photo-video');
   const cameraContainer = document.getElementById('camera-container');
   if (!photoVideo || !state.ANTI_BUDDY_ENABLED) return;
-  navigator.mediaDevices
-    .getUserMedia({ video: { facingMode: 'user' } })
-    .then((stream) => {
-      state.cameraStream = stream;
-      photoVideo.srcObject = stream;
-      if (cameraContainer) cameraContainer.style.display = 'block';
-    })
-    .catch((err) => console.error('Camera access denied or unavailable', err));
+  // navigator.mediaDevices is undefined in insecure contexts (http/file) and
+  // some in-app webviews. Reading .getUserMedia off undefined throws
+  // synchronously, so guard before touching it — otherwise this bubbles out of
+  // the (often non-async) callers below and breaks the punch flow.
+  if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+    console.error('Camera unavailable in this environment');
+    return;
+  }
+  try {
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: 'user' } })
+      .then((stream) => {
+        state.cameraStream = stream;
+        photoVideo.srcObject = stream;
+        if (cameraContainer) cameraContainer.style.display = 'block';
+      })
+      .catch((err) => console.error('Camera access denied or unavailable', err));
+  } catch (err) {
+    console.error('Camera access denied or unavailable', err);
+  }
 }
 
 export function stopCamera() {
@@ -34,11 +46,18 @@ function capturePhoto() {
   const photoVideo = document.getElementById('photo-video');
   const photoCanvas = document.getElementById('photo-canvas');
   if (!state.ANTI_BUDDY_ENABLED || !state.cameraStream || !photoVideo || !photoCanvas) return null;
-  const ctx = photoCanvas.getContext('2d');
-  photoCanvas.width = 320;
-  photoCanvas.height = 240;
-  ctx.drawImage(photoVideo, 0, 0, 320, 240);
-  return photoCanvas.toDataURL('image/jpeg', 0.5);
+  try {
+    const ctx = photoCanvas.getContext('2d');
+    if (!ctx) return null;
+    photoCanvas.width = 320;
+    photoCanvas.height = 240;
+    ctx.drawImage(photoVideo, 0, 0, 320, 240);
+    return photoCanvas.toDataURL('image/jpeg', 0.5);
+  } catch (err) {
+    // Never let a capture failure block the punch from being recorded.
+    console.error('Photo capture failed', err);
+    return null;
+  }
 }
 
 // --- Clock Display ---
