@@ -323,11 +323,24 @@ export function init() {
         return;
       }
 
+      // Retrieve the logged-in manager's name
+      let senderName = '';
+      if (state.currentUser && state.currentUser.name) {
+        senderName = state.currentUser.name;
+      } else {
+        const saved = localStorage.getItem('lcw_web_user');
+        if (saved) {
+          try {
+            senderName = JSON.parse(saved).name;
+          } catch (e) {}
+        }
+      }
+
       // Send push notifications in the background (isolated so CORS/network failures don't block the post)
       try {
         const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
           'send_push_notification',
-          { message: msg },
+          { message: msg, sender_name: senderName },
         );
 
         if (rpcErr) {
