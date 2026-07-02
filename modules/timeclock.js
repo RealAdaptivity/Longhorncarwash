@@ -545,11 +545,7 @@ export function init() {
   const pinBtns = document.querySelectorAll('.pin-btn:not(.btn-clear):not(.btn-primary)');
   const btnClear = document.getElementById('btn-clear');
   const btnSubmit = document.getElementById('btn-submit');
-  const actionButtons = document.getElementById('action-buttons');
   const btnCancelAction = document.getElementById('btn-cancel-action');
-  const announcementText = document.getElementById('announcement-text');
-  const modalAnnouncement = document.getElementById('modal-announcement');
-  const btnAcknowledgeAnnouncement = document.getElementById('btn-acknowledge-announcement');
 
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) {
@@ -623,11 +619,7 @@ export function init() {
           unlockManagerByPin(data);
         }
 
-        if (state.activeAnnouncement && state.activeAnnouncement.trim() !== '') {
-          if (announcementText) announcementText.textContent = state.activeAnnouncement;
-          if (actionButtons) actionButtons.classList.add('hidden');
-          if (modalAnnouncement) modalAnnouncement.classList.remove('hidden');
-        } else if (!data.is_salary) {
+        if (!data.is_salary) {
           startCamera();
         }
         resetIdleTimeout();
@@ -640,14 +632,6 @@ export function init() {
   }
 
   if (btnCancelAction) btnCancelAction.addEventListener('click', resetTimeclockState);
-
-  if (btnAcknowledgeAnnouncement) {
-    btnAcknowledgeAnnouncement.addEventListener('click', () => {
-      if (modalAnnouncement) modalAnnouncement.classList.add('hidden');
-      if (actionButtons) actionButtons.classList.remove('hidden');
-      if (!state.currentUser?.is_salary) startCamera();
-    });
-  }
 
   // Clock in/out buttons
   const btnClockIn = document.getElementById('btn-clock-in');
