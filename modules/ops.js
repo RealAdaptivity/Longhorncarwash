@@ -35,13 +35,59 @@ const modalViewPhoto = document.getElementById('modal-view-photo');
 const fullSizePhoto = document.getElementById('full-size-photo');
 const btnClosePhoto = document.getElementById('btn-close-photo');
 
+// Downscale + compress a maintenance/incident photo before storing it as a
+// base64 string in site_logs. These inputs accept full-resolution gallery
+// photos (multiple MB each), which are slow to upload and heavy to re-render.
+// Decode with a resolution-capped createImageBitmap so we never hold the full
+// bitmap in memory, falling back to a fully error-handled FileReader/Image path.
+const OPS_PHOTO_MAX_DIM = 1280;
+const OPS_PHOTO_QUALITY = 0.7;
+
+function encodePhoto(source, width, height) {
+  const scale = Math.min(1, OPS_PHOTO_MAX_DIM / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas not supported');
+  ctx.drawImage(source, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', OPS_PHOTO_QUALITY);
+}
+
 async function getBase64(file) {
   if (!file) return null;
+
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file);
+      try {
+        return encodePhoto(bitmap, bitmap.width, bitmap.height);
+      } finally {
+        if (typeof bitmap.close === 'function') bitmap.close();
+      }
+    } catch (err) {
+      // Fall through to the FileReader/Image path below.
+    }
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read image file'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Could not decode image'));
+      img.onload = () => {
+        try {
+          resolve(encodePhoto(img, img.naturalWidth, img.naturalHeight));
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = err => reject(err);
   });
 }
 
@@ -485,7 +531,13 @@ export function init() {
         showToast('Please fill in both fields', 'error');
         return;
       }
-      const photo = await getBase64(maintPhotoInput.files[0]);
+      let photo;
+      try {
+        photo = await getBase64(maintPhotoInput.files[0]);
+      } catch (err) {
+        showToast('Could not process that photo. Please try again.', 'error');
+        return;
+      }
       await submitSiteLog('Maintenance', { equipment_name: equipment, description: desc, photo_base64: photo });
       modalMaintenance.classList.add('hidden');
       document.getElementById('maint-equipment').value = '';
@@ -502,7 +554,13 @@ export function init() {
         showToast('Please fill in both fields', 'error');
         return;
       }
-      const photo = await getBase64(incidentPhotoInput.files[0]);
+      let photo;
+      try {
+        photo = await getBase64(incidentPhotoInput.files[0]);
+      } catch (err) {
+        showToast('Could not process that photo. Please try again.', 'error');
+        return;
+      }
       await submitSiteLog('Incident', { customer_name: customer, description: desc, photo_base64: photo });
       modalIncident.classList.add('hidden');
       document.getElementById('incident-customer').value = '';
