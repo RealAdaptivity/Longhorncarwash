@@ -317,8 +317,14 @@ export function init() {
         await saveSettingRobust('announcement', msg);
         state.activeAnnouncement = msg;
         showToast('Announcement posted successfully!', 'success');
+      } catch (e) {
+        console.error(e);
+        showToast('Failed to post announcement.', 'error');
+        return;
+      }
 
-        // Send push notifications to all approved users with the app installed (employees and management)
+      // Send push notifications in the background (isolated so CORS/network failures don't block the post)
+      try {
         const { data: usersToNotify, error: fetchErr } = await window.supabaseClient
           .from('users')
           .select('push_token')
@@ -348,9 +354,8 @@ export function init() {
             console.log(`Sent announcements to ${tokens.length} users.`);
           }
         }
-      } catch (e) {
-        console.error(e);
-        showToast('Failed to post or send notifications.', 'error');
+      } catch (pushErr) {
+        console.warn('Failed to send push notifications (CORS or network restriction):', pushErr);
       }
     });
   }
