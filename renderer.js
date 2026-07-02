@@ -172,10 +172,18 @@ initAnalytics();
 
 fetchSettings();
 
-// Clean up splash screen DOM elements after fade-out transition finishes
+// Clean up and handle splash screen DOM display
 const splashElement = document.getElementById('splash-screen');
 if (splashElement) {
-  setTimeout(() => {
-    splashElement.remove();
-  }, 2800); // 2.5s CSS animation + 300ms transition buffer
+  const isMobileApp =
+    !!window.ReactNativeWebView || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  if (isMobileApp) {
+    splashElement.style.display = 'flex'; // Only play splash animation on mobile apps
+    setTimeout(() => {
+      splashElement.remove();
+    }, 2800); // 2.5s CSS animation + 300ms transition buffer
+  } else {
+    splashElement.remove(); // Skip splash screen immediately on desktop web
+  }
 }

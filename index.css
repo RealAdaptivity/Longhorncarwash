@@ -1636,7 +1636,7 @@ nav {
   bottom: 0;
   background: radial-gradient(circle at center, #1e1b18 0%, #0c0a09 100%);
   z-index: 999999;
-  display: flex;
+  display: none; /* Hidden by default; toggled via JS on mobile app */
   align-items: center;
   justify-content: center;
   animation: hideSplash 2.5s cubic-bezier(0.85, 0, 0.15, 1) forwards;
