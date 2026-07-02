@@ -40,11 +40,29 @@ function logoutEmployeePortal() {
 }
 
 export function switchView(view) {
-  const allViews = [viewTimeclock, viewManager, viewEmployee, viewPayroll, viewSchedule, viewOps, viewSettings, viewTimesheet];
-  const allNavs = [navTimeclock, navManager, navEmployee, navPayroll, navSchedule, navOps, navSettings, navTimesheet];
+  const allViews = [
+    viewTimeclock,
+    viewManager,
+    viewEmployee,
+    viewPayroll,
+    viewSchedule,
+    viewOps,
+    viewSettings,
+    viewTimesheet,
+  ];
+  const allNavs = [
+    navTimeclock,
+    navManager,
+    navEmployee,
+    navPayroll,
+    navSchedule,
+    navOps,
+    navSettings,
+    navTimesheet,
+  ];
 
-  allViews.forEach(v => v && v.classList.remove('active'));
-  allNavs.forEach(n => n && n.classList.remove('active'));
+  allViews.forEach((v) => v && v.classList.remove('active'));
+  allNavs.forEach((n) => n && n.classList.remove('active'));
 
   if (view === 'timeclock') {
     viewTimeclock.classList.add('active');
@@ -54,7 +72,6 @@ export function switchView(view) {
     const _savedUser = _savedSession ? JSON.parse(_savedSession) : null;
     if (!_savedUser || _savedUser.role === 'Employee') logoutManager();
     logoutEmployeePortal();
-
   } else if (view === 'manager') {
     viewManager.classList.add('active');
     if (navManager) navManager.classList.add('active');
@@ -66,7 +83,6 @@ export function switchView(view) {
       if (managerAuth) managerAuth.classList.remove('hidden');
       if (managerDashboard) managerDashboard.classList.add('hidden');
     }
-
   } else if (view === 'employee') {
     viewEmployee.classList.add('active');
     if (navEmployee) navEmployee.classList.add('active');
@@ -81,11 +97,10 @@ export function switchView(view) {
       if (employeeDashboard) employeeDashboard.classList.remove('hidden');
       loadEmployeePortal(state.currentPortalEmployee.id, state.currentPortalEmployee.name);
     }
-
   } else if (view === 'timesheet') {
     viewTimesheet.classList.add('active');
     if (navTimesheet) navTimesheet.classList.add('active');
-    
+
     // We reuse manager authentication/state since timesheet is a manager function
     if (!state.managerLoggedIn) {
       if (managerAuth) managerAuth.classList.remove('hidden');
@@ -94,7 +109,6 @@ export function switchView(view) {
     } else {
       loadTimesheets();
     }
-
   } else if (view === 'payroll') {
     viewPayroll.classList.add('active');
     if (navPayroll) navPayroll.classList.add('active');
@@ -106,17 +120,14 @@ export function switchView(view) {
       if (payrollAuth) payrollAuth.classList.remove('hidden');
       if (payrollDashboard) payrollDashboard.classList.add('hidden');
     }
-
   } else if (view === 'schedule') {
     viewSchedule.classList.add('active');
     if (navSchedule) navSchedule.classList.add('active');
     loadSchedules();
-
   } else if (view === 'ops') {
     viewOps.classList.add('active');
     if (navOps) navOps.classList.add('active');
     loadOps();
-
   } else if (view === 'settings') {
     if (viewSettings) viewSettings.classList.add('active');
     if (navSettings) navSettings.classList.add('active');
@@ -160,3 +171,11 @@ initOps();
 initAnalytics();
 
 fetchSettings();
+
+// Clean up splash screen DOM elements after fade-out transition finishes
+const splashElement = document.getElementById('splash-screen');
+if (splashElement) {
+  setTimeout(() => {
+    splashElement.remove();
+  }, 2800); // 2.5s CSS animation + 300ms transition buffer
+}
