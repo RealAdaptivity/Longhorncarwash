@@ -43,6 +43,7 @@ language plpgsql security definer set search_path = public, extensions, pg_temp
 as $$
 declare v_id uuid;
 begin
+  perform pg_advisory_xact_lock(hashtext('lcw_pin_uniqueness'));
   if not public.pin_available(p_pin) then
     raise exception 'PIN is already in use' using errcode = 'unique_violation';
   end if;
@@ -82,6 +83,7 @@ language plpgsql security definer set search_path = public, extensions, pg_temp
 as $$
 declare v_id uuid;
 begin
+  perform pg_advisory_xact_lock(hashtext('lcw_pin_uniqueness'));
   select id into v_id from public.users where name = p_name limit 1;
   if v_id is null then return 'not_found'; end if;
   if not public.pin_available(p_new_pin) then return 'in_use'; end if;
@@ -134,13 +136,13 @@ begin
     where id = p_user_id;
 end; $$;
 
-create or replace function public.verify_manager_2fa(p_name text, p_pin text)
+create or replace function public.verify_manager_2fa(p_user_id uuid, p_pin text)
 returns boolean
 language sql stable security definer set search_path = public, extensions, pg_temp
 as $$
   select exists (
     select 1 from public.users u
-    where u.name = p_name
+    where u.id = p_user_id
       and u.two_factor_pin_hash is not null
       and u.two_factor_pin_hash = extensions.crypt(p_pin, u.two_factor_pin_hash)
   );

@@ -847,7 +847,7 @@ export function init() {
       // Verify the 2-step PIN server-side; the two_factor_pin is never sent to
       // the client.
       const { data: ok, error } = await window.supabaseClient.rpc('verify_manager_2fa', {
-        p_name: state.pending2FAUser.name,
+        p_user_id: state.pending2FAUser.id,
         p_pin: entered,
       });
       if (!error && ok) {
