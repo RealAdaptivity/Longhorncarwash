@@ -131,17 +131,24 @@ export function logoutManager() {
 }
 
 async function attemptManagerLogin(username, password) {
-  const { data: rawData, error } = await window.supabaseClient
-    .from('users').select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
-    .eq('name', username).eq('password', password)
-    .in('role', MANAGEMENT_ROLES).eq('is_approved', true)
-    .not('password', 'is', null).limit(1);
+  // Verify the password server-side so it (and two_factor_pin) never travel to
+  // the client. Role/approval are non-secret checks and stay here.
+  const { data: rawData, error } = await window.supabaseClient.rpc('authenticate_manager', {
+    p_name: username,
+    p_password: password,
+  });
 
-  if (error || !rawData || rawData.length === 0) {
+  const data = Array.isArray(rawData) ? rawData[0] : rawData;
+  if (
+    error ||
+    !data ||
+    !data.is_approved ||
+    !MANAGEMENT_ROLES.includes(data.role)
+  ) {
     showToast('Invalid credentials', 'error');
     return null;
   }
-  return rawData[0];
+  return data;
 }
 
 // --- Check and Send Payday Notification ---
@@ -458,64 +465,41 @@ export async function loadTimesheets() {
       pendingPinsBody.innerHTML = '';
       let hasPending = false;
 
-      usersData.forEach(u => {
-        if (u.is_approved === false) {
-          hasPending = true;
-          pendingCount++;
-          const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
-          tr.innerHTML = `
-            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-              <img src="${avatarUrl}" class="avatar-circle" />
-              ${u.name}
-            </td>
-            <td>New Registration</td>
-            <td>Role: ${u.role}</td>
-            <td>
-              <button class="btn btn-success btn-sm btn-approve-account" data-id="${u.id}">Approve</button>
-              <button class="btn btn-danger btn-sm btn-reject-account" data-id="${u.id}">Reject</button>
-            </td>
-          `;
-          pendingPinsBody.appendChild(tr);
-        }
-        if (u.pending_pin) {
-          hasPending = true;
-          pendingCount++;
-          const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
-          tr.innerHTML = `
-            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-              <img src="${avatarUrl}" class="avatar-circle" />
-              ${u.name}
-            </td>
-            <td>PIN Change</td>
-            <td>PIN: ${u.pending_pin}</td>
-            <td>
-              <button class="btn btn-success btn-sm btn-approve-pin" data-id="${u.id}" data-val="${u.pending_pin}">Approve</button>
-              <button class="btn btn-danger btn-sm btn-reject-pin" data-id="${u.id}">Reject</button>
-            </td>
-          `;
-          pendingPinsBody.appendChild(tr);
-        }
-        if (u.pending_password) {
-          hasPending = true;
-          pendingCount++;
-          const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
-          tr.innerHTML = `
-            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
-              <img src="${avatarUrl}" class="avatar-circle" />
-              ${u.name}
-            </td>
-            <td>Password Reset</td>
-            <td>New Password requested</td>
-            <td>
-              <button class="btn btn-success btn-sm btn-approve-pwd" data-id="${u.id}" data-val="${u.pending_password}">Approve</button>
-              <button class="btn btn-danger btn-sm btn-reject-pwd" data-id="${u.id}">Reject</button>
-            </td>
-          `;
-          pendingPinsBody.appendChild(tr);
-        }
+      // Fetch pending items via RPC so the client never receives the requested
+      // PIN/password values — the label just says a change is pending, and
+      // Approve promotes it server-side.
+      const roleById = new Map((usersData || []).map(u => [u.id, u.role]));
+      const { data: pendingItems } = await window.supabaseClient.rpc('list_pending_approvals');
+      const DEFAULT_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+      const PENDING_LABELS = {
+        registration: { type: 'New Registration', approve: 'btn-approve-account', reject: 'btn-reject-account' },
+        pin_change: { type: 'PIN Change', approve: 'btn-approve-pin', reject: 'btn-reject-pin' },
+        password_change: { type: 'Password Reset', approve: 'btn-approve-pwd', reject: 'btn-reject-pwd' },
+      };
+
+      (pendingItems || []).forEach(item => {
+        const meta = PENDING_LABELS[item.kind];
+        if (!meta) return;
+        hasPending = true;
+        pendingCount++;
+        const tr = document.createElement('tr');
+        const avatarUrl = item.avatar || DEFAULT_AVATAR;
+        const detail = item.kind === 'registration'
+          ? `Role: ${roleById.get(item.id) || 'Employee'}`
+          : 'Change requested';
+        tr.innerHTML = `
+          <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+            <img src="${avatarUrl}" class="avatar-circle" />
+            ${item.name}
+          </td>
+          <td>${meta.type}</td>
+          <td>${detail}</td>
+          <td>
+            <button class="btn btn-success btn-sm ${meta.approve}" data-id="${item.id}">Approve</button>
+            <button class="btn btn-danger btn-sm ${meta.reject}" data-id="${item.id}">Reject</button>
+          </td>
+        `;
+        pendingPinsBody.appendChild(tr);
       });
       if (pendingPinsSection) pendingPinsSection.classList.toggle('hidden', !hasPending);
     }
@@ -857,9 +841,16 @@ export function init() {
   const verify2FAPin = document.getElementById('verify-2fa-pin');
   const modal2FAVerify = document.getElementById('modal-2fa-verify');
   if (btnSubmit2FA) {
-    btnSubmit2FA.addEventListener('click', () => {
+    btnSubmit2FA.addEventListener('click', async () => {
       if (!state.pending2FAUser) return;
-      if (verify2FAPin && verify2FAPin.value === state.pending2FAUser.two_factor_pin) {
+      const entered = verify2FAPin ? verify2FAPin.value : '';
+      // Verify the 2-step PIN server-side; the two_factor_pin is never sent to
+      // the client.
+      const { data: ok, error } = await window.supabaseClient.rpc('verify_manager_2fa', {
+        p_user_id: state.pending2FAUser.id,
+        p_pin: entered,
+      });
+      if (!error && ok) {
         const user = state.pending2FAUser;
         state.pending2FAUser = null;
         if (modal2FAVerify) modal2FAVerify.classList.add('hidden');
@@ -943,42 +934,41 @@ export function init() {
   if (pendingPinsBody) {
     pendingPinsBody.addEventListener('click', async (e) => {
       const id = e.target.dataset.id;
-      const val = e.target.dataset.val;
 
       if (e.target.classList.contains('btn-approve-pin')) {
         try {
-          const { error } = await window.supabaseClient.from('users').update({ pin: val, pending_pin: null }).eq('id', id);
+          const { error } = await window.supabaseClient.rpc('approve_pin_change', { p_user_id: id });
           if (error) throw error;
           showToast('PIN change approved');
           loadTimesheets();
         } catch (err) { showToast('Failed to approve PIN change.', 'error'); }
       } else if (e.target.classList.contains('btn-reject-pin')) {
         try {
-          await window.supabaseClient.from('users').update({ pending_pin: null }).eq('id', id);
+          await window.supabaseClient.rpc('reject_pin_change', { p_user_id: id });
           showToast('PIN request rejected');
           loadTimesheets();
         } catch (err) { showToast('Failed to reject PIN request.', 'error'); }
       } else if (e.target.classList.contains('btn-approve-pwd')) {
         try {
-          await window.supabaseClient.from('users').update({ password: val, pending_password: null }).eq('id', id);
+          await window.supabaseClient.rpc('approve_password_change', { p_user_id: id });
           showToast('Password reset approved!');
           loadTimesheets();
         } catch (err) { showToast('Failed to approve password reset.', 'error'); }
       } else if (e.target.classList.contains('btn-reject-pwd')) {
         try {
-          await window.supabaseClient.from('users').update({ pending_password: null }).eq('id', id);
+          await window.supabaseClient.rpc('reject_password_change', { p_user_id: id });
           showToast('Password reset rejected');
           loadTimesheets();
         } catch (err) { showToast('Failed to reject password reset.', 'error'); }
       } else if (e.target.classList.contains('btn-approve-account')) {
         try {
-          await window.supabaseClient.from('users').update({ is_approved: true }).eq('id', id);
+          await window.supabaseClient.rpc('approve_registration', { p_user_id: id });
           showToast('Account approved!');
           loadTimesheets();
         } catch (err) { showToast('Failed to approve account.', 'error'); }
       } else if (e.target.classList.contains('btn-reject-account')) {
         try {
-          await window.supabaseClient.from('users').delete().eq('id', id);
+          await window.supabaseClient.rpc('reject_registration', { p_user_id: id });
           showToast('Account request removed');
           loadTimesheets();
         } catch (err) { showToast('Failed to reject account.', 'error'); }
@@ -1171,26 +1161,22 @@ export function init() {
 
       const payrollName = `${lastName}, ${firstName}`;
       try {
-        const payload = { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, role: role };
-        if (taxStatus !== null) payload.tax_status = taxStatus;
-        if (isLeadership) {
-          if (managerPassword) payload.password = managerPassword;   // set / change dashboard password
-          // otherwise keep their existing password
-        } else {
-          payload.password = null;   // demoted to Employee → revoke dashboard access
-        }
-
-        const { error } = await window.supabaseClient.from('users').update(payload).eq('id', state.selectedEmployeeForLogs);
-        if (error) {
-          // Retry without optional columns
-          const { error: retryError } = await window.supabaseClient.from('users')
-            .update({ name: loginName, payroll_name: payrollName, pay_rate: payRate })
-            .eq('id', state.selectedEmployeeForLogs);
-          if (retryError) throw retryError;
-          showToast('Saved (some optional fields skipped — check Supabase schema)', 'warning');
-        } else {
-          showToast('Employee details updated!');
-        }
+        // Update via RPC so any password change is hashed server-side. Password
+        // rules: leadership + a new value → set it; leadership + blank → keep;
+        // demoted to Employee → revoke.
+        const { error } = await window.supabaseClient.rpc('admin_update_employee', {
+          p_user_id: state.selectedEmployeeForLogs,
+          p_name: loginName,
+          p_payroll_name: payrollName,
+          p_pay_rate: payRate,
+          p_is_salary: isSalary,
+          p_role: role,
+          p_tax_status: taxStatus,
+          p_new_password: isLeadership ? (managerPassword || null) : null,
+          p_revoke_password: !isLeadership,
+        });
+        if (error) throw error;
+        showToast('Employee details updated!');
 
         if (state.employeeMap[state.selectedEmployeeForLogs]) {
           Object.assign(state.employeeMap[state.selectedEmployeeForLogs], { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, tax_status: taxStatus, role: role });
@@ -1308,16 +1294,24 @@ export function init() {
       }
 
       try {
-        const { data: existing } = await window.supabaseClient.from('users').select('id').eq('pin', pin).single();
-        if (existing) { showToast('PIN is already in use.', 'error'); return; }
-
         const isSalaryNew = document.getElementById('new-user-is-salary')?.checked || false;
-        const { error } = await window.supabaseClient.from('users').insert([{
-          name, payroll_name: `${lastName}, ${firstName}`, pin, role,
-          password: role !== 'Employee' ? password : null, is_approved: false,
-          is_salary: isSalaryNew,
-        }]);
-        if (error) throw error;
+        // Create via RPC so the PIN/password are hashed server-side and never
+        // written as plaintext from the client.
+        const { error } = await window.supabaseClient.rpc('admin_create_employee', {
+          p_name: name,
+          p_payroll_name: `${lastName}, ${firstName}`,
+          p_pin: pin,
+          p_role: role,
+          p_password: role !== 'Employee' ? password : null,
+          p_is_salary: isSalaryNew,
+        });
+        if (error) {
+          if (error.code === '23505' || /already in use/i.test(error.message || '')) {
+            showToast('PIN is already in use.', 'error');
+            return;
+          }
+          throw error;
+        }
 
         showToast(`Account request for ${firstName} ${lastName} submitted for approval.`);
         ['new-user-first-name', 'new-user-last-name', 'new-user-login-name', 'new-user-pin', 'new-user-password'].forEach(id => {
@@ -1354,9 +1348,14 @@ export function init() {
         const newPwd = forgotPwdNew?.value;
         if (!name || !newPwd) { showToast('Enter username and new password', 'error'); return; }
         try {
-          const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).in('role', MANAGEMENT_ROLES).single();
-          if (error || !user) { showToast('Username not found', 'error'); return; }
-          await window.supabaseClient.from('users').update({ pending_password: newPwd }).eq('id', user.id);
+          // Record the pending change server-side; the new password is hashed
+          // into the pending slot and never written as plaintext from here.
+          const { data: found, error } = await window.supabaseClient.rpc('request_password_change', {
+            p_name: name,
+            p_new_password: newPwd,
+          });
+          if (error) throw error;
+          if (!found) { showToast('Username not found', 'error'); return; }
           showToast('Password reset requested! Another manager must approve it.');
           if (modalForgotPwd) modalForgotPwd.classList.add('hidden');
           if (forgotPwdName) forgotPwdName.value = '';
