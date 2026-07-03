@@ -11,9 +11,14 @@ interface PendingApproval {
   id: string;
   name: string;
   type: string;
-  pending_password?: string;
-  pending_pin?: string;
+  kind: 'registration' | 'pin_change' | 'password_change';
 }
+
+const KIND_LABELS: Record<string, string> = {
+  registration: 'New Registration',
+  pin_change: 'PIN Change',
+  password_change: 'Password Change',
+};
 
 interface TimeOffRequest {
   id: string;
@@ -34,10 +39,9 @@ export function EmployeesScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const [approvalsRes, timeOffRes] = await Promise.all([
-      supabase.from('users')
-        .select('id, name, pending_password, pending_pin')
-        .not('pending_password', 'is', null)
-        .or('pending_pin.not.is.null,pending_password.not.is.null'),
+      // Fetch pending items via RPC so the requested PIN/password values never
+      // reach the client; Approve promotes them server-side.
+      supabase.rpc('list_pending_approvals'),
       supabase.from('time_off_requests')
         .select('id, user_id, dates, reason, status, users(name)')
         .eq('status', 'pending')
@@ -47,9 +51,8 @@ export function EmployeesScreen() {
     const approvals: PendingApproval[] = (approvalsRes.data ?? []).map((u: any) => ({
       id: u.id,
       name: u.name,
-      type: u.pending_password ? 'Password Change' : 'PIN Change',
-      pending_password: u.pending_password,
-      pending_pin: u.pending_pin,
+      kind: u.kind,
+      type: KIND_LABELS[u.kind] ?? 'Pending',
     }));
 
     const timeOff: TimeOffRequest[] = (timeOffRes.data ?? []).map((r: any) => {
@@ -69,13 +72,19 @@ export function EmployeesScreen() {
     setLoading(false);
   }, []);
 
-  async function approvePassword(userId: string, password: string) {
-    await supabase.from('users').update({ password, pending_password: null }).eq('id', userId);
+  async function approveApproval(a: PendingApproval) {
+    const fn = a.kind === 'registration' ? 'approve_registration'
+      : a.kind === 'pin_change' ? 'approve_pin_change'
+      : 'approve_password_change';
+    await supabase.rpc(fn, { p_user_id: a.id });
     loadData();
   }
 
-  async function approvePin(userId: string, pin: string) {
-    await supabase.from('users').update({ pin, pending_pin: null }).eq('id', userId);
+  async function denyApproval(a: PendingApproval) {
+    const fn = a.kind === 'registration' ? 'reject_registration'
+      : a.kind === 'pin_change' ? 'reject_pin_change'
+      : 'reject_password_change';
+    await supabase.rpc(fn, { p_user_id: a.id });
     loadData();
   }
 
@@ -113,20 +122,14 @@ export function EmployeesScreen() {
                     style={styles.denyBtn}
                     onPress={() => Alert.alert('Deny', `Deny ${a.type} for ${a.name}?`, [
                       { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Deny', style: 'destructive', onPress: () =>
-                          supabase.from('users').update({ pending_password: null, pending_pin: null }).eq('id', a.id).then(() => loadData()),
-                      },
+                      { text: 'Deny', style: 'destructive', onPress: () => denyApproval(a) },
                     ])}
                   >
                     <Text style={styles.denyBtnText}>Deny</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.approveBtn}
-                    onPress={() => {
-                      if (a.pending_password) approvePassword(a.id, a.pending_password);
-                      else if (a.pending_pin) approvePin(a.id, a.pending_pin);
-                    }}
+                    onPress={() => approveApproval(a)}
                   >
                     <Text style={styles.approveBtnText}>Approve</Text>
                   </TouchableOpacity>

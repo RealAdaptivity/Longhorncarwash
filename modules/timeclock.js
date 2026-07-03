@@ -890,33 +890,22 @@ export function init() {
           return;
         }
         try {
-          const { data: user, error } = await window.supabaseClient
-            .from('users')
-            .select('id')
-            .eq('name', name)
-            .single();
-          if (error || !user) {
+          // Records the pending PIN change server-side (verifies the user exists
+          // and the PIN is unique against the hashes). The plaintext PIN is never
+          // used as a client-side query filter.
+          const { data: result, error } = await window.supabaseClient.rpc('request_pin_change', {
+            p_name: name,
+            p_new_pin: newPin,
+          });
+          if (error) throw error;
+          if (result === 'not_found') {
             showToast('User not found', 'error');
             return;
           }
-
-          // Check PIN uniqueness server-side (hashed pins can't be matched with
-          // a plain equality filter from the client).
-          const { data: available, error: availErr } = await window.supabaseClient.rpc(
-            'pin_available',
-            { p_pin: newPin },
-          );
-          if (availErr) throw availErr;
-          if (!available) {
+          if (result === 'in_use') {
             showToast('PIN is already in use', 'error');
             return;
           }
-
-          const { error: updateError } = await window.supabaseClient
-            .from('users')
-            .update({ pending_pin: newPin })
-            .eq('id', user.id);
-          if (updateError) throw updateError;
 
           showToast('PIN change requested! Waiting for manager approval.');
           if (modalForgotPin) modalForgotPin.classList.add('hidden');

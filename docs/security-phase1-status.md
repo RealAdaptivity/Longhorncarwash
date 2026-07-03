@@ -1,51 +1,38 @@
-# Security remediation — Phase 1 status
+# Security remediation — Phase 1 + credential-hole closing
 
-Implements Phase 1 of the RLS/auth/credential remediation plan: move credential
-verification server-side and stop shipping secrets to clients. This branch is
-**additive and non-breaking** — it does not drop plaintext columns or change RLS.
+Moves ALL credential verification and writes server-side so plaintext PINs /
+passwords / 2FA PINs never travel to (or from) the web or mobile clients, and
+prepares the destructive step that removes the columns and hides the hashes.
 
-## What shipped
+Ships as **one bundle in a single mobile release**, then a gated DB migration.
 
-### Database (applied to project `pbgatghmutejbsmcedsw`)
-- **`20260711_hash_credentials_and_login_rpcs.sql`**
-  - `pin_hash` / `password_hash` columns on `public.users` (bcrypt via `pgcrypto`).
-  - `users_sync_credential_hashes` BEFORE INSERT/UPDATE trigger that rehashes
-    whenever `pin` / `password` change, so every existing write path (employee
-    creation, PIN/password change, `pending_pin` approval, 2FA setup) keeps
-    working with no code change.
-  - Backfill of existing rows.
-  - SECURITY DEFINER RPCs, `search_path` pinned, EXECUTE granted to
-    `anon`/`authenticated` only: `authenticate_pin`, `authenticate_manager`
-    (returns profile + `two_factor_enabled`, **not** `two_factor_pin`),
-    `verify_manager_2fa`, `pin_available`.
-- **`20260712_employee_portal_auth_rpc.sql`**
-  - `authenticate_employee(name, pin)` for the "My Hours" portal login.
+## Applied to the DB now (additive, non-breaking)
+- `20260711_hash_credentials_and_login_rpcs.sql` — bcrypt `pin_hash`/`password_hash`, a sync trigger, backfill, and login RPCs (`authenticate_pin`, `authenticate_manager`, `verify_manager_2fa`, `pin_available`).
+- `20260712_employee_portal_auth_rpc.sql` — `authenticate_employee` for the "My Hours" portal.
+- `20260713_credential_write_rpcs.sql` — every credential **write** + the approvals list, as SECURITY DEFINER RPCs: `list_pending_approvals`, `admin_create_employee`, `admin_update_employee`, `request_pin_change`, `request_password_change`, `approve_pin_change`, `approve_password_change`, `reject_pin_change`, `reject_password_change`, `set_2fa`, `approve_registration`, `reject_registration`. Transition versions write the plaintext columns (the trigger hashes them) so the not-yet-updated mobile build keeps working.
 
-### Web client
-- `modules/timeclock.js` — PIN login → `authenticate_pin`; forgot-PIN uniqueness → `pin_available`.
-- `modules/manager.js` — `attemptManagerLogin` → `authenticate_manager` (role/approval checks kept client-side); 2FA verify → `verify_manager_2fa`; create-employee PIN uniqueness → `pin_available`.
-- `modules/employee.js` — portal login → `authenticate_employee`.
-- 2FA settings no longer receive `two_factor_pin`; the setup field simply starts blank (save validation unchanged).
+## Client changes (this PR)
+**Web** — login/2FA (`timeclock.js`, `manager.js`, `employee.js`), and now all writes:
+- Create/edit employee → `admin_create_employee` / `admin_update_employee`.
+- Approvals list → `list_pending_approvals` (no secret values); Approve/Reject → the `approve_*`/`reject_*` RPCs (this also fixes a latent bug where PIN-change requests never appeared in the web approvals table).
+- Forgot-PIN → `request_pin_change`; manager password reset → `request_password_change`; 2FA save → `set_2fa`.
 
-### Mobile client (`mobile/src/context/AuthContext.tsx`)
-- `login()` → `authenticate_pin`; `unlockManager()` → `authenticate_manager`.
-- **Takes effect only on the next mobile build/release.** Until then the current
-  build keeps authenticating via the plaintext columns — which is why those
-  columns and the open RLS must remain in place for now.
+**Mobile** (`AuthContext.tsx`, `EmployeesScreen.tsx`) — login + manager unlock via RPCs; approvals list/approve/deny via RPCs (and mobile can now approve registrations + PIN changes too).
+
+## Staged, NOT applied
+- `20260714_drop_plaintext_credentials.sql` — drops the sync trigger, re-points every RPC at hash columns (incl. `pending_*_hash`, `two_factor_pin_hash`), **drops the plaintext `pin`/`password`/`pending_*`/`two_factor_pin` columns**, and column-level `REVOKE SELECT` of the hash columns from `anon`/`authenticated`. This is the step that closes the exposure.
+
+## Deployment order (must be followed)
+1. Merge this PR (web deploys immediately; safe — RPCs already exist).
+2. Cut a **mobile release** with these changes; wait until the old build is drained.
+3. Only then apply `20260714_...` (snapshot + Supabase-branch smoke test first).
+
+Applied out of order it breaks the old clients; in order it breaks nothing.
 
 ## Verified
-- Backfill: 8/8 PINs and 4/4 passwords hashed.
-- Every existing plaintext PIN/password authenticates to its own row via the RPCs.
-- `pin_available` returns false for in-use PINs, true otherwise.
-- Trigger rehashes correctly on INSERT and on PIN update (checked in a rolled-back tx).
-- `node --test` (web) passes; web modules pass `node --check`.
+- All login + write RPCs exercised in rolled-back transactions on the live DB: create→login, PIN change request→approve→login with new PIN, duplicate-PIN rejection, 2FA set/verify, password revoke on demotion. No test rows persisted.
+- `node --test` passes; web modules pass `node --check`. Mobile TS typechecks in CI.
 
-## NOT done yet (gated follow-up — do NOT ship without these prerequisites)
-These are the steps that actually remove the exposure, and they are destructive
-and client-breaking, so they must wait:
-1. **Ship the mobile build** wired to the RPCs, and confirm web + mobile login work in production.
-2. Only then: drop the plaintext `pin`, `password`, `pending_pin`, `pending_password`, `two_factor_pin` columns (redesign the manager approval UI, which currently displays `pending_pin` / `pending_password`, to approve without echoing the secret).
-3. Replace the blanket `anon_access` `USING(true) WITH CHECK(true)` RLS policies with least-privilege policies (Phase 2 of the plan), and revoke `anon` EXECUTE on the push RPCs once sending is behind an authenticated boundary (Phase 3).
-
-Until steps 1–3 land, the anon key still has broad read/write access; Phase 1 is
-the groundwork that makes them possible.
+## Still out of scope (later phases)
+- Authorization on the admin_*/approve_* RPCs (currently anon-callable, matching today's trust model) — belongs to the real-identity RLS phase (Phase 2).
+- Least-privilege RLS on the operational tables (`time_logs`, `schedules`, …), and moving push sending behind an authenticated boundary (Phase 3).

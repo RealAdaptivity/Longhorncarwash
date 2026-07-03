@@ -586,10 +586,11 @@ export function init() {
         return;
       }
       try {
-        const { error } = await window.supabaseClient
-          .from('users')
-          .update({ two_factor_enabled: isEnabled, two_factor_pin: isEnabled ? pin : null })
-          .eq('id', state.currentManager.id);
+        const { error } = await window.supabaseClient.rpc('set_2fa', {
+          p_user_id: state.currentManager.id,
+          p_enabled: isEnabled,
+          p_pin: pin,
+        });
         if (error) throw error;
         state.currentManager.two_factor_enabled = isEnabled;
         state.currentManager.two_factor_pin = isEnabled ? pin : null;
