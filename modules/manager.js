@@ -125,6 +125,10 @@ function applyRolePermissions(role) {
   const btnShowEditEmployees = document.getElementById('btn-show-edit-employees');
   if (btnShowEditEmployees) btnShowEditEmployees.style.display = p.employee ? '' : 'none';
 
+  // Show/hide the Payroll card — gated the same as the payroll nav tab
+  const btnShowPayroll = document.getElementById('btn-show-payroll');
+  if (btnShowPayroll) btnShowPayroll.style.display = p.payroll ? '' : 'none';
+
   // Schedule post/edit controls
   const btnShowPostSchedule = document.getElementById('btn-show-post-schedule');
   if (btnShowPostSchedule) {
@@ -1550,6 +1554,23 @@ export function init() {
           '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">Loading…</td></tr>';
       if (!Object.keys(state.employeeMap || {}).length) await loadTimesheets();
       renderEditEmployees('');
+    });
+  }
+
+  // Timesheet quick-action card — jump to the Weekly Timesheet view
+  const btnShowTimesheet = document.getElementById('btn-show-timesheet');
+  if (btnShowTimesheet) {
+    btnShowTimesheet.addEventListener('click', () => {
+      if (window.switchView) window.switchView('timesheet');
+    });
+  }
+
+  // Payroll quick-action card — jump to the Payroll view
+  const btnShowPayroll = document.getElementById('btn-show-payroll');
+  if (btnShowPayroll) {
+    btnShowPayroll.addEventListener('click', () => {
+      state.pendingLoginTarget = 'payroll';
+      if (window.switchView) window.switchView('payroll');
     });
   }
   if (btnCloseEditEmployees) {
