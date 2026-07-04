@@ -203,14 +203,6 @@ export async function loadSchedules() {
                   return `<td class="sched-shift-cell${isOff ? ' sched-off' : ''}">${s || '-'}</td>`;
                 })
                 .join('');
-              const rowDataEncoded = encodeURIComponent(
-                JSON.stringify({
-                  employee: r.employee,
-                  shifts: r.shifts,
-                  weekRange: parsed.weekRange,
-                  headers: parsed.headers,
-                }),
-              );
               const swapBtn =
                 state.currentPortalEmployee &&
                 r.employee
@@ -221,7 +213,6 @@ export async function loadSchedules() {
               return `<tr>
               <td class="sched-emp-cell"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px;"><strong>${r.employee}</strong>
               <div style="display:flex;gap:4px;align-items:center;flex-shrink:0;">
-                <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
                 ${swapBtn}
               </div></div></td>
               ${cellsHtml}
@@ -319,15 +310,6 @@ export async function loadSchedules() {
                           .slice(0, 2)
                           .toUpperCase();
 
-                        const rowDataEncoded = encodeURIComponent(
-                          JSON.stringify({
-                            employee: r.employee,
-                            shifts: r.shifts,
-                            weekRange: parsed.weekRange,
-                            headers: parsed.headers,
-                          }),
-                        );
-
                         const swapBtn =
                           state.currentPortalEmployee &&
                           normName.includes(
@@ -355,7 +337,6 @@ export async function loadSchedules() {
                             <span class="status-dot"></span>
                             <span>${info.isClockedIn ? 'Clocked In' : 'Scheduled'}</span>
                           </div>
-                          <button data-calendar="${rowDataEncoded}" class="btn-calendar" title="Add to Calendar">📅</button>
                           ${swapBtn}
                         </div>
                       </div>
@@ -784,8 +765,6 @@ export function init() {
         } catch (err) {
           showToast('Failed to delete schedule.', 'error');
         }
-      } else if (e.target.classList.contains('btn-calendar')) {
-        window.downloadCalendar(e.target.dataset.calendar);
       } else if (e.target.classList.contains('btn-request-swap')) {
         const emp = e.target.dataset.employee;
         const week = e.target.dataset.week;

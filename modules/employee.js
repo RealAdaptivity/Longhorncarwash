@@ -381,7 +381,6 @@ export async function loadMySchedule() {
   const empScheduleSection = document.getElementById('emp-schedule-section');
   const empScheduleContainer = document.getElementById('emp-schedule-container');
   const empScheduleWeek = document.getElementById('emp-schedule-week');
-  const btnSyncCalendar = document.getElementById('btn-sync-calendar');
   const newScheduleAlert = document.getElementById('new-schedule-alert');
 
   try {
@@ -468,22 +467,12 @@ export async function loadMySchedule() {
       });
     }
 
-    const triggerSync = () => {
-      const rowData = encodeURIComponent(
-        JSON.stringify({
-          employee: myRow.employee,
-          shifts: myRow.shifts,
-          weekRange: parsed.weekRange,
-          headers: parsed.headers,
-        }),
-      );
-      window.downloadCalendar(rowData);
+    const markSeen = () => {
       localStorage.setItem('last_seen_schedule_id', latestSchedule.id);
       if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
     };
 
-    if (btnSyncCalendar) btnSyncCalendar.onclick = triggerSync;
-    if (newScheduleAlert) newScheduleAlert.onclick = triggerSync;
+    if (newScheduleAlert) newScheduleAlert.onclick = markSeen;
   } catch (err) {
     console.error('Error loading my schedule', err);
     if (empScheduleSection) empScheduleSection.classList.add('hidden');
