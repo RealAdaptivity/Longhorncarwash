@@ -79,8 +79,8 @@ export async function loadSchedules() {
         const lastAction = userStatus[u.id] || 'OUT';
         const isClockedIn =
           lastAction === 'IN' || lastAction === 'END_LUNCH' || lastAction === 'CLOCK_IN';
-        let displayRole = 'Attendant';
-        let roleClass = 'role-attendant';
+        let displayRole;
+        let roleClass;
         const normRole = (u.role || '').trim().toLowerCase();
 
         if (normRole === 'site manager') {
@@ -183,7 +183,7 @@ export async function loadSchedules() {
         minute: '2-digit',
       });
 
-      let contentHtml = '';
+      let contentHtml;
       if (parsed) {
         try {
           const headersHtml = parsed.headers

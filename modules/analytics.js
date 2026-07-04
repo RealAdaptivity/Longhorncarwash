@@ -95,7 +95,7 @@ export function calculateAnalytics() {
   Object.values(state.employeeMap).forEach((emp) => {
     const totalMs = emp.weekMs ? emp.weekMs.reduce((a, b) => a + b, 0) : 0;
     const hrs = totalMs / (1000 * 60 * 60);
-    let cost = 0;
+    let cost;
     if (emp.is_salary) {
       cost = emp.pay_rate / 2;
     } else {
