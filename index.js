@@ -25,8 +25,12 @@ const createWindow = () => {
   // and load the index.html of the app.
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
-  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`[Renderer] Line ${line}: ${message}`);
+  // Electron >= 36 passes a single ConsoleMessageEvent object; older versions
+  // used positional (event, level, message, line) arguments. Support both.
+  mainWindow.webContents.on('console-message', (event, level, message, line) => {
+    const text = event && event.message !== undefined ? event.message : message;
+    const lineNo = event && event.lineNumber !== undefined ? event.lineNumber : line;
+    console.log(`[Renderer] Line ${lineNo}: ${text}`);
   });
 };
 
