@@ -1015,11 +1015,27 @@ nav {
 @media (max-width: 768px) {
 
   /* ── Layout ── */
-  #app { flex-direction: column; }
+  body {
+    height: auto !important;
+    overflow: auto !important;
+  }
 
-  .content { margin-bottom: 60px; }
+  #app {
+    flex-direction: column;
+    height: auto !important;
+    min-height: 100vh;
+  }
 
-  .view { padding: 15px 12px; }
+  .content {
+    margin-bottom: 60px;
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+
+  .view {
+    padding: 15px 12px;
+    height: auto !important;
+  }
 
   /* ── Modals: fixed so they cover the viewport regardless of scroll position ── */
   .modal {
@@ -1981,10 +1997,12 @@ nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 15px;
+  padding: 14px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  gap: 15px;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -1993,19 +2011,73 @@ nav {
   border-color: var(--primary-tint);
 }
 
-.sched-roster-time {
-  font-family: monospace;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--text);
-  min-width: 160px;
-}
-
 .sched-roster-emp {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex: 2;
+  min-width: 220px;
+}
+
+.sched-roster-emp-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sched-roster-time {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
   flex: 1;
+  text-align: center;
+  min-width: 80px;
+}
+
+.sched-roster-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 15px;
+  flex: 1.5;
+  min-width: 220px;
+  flex-shrink: 0;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .sched-roster-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .sched-roster-emp {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+  }
+
+  .sched-roster-time {
+    width: 100%;
+    text-align: left;
+    min-width: 0;
+    flex: none;
+    font-size: 1rem;
+    padding: 6px 0;
+    border-top: 1px dashed var(--border);
+    border-bottom: 1px dashed var(--border);
+  }
+
+  .sched-roster-actions {
+    width: 100%;
+    justify-content: space-between;
+    min-width: 0;
+    flex: none;
+  }
 }
 
 .sched-roster-avatar {

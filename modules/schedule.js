@@ -56,7 +56,7 @@ export async function loadSchedules() {
   try {
     const [schedulesRes, usersRes, logsRes] = await Promise.all([
       window.supabaseClient.from('schedules').select('*'),
-      window.supabaseClient.from('users').select('id, name, role'),
+      window.supabaseClient.from('users').select('id, name, role, avatar'),
       window.supabaseClient
         .from('time_logs')
         .select('user_id, action, created_at')
@@ -104,6 +104,7 @@ export async function loadSchedules() {
           role: displayRole,
           roleClass: roleClass,
           isClockedIn: isClockedIn,
+          avatar: u.avatar || null,
         };
       });
     }
@@ -335,22 +336,26 @@ export async function loadSchedules() {
                             ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
                             : '';
 
+                        const avatarHtml = info.avatar
+                          ? `<img class="sched-roster-avatar" src="${info.avatar}" alt="" />`
+                          : `<div class="sched-roster-avatar">${initials}</div>`;
+
                         return `
                       <div class="sched-roster-item">
                         <div class="sched-roster-emp">
-                          <div class="sched-roster-avatar">${initials}</div>
-                          <div>
-                            <div class="sched-roster-name">${r.employee}</div>
+                          ${avatarHtml}
+                          <div class="sched-roster-emp-meta">
+                            <span class="sched-roster-name">${r.employee}</span>
+                            <span class="role-badge ${info.roleClass}">${info.role}</span>
                           </div>
-                          <span class="role-badge ${info.roleClass}" style="margin-left: 10px;">${info.role}</span>
                         </div>
                         <div class="sched-roster-time">${shift}</div>
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="sched-roster-actions">
                           <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}">
                             <span class="status-dot"></span>
                             <span>${info.isClockedIn ? 'Clocked In' : 'Scheduled'}</span>
                           </div>
-                          <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
+                          <button data-calendar="${rowDataEncoded}" class="btn-calendar" title="Add to Calendar">📅</button>
                           ${swapBtn}
                         </div>
                       </div>
