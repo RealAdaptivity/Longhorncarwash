@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
     const { data: logs } = await sb.from('time_logs')
       .select('user_id,action,created_at')
       .gte('created_at', since)
-      .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
+      .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
       .order('created_at', { ascending: true });
 
     const status: Record<string, string> = {};
@@ -123,7 +123,7 @@ Deno.serve(async (req: Request) => {
       if (!user) continue;
       const last = status[user.id] ?? null;
       const inToday = last !== null;
-      const stillIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH';
+      const stillIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH' || last === 'CLOCK_IN';
 
       const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 

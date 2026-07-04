@@ -41,7 +41,7 @@ Deno.serve(async (req: Request) => {
   const { data: allLogs } = await sb.from('time_logs')
     .select('user_id,action,created_at')
     .gte('created_at', since)
-    .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
+    .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
     .order('created_at', { ascending: true });
 
   // Only keep logs from this week (Friday onward) in CT
