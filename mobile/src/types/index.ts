@@ -9,7 +9,7 @@ export interface User {
 export interface TimeLog {
   id: string;
   user_id: string;
-  action: 'IN' | 'OUT' | 'START_LUNCH' | 'END_LUNCH';
+  action: 'IN' | 'OUT' | 'START_LUNCH' | 'END_LUNCH' | 'CLOCK_IN' | 'CLOCK_OUT' | 'TIMESHEET_APPROVED';
   created_at: string;
   edited_by_manager: boolean;
   punch_lat?: number;

@@ -32,8 +32,11 @@ function calcHours(logs: TimeLog[]): number {
   let total = 0, lastIn: number | null = null;
   for (const l of sorted) {
     const t = new Date(l.created_at).getTime();
-    if (l.action === 'IN' || l.action === 'END_LUNCH') lastIn = t;
-    else if ((l.action === 'START_LUNCH' || l.action === 'OUT') && lastIn !== null) {
+    if (l.action === 'IN' || l.action === 'END_LUNCH' || l.action === 'CLOCK_IN') lastIn = t;
+    else if (
+      (l.action === 'START_LUNCH' || l.action === 'OUT' || l.action === 'CLOCK_OUT') &&
+      lastIn !== null
+    ) {
       total += (t - lastIn) / 3600000;
       lastIn = null;
     }
@@ -49,20 +52,23 @@ function formatDate(date: Date) {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: TZ });
 }
 
-function statusLabel(action: ActionType | null): string {
+function statusLabel(action: TimeLog['action'] | null): string {
   if (!action) return 'NOT CLOCKED IN';
-  const labels: Record<ActionType, string> = {
+  const labels: Record<TimeLog['action'], string> = {
     IN: 'CLOCKED IN',
     OUT: 'CLOCKED OUT',
     START_LUNCH: 'ON LUNCH',
     END_LUNCH: 'BACK FROM LUNCH',
+    CLOCK_IN: 'CLOCKED IN',
+    CLOCK_OUT: 'CLOCKED OUT',
+    TIMESHEET_APPROVED: 'TIMESHEET APPROVED',
   };
   return labels[action];
 }
 
-function statusColor(action: ActionType | null): string {
-  if (!action || action === 'OUT') return colors.textMuted;
-  if (action === 'IN' || action === 'END_LUNCH') return colors.success;
+function statusColor(action: TimeLog['action'] | null): string {
+  if (!action || action === 'OUT' || action === 'CLOCK_OUT') return colors.textMuted;
+  if (action === 'IN' || action === 'END_LUNCH' || action === 'CLOCK_IN') return colors.success;
   if (action === 'START_LUNCH') return colors.warning;
   return colors.textMuted;
 }

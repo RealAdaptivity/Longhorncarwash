@@ -16,8 +16,11 @@ function calcHours(logs: TimeLog[]): number {
   let total = 0, lastIn: number | null = null;
   for (const l of sorted) {
     const t = new Date(l.created_at).getTime();
-    if (l.action === 'IN' || l.action === 'END_LUNCH') lastIn = t;
-    else if ((l.action === 'START_LUNCH' || l.action === 'OUT') && lastIn !== null) {
+    if (l.action === 'IN' || l.action === 'END_LUNCH' || l.action === 'CLOCK_IN') lastIn = t;
+    else if (
+      (l.action === 'START_LUNCH' || l.action === 'OUT' || l.action === 'CLOCK_OUT') &&
+      lastIn !== null
+    ) {
       total += (t - lastIn) / 3600000;
       lastIn = null;
     }
