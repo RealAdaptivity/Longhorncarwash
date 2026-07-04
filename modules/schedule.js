@@ -333,7 +333,7 @@ export async function loadSchedules() {
                           </div>
                         </div>
                         <div class="sched-roster-actions" style="display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex: 0 0 auto; min-width: fit-content; flex-shrink: 0;">
-                          <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
+                          <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}" style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
                             <span class="status-dot"></span>
                             <span>${info.isClockedIn ? 'Clocked In' : 'Scheduled'}</span>
                           </div>
