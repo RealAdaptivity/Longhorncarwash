@@ -187,22 +187,3 @@ if (splashElement) {
     splashElement.remove(); // Skip splash screen immediately on desktop web
   }
 }
-
-// --- Connection Status Listeners ---
-const updateOnlineStatus = () => {
-  const el = document.getElementById('conn-status-indicator');
-  if (!el) return;
-  const isOnline = navigator.onLine;
-  if (isOnline) {
-    el.className = 'connection-status online';
-    el.querySelector('.indicator-text').textContent = 'Online';
-    // Auto sync offline logs on reconnection
-    import('./modules/timeclock.js').then(({ syncOfflineLogs }) => syncOfflineLogs());
-  } else {
-    el.className = 'connection-status offline';
-    el.querySelector('.indicator-text').textContent = 'Offline';
-  }
-};
-window.addEventListener('online', updateOnlineStatus);
-window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus(); // Check immediately on boot

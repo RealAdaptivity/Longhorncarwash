@@ -1935,38 +1935,4 @@ nav {
   border: 1px solid var(--border);
 }
 
-/* Connection Status Indicator */
-.connection-status {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(30, 30, 30, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 12px;
-  border-radius: 20px;
-  color: var(--text);
-  font-size: 0.8rem;
-  font-weight: 600;
-  z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-}
-.connection-status.offline {
-  border-color: rgba(231, 76, 60, 0.3);
-}
-.connection-status .indicator-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 8px var(--success);
-}
-.connection-status.offline .indicator-dot {
-  background: var(--danger);
-  box-shadow: 0 0 8px var(--danger);
-}
+
