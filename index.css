@@ -2023,7 +2023,7 @@ nav {
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1 1 200px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -2039,8 +2039,9 @@ nav {
   font-weight: 700;
   font-size: 0.95rem;
   color: var(--text);
-  flex: 1 1 80px;
+  flex: 0 0 80px;
   text-align: center;
+  min-width: 80px;
 }
 
 .sched-roster-actions {
@@ -2048,7 +2049,9 @@ nav {
   align-items: center;
   justify-content: flex-end;
   gap: 15px;
-  flex: 1 1 200px;
+  flex: 0 0 auto;
+  min-width: fit-content;
+  flex-shrink: 0;
 }
 
 /* Mobile responsive styles */
@@ -2154,6 +2157,8 @@ nav {
   gap: 6px;
   font-size: 0.8rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-indicator.clocked-in {
