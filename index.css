@@ -1965,8 +1965,10 @@ nav {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  margin-top: 12px;
   margin-bottom: 20px;
   overflow-x: auto;
+  padding-top: 8px;
   padding-bottom: 8px;
 }
 
@@ -2057,18 +2059,21 @@ nav {
 }
 
 /* Mobile responsive styles */
+/* !important is required here to override the inline styles rendered on each
+   roster item; without it the inline `flex: 0 0 110px` on the time element is
+   treated as a 110px height in the column layout, making the cards huge. */
 @media (max-width: 768px) {
   .sched-roster-item {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 15px;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 14px !important;
   }
 
   .sched-roster-emp {
     width: 100%;
     min-width: 0;
-    flex: none;
+    flex: none !important;
     order: 1;
   }
 
@@ -2076,8 +2081,8 @@ nav {
     width: 100%;
     text-align: left;
     min-width: 0;
-    flex: none;
-    font-size: 1rem;
+    flex: none !important;
+    font-size: 0.95rem;
     padding: 6px 0;
     border-top: 1px dashed var(--border);
     border-bottom: 1px dashed var(--border);
@@ -2086,9 +2091,9 @@ nav {
 
   .sched-roster-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: space-between !important;
     min-width: 0;
-    flex: none;
+    flex: none !important;
     order: 3;
   }
 }
@@ -2159,7 +2164,7 @@ nav {
 .status-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
