@@ -55,30 +55,41 @@ export default function App() {
   `;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#111111" />
-      <WebView
-        ref={webViewRef}
-        source={{ uri: 'https://www.timebylonghorncarwash.com/' }}
-        style={styles.webview}
-        geolocationEnabled={true}
-        injectedJavaScript={syncScript}
-        onMessage={handleMessage}
-        allowsBackForwardNavigationGestures={true}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-      />
-    </SafeAreaView>
+    <>
+      <StatusBar barStyle="light-content" backgroundColor="#A93B2F" />
+      {/* Top safe-area inset painted the brand red so it blends into the
+          app header instead of showing a black bar behind the notch. */}
+      <SafeAreaView style={styles.topSafeArea} />
+      {/* Remaining screen (incl. the bottom home-indicator inset) is white
+          so it blends into the bottom nav bar instead of a black bar. */}
+      <SafeAreaView style={styles.container}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: 'https://www.timebylonghorncarwash.com/' }}
+          style={styles.webview}
+          geolocationEnabled={true}
+          injectedJavaScript={syncScript}
+          onMessage={handleMessage}
+          allowsBackForwardNavigationGestures={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+        />
+      </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  topSafeArea: {
+    flex: 0,
+    backgroundColor: '#A93B2F',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: '#FFFFFF',
   },
   webview: {
     flex: 1,
-    backgroundColor: '#111111',
+    backgroundColor: '#FFFFFF',
   },
 });
