@@ -572,6 +572,9 @@ export function init() {
       if (state.currentUser) {
         const { unlockManagerByPin } = await import('./manager.js');
         unlockManagerByPin(state.currentUser);
+        // Unlocking only reveals the dashboard element; we still need to make
+        // the manager view active so it actually shows on screen.
+        if (window.switchView) window.switchView('manager');
       }
     });
   }
