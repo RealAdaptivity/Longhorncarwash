@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
     if (idx < 0) return new Response('No schedule for today', { status: 200 });
 
     const { data: users } = await sb.from('users')
-      .select('id,name').eq('is_approved', true);
+      .select('id,name,is_salary').eq('is_approved', true);
     if (!users?.length) return new Response('No users', { status: 200 });
 
     const since = new Date(Date.now() - 20 * 3600000).toISOString();
@@ -121,6 +121,8 @@ Deno.serve(async (req: Request) => {
         u.name.trim().toLowerCase() === row.employee?.trim().toLowerCase()
       );
       if (!user) continue;
+      // Salaried employees don't clock in/out, so skip late/forgot alerts.
+      if (user.is_salary) continue;
       const last = status[user.id] ?? null;
       const inToday = last !== null;
       const stillIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH' || last === 'CLOCK_IN';
