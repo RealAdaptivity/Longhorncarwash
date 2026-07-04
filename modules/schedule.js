@@ -325,7 +325,7 @@ export async function loadSchedules() {
                         return `
                       <div class="sched-roster-item" style="display: flex; align-items: center; justify-content: flex-start; padding: 14px 20px; gap: 25px; flex-wrap: wrap;">
                         <div class="sched-roster-time" style="font-family: inherit; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); flex: 0 0 110px; text-align: left; min-width: 110px;">${shift}</div>
-                        <div class="sched-roster-emp" style="display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0;">
+                        <div class="sched-roster-emp" style="display: flex; align-items: center; gap: 12px; flex: 0 1 auto; min-width: 0;">
                           ${avatarHtml}
                           <div class="sched-roster-emp-meta" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                             <span class="sched-roster-name" style="font-weight: 600;">${r.employee}</span>
