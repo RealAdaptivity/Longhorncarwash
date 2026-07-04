@@ -2003,13 +2003,13 @@ nav {
 .sched-roster-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 14px 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   margin-bottom: 8px;
-  gap: 15px;
+  gap: 30px;
   flex-wrap: wrap;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -2035,19 +2035,19 @@ nav {
 }
 
 .sched-roster-time {
-  font-family: monospace;
-  font-weight: 700;
+  font-family: inherit;
+  font-weight: 600;
   font-size: 0.95rem;
-  color: var(--text);
-  flex: 0 0 80px;
-  text-align: center;
-  min-width: 80px;
+  color: var(--text-muted);
+  flex: 0 0 110px;
+  text-align: left;
+  min-width: 110px;
 }
 
 .sched-roster-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 15px;
   flex: 0 0 auto;
   min-width: fit-content;
@@ -2067,6 +2067,7 @@ nav {
     width: 100%;
     min-width: 0;
     flex: none;
+    order: 1;
   }
 
   .sched-roster-time {
@@ -2078,6 +2079,7 @@ nav {
     padding: 6px 0;
     border-top: 1px dashed var(--border);
     border-bottom: 1px dashed var(--border);
+    order: 2;
   }
 
   .sched-roster-actions {
@@ -2085,6 +2087,7 @@ nav {
     justify-content: space-between;
     min-width: 0;
     flex: none;
+    order: 3;
   }
 }
 

@@ -324,6 +324,7 @@ export async function loadSchedules() {
 
                         return `
                       <div class="sched-roster-item">
+                        <div class="sched-roster-time">${shift}</div>
                         <div class="sched-roster-emp">
                           ${avatarHtml}
                           <div class="sched-roster-emp-meta">
@@ -331,7 +332,6 @@ export async function loadSchedules() {
                             <span class="role-badge ${info.roleClass}">${info.role}</span>
                           </div>
                         </div>
-                        <div class="sched-roster-time">${shift}</div>
                         <div class="sched-roster-actions">
                           <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}">
                             <span class="status-dot"></span>
