@@ -119,7 +119,7 @@ async function updateClockActions() {
     let statusText = 'Clocked Out';
     let badgeClass = 'status-out';
 
-    if (lastAction === 'IN' || lastAction === 'END_LUNCH') {
+    if (lastAction === 'IN' || lastAction === 'END_LUNCH' || lastAction === 'CLOCK_IN') {
       // Clocked In: can Clock Out or Start Lunch
       btnClockOut.style.display = 'flex';
       btnStartLunch.style.display = 'flex';
@@ -362,8 +362,8 @@ export async function logTime(action, tips = 0) {
 
       if (!logErr && lastLog && lastLog.length > 0) {
         const last = lastLog[0].action;
-        const isIn = last === 'IN' || last === 'END_LUNCH';
-        const isOut = last === 'OUT';
+        const isIn = last === 'IN' || last === 'END_LUNCH' || last === 'CLOCK_IN';
+        const isOut = last === 'OUT' || last === 'CLOCK_OUT';
         const isLunch = last === 'START_LUNCH';
 
         if (action === 'IN' && isIn) throw new Error('You are already clocked in.');
@@ -601,7 +601,7 @@ export function init() {
       try {
         const { data, error } = await window.supabaseClient
           .from('users')
-          .select('id, name, role, is_approved, is_salary')
+          .select('id, name, role, is_approved, is_salary, pay_rate, tax_status')
           .eq('pin', state.currentPin)
           .single();
 

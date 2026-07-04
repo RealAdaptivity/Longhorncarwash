@@ -22,7 +22,7 @@ export function initCharts() {
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const dailyTotals = [0, 0, 0, 0, 0, 0, 0];
 
-  Object.values(state.employeeMap).forEach(emp => {
+  Object.values(state.employeeMap).forEach((emp) => {
     if (emp.weekMs) {
       emp.weekMs.forEach((ms, i) => {
         dailyTotals[i] += ms / (1000 * 60 * 60);
@@ -56,8 +56,10 @@ export function initCharts() {
 
   if (state.statusDistributionChart) state.statusDistributionChart.destroy();
 
-  let inCount = 0, outCount = 0, lunchCount = 0;
-  Object.values(state.employeeMap).forEach(emp => {
+  let inCount = 0,
+    outCount = 0,
+    lunchCount = 0;
+  Object.values(state.employeeMap).forEach((emp) => {
     if (emp.currentStatus === 'IN') inCount++;
     else if (emp.currentStatus === 'LUNCH') lunchCount++;
     else outCount++;
@@ -90,7 +92,7 @@ export function calculateAnalytics() {
   let activeCount = 0;
   let offlineCount = 0;
 
-  Object.values(state.employeeMap).forEach(emp => {
+  Object.values(state.employeeMap).forEach((emp) => {
     const totalMs = emp.weekMs ? emp.weekMs.reduce((a, b) => a + b, 0) : 0;
     const hrs = totalMs / (1000 * 60 * 60);
     let cost = 0;
@@ -129,9 +131,7 @@ export function calculateAnalytics() {
   let weeklyRevenue = 0;
   let hasRevenue = false;
 
-  const customRevVal = analyticsRevenueInput
-    ? parseFloat(analyticsRevenueInput.value.trim())
-    : NaN;
+  const customRevVal = analyticsRevenueInput ? parseFloat(analyticsRevenueInput.value.trim()) : NaN;
   if (!isNaN(customRevVal) && customRevVal >= 0) {
     weeklyRevenue = customRevVal;
     hasRevenue = true;
@@ -151,8 +151,7 @@ export function calculateAnalytics() {
     } else {
       if (analyticsLaborPercent) {
         analyticsLaborPercent.textContent = totalLaborCost > 0 ? '--%' : '0.0%';
-        analyticsLaborPercent.style.color =
-          totalLaborCost > 0 ? 'var(--danger)' : 'var(--success)';
+        analyticsLaborPercent.style.color = totalLaborCost > 0 ? 'var(--danger)' : 'var(--success)';
       }
     }
     const netProfit = weeklyRevenue - totalLaborCost;

@@ -40,5 +40,8 @@ test('calcHours: does not mutate its input order', () => {
   const logs = [log('OUT', '2026-07-01T17:00:00Z'), log('IN', '2026-07-01T09:00:00Z')];
   const before = logs.map((l) => l.action);
   calcHours(logs);
-  assert.deepEqual(logs.map((l) => l.action), before);
+  assert.deepEqual(
+    logs.map((l) => l.action),
+    before,
+  );
 });

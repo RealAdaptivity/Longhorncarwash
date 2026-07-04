@@ -14,7 +14,7 @@ Authentication today is entirely client-side and backed by anon-readable data:
 - **Credentials** (`pin`, `password`, `two_factor_pin`, `pending_password`) are
   stored in **plaintext** in `public.users`.
 - **Roles:** `Employee, Supervisor, Assistant Site Manager, Site Manager,
-  Manager, Admin, Payroll` (enforced by a check constraint).
+Manager, Admin, Payroll` (enforced by a check constraint).
 - **RLS:** enabled on every table, but an `anon_access` policy for `ALL` with
   `USING (true) WITH CHECK (true)` neutralizes it.
 
@@ -64,13 +64,13 @@ request authenticated:
 
 ## RLS target (per role)
 
-| Table | Employee | Supervisor / Site Mgmt | Payroll / Admin |
-| --- | --- | --- | --- |
-| `users` | own row (no comp columns) | team read | full; comp only here |
-| `time_logs` | own read; insert own punch (or via fn) | team read/edit | full |
-| `schedules`, `shift_swaps`, `time_off_requests` | own + published read; request writes | manage | full |
-| `settings`, `daily_revenue`, `site_logs`, `checklists*` | read where needed | manage | full |
-| credentials / `Password` | none (functions only) | none | none |
+| Table                                                   | Employee                               | Supervisor / Site Mgmt | Payroll / Admin      |
+| ------------------------------------------------------- | -------------------------------------- | ---------------------- | -------------------- |
+| `users`                                                 | own row (no comp columns)              | team read              | full; comp only here |
+| `time_logs`                                             | own read; insert own punch (or via fn) | team read/edit         | full                 |
+| `schedules`, `shift_swaps`, `time_off_requests`         | own + published read; request writes   | manage                 | full                 |
+| `settings`, `daily_revenue`, `site_logs`, `checklists*` | read where needed                      | manage                 | full                 |
+| credentials / `Password`                                | none (functions only)                  | none                   | none                 |
 
 ## Staged rollout (the live app never goes dark)
 

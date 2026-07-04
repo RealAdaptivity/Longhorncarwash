@@ -9,12 +9,12 @@ notifications.
 
 The repo contains three surfaces that share one Supabase backend:
 
-| Path | What it is | Runs on |
-| --- | --- | --- |
-| `index.html`, `renderer.js`, `modules/*.js`, `index.css` | The main dashboard — a browser PWA, also packaged as a desktop app. | Browser / Electron |
-| `index.js`, `preload.js` | Electron wrapper for the web app. | Node (Electron main) |
-| `mobile/` | Employee mobile app. | Expo / React Native |
-| `supabase/` | Database migrations and Deno edge functions (notifications, overtime & attendance checks, daily summary). | Supabase |
+| Path                                                     | What it is                                                                                                | Runs on              |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------- |
+| `index.html`, `renderer.js`, `modules/*.js`, `index.css` | The main dashboard — a browser PWA, also packaged as a desktop app.                                       | Browser / Electron   |
+| `index.js`, `preload.js`                                 | Electron wrapper for the web app.                                                                         | Node (Electron main) |
+| `mobile/`                                                | Employee mobile app.                                                                                      | Expo / React Native  |
+| `supabase/`                                              | Database migrations and Deno edge functions (notifications, overtime & attendance checks, daily summary). | Supabase             |
 
 The web app is plain ES modules — no bundler. `renderer.js` imports the feature
 modules in `modules/` (`timeclock`, `manager`, `employee`, `schedule`, `ops`,

@@ -1,14 +1,84 @@
-import { state, showToast, getStartOfWeek, getBiweeklyWeeks, formatNameLastFirst, calculateEstimatedTaxes, calculatePayWithOvertime, downloadCsv } from './utils.js';
+import {
+  state,
+  showToast,
+  getStartOfWeek,
+  getBiweeklyWeeks,
+  formatNameLastFirst,
+  calculateEstimatedTaxes,
+  calculatePayWithOvertime,
+  downloadCsv,
+} from './utils.js';
 
 // Role hierarchy: what each role can access
-const MANAGEMENT_ROLES = ['Admin', 'Site Manager', 'Assistant Site Manager', 'Manager', 'Supervisor', 'Payroll'];
+const MANAGEMENT_ROLES = [
+  'Admin',
+  'Site Manager',
+  'Assistant Site Manager',
+  'Manager',
+  'Supervisor',
+  'Payroll',
+];
 const ROLE_ACCESS = {
-  'Admin':                    { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Manager':                  { payroll: true,  schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Site Manager':             { payroll: false, schedule: true,  scheduleEdit: true,  employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Assistant Site Manager':   { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Supervisor':               { payroll: false, schedule: true,  scheduleEdit: false, employee: true,  ops: true,  settings: true,  dashboard: true,  addEmployee: true  },
-  'Payroll':                  { payroll: true,  schedule: false, scheduleEdit: false, employee: false, ops: false, settings: false, dashboard: true,  addEmployee: false },
+  Admin: {
+    payroll: true,
+    schedule: true,
+    scheduleEdit: true,
+    employee: true,
+    ops: true,
+    settings: true,
+    dashboard: true,
+    addEmployee: true,
+  },
+  Manager: {
+    payroll: true,
+    schedule: true,
+    scheduleEdit: true,
+    employee: true,
+    ops: true,
+    settings: true,
+    dashboard: true,
+    addEmployee: true,
+  },
+  'Site Manager': {
+    payroll: false,
+    schedule: true,
+    scheduleEdit: true,
+    employee: true,
+    ops: true,
+    settings: true,
+    dashboard: true,
+    addEmployee: true,
+  },
+  'Assistant Site Manager': {
+    payroll: false,
+    schedule: true,
+    scheduleEdit: false,
+    employee: true,
+    ops: true,
+    settings: true,
+    dashboard: true,
+    addEmployee: true,
+  },
+  Supervisor: {
+    payroll: false,
+    schedule: true,
+    scheduleEdit: false,
+    employee: true,
+    ops: true,
+    settings: true,
+    dashboard: true,
+    addEmployee: true,
+  },
+  Payroll: {
+    payroll: true,
+    schedule: false,
+    scheduleEdit: false,
+    employee: false,
+    ops: false,
+    settings: false,
+    dashboard: true,
+    addEmployee: false,
+  },
 };
 
 // Modals defined inside #view-manager stay hidden if opened while another view
@@ -33,11 +103,16 @@ function applyRolePermissions(role) {
   const hide = (id) => document.getElementById(id)?.classList.add('hidden');
   const show = (id) => document.getElementById(id)?.classList.remove('hidden');
 
-  if (p.payroll)   show('nav-payroll');   else hide('nav-payroll');
-  if (p.schedule)  show('nav-schedule');  else hide('nav-schedule');
-  if (p.employee)  show('nav-employee');  else hide('nav-employee');
-  if (p.ops)       show('nav-ops');       else hide('nav-ops');
-  if (p.settings)  show('nav-settings'); else hide('nav-settings');
+  if (p.payroll) show('nav-payroll');
+  else hide('nav-payroll');
+  if (p.schedule) show('nav-schedule');
+  else hide('nav-schedule');
+  if (p.employee) show('nav-employee');
+  else hide('nav-employee');
+  if (p.ops) show('nav-ops');
+  else hide('nav-ops');
+  if (p.settings) show('nav-settings');
+  else hide('nav-settings');
 
   // Show/hide add-employee button inside the dashboard
   const btnShowCreateUser = document.getElementById('btn-show-create-user');
@@ -62,7 +137,7 @@ function applyRolePermissions(role) {
 
 function resetRolePermissions() {
   // Restore all nav items to visible (pre-login state)
-  ['nav-payroll', 'nav-schedule', 'nav-employee', 'nav-ops', 'nav-settings'].forEach(id => {
+  ['nav-payroll', 'nav-schedule', 'nav-employee', 'nav-ops', 'nav-settings'].forEach((id) => {
     document.getElementById(id)?.classList.remove('hidden');
   });
   document.getElementById('btn-show-post-schedule')?.classList.add('hidden');
@@ -125,17 +200,23 @@ export function logoutManager() {
   document.getElementById('schedule-manager-auth')?.classList.add('hidden');
   document.getElementById('manager-dashboard')?.classList.add('hidden');
   document.getElementById('manager-auth')?.classList.remove('hidden');
-  document.getElementById('manager-username-input') && (document.getElementById('manager-username-input').value = '');
-  document.getElementById('manager-password-input') && (document.getElementById('manager-password-input').value = '');
+  document.getElementById('manager-username-input') &&
+    (document.getElementById('manager-username-input').value = '');
+  document.getElementById('manager-password-input') &&
+    (document.getElementById('manager-password-input').value = '');
   document.getElementById('modal-create-user')?.classList.add('hidden');
 }
 
 async function attemptManagerLogin(username, password) {
   const { data: rawData, error } = await window.supabaseClient
-    .from('users').select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
-    .eq('name', username).eq('password', password)
-    .in('role', MANAGEMENT_ROLES).eq('is_approved', true)
-    .not('password', 'is', null).limit(1);
+    .from('users')
+    .select('id, name, role, is_approved, two_factor_enabled, two_factor_pin')
+    .eq('name', username)
+    .eq('password', password)
+    .in('role', MANAGEMENT_ROLES)
+    .eq('is_approved', true)
+    .not('password', 'is', null)
+    .limit(1);
 
   if (error || !rawData || rawData.length === 0) {
     showToast('Invalid credentials', 'error');
@@ -175,13 +256,13 @@ async function checkAndSendPaydayNotification() {
     if (sentBefore && sentBefore.length > 0) return; // Already sent today
 
     // Record that we are sending the notification (inserts into notifications_sent)
-    const { error: insertErr } = await window.supabaseClient
-      .from('notifications_sent')
-      .insert([{
+    const { error: insertErr } = await window.supabaseClient.from('notifications_sent').insert([
+      {
         user_id: state.currentManager?.id || '00000000-0000-0000-0000-000000000000',
         notification_type: 'payday_broadcast',
-        shift_date: dateStr
-      }]);
+        shift_date: dateStr,
+      },
+    ]);
 
     if (insertErr) throw insertErr;
 
@@ -192,23 +273,23 @@ async function checkAndSendPaydayNotification() {
       .not('push_token', 'is', null);
 
     if (!userErr && users && users.length > 0) {
-      const tokens = users.map(u => u.push_token).filter(Boolean);
+      const tokens = users.map((u) => u.push_token).filter(Boolean);
       if (tokens.length > 0) {
-        const messages = tokens.map(token => ({
+        const messages = tokens.map((token) => ({
           to: token,
           sound: 'default',
           title: 'Payday! 💰',
-          body: 'Direct deposits are being processed today. Thank you for your hard work!'
+          body: 'Direct deposits are being processed today. Thank you for your hard work!',
         }));
 
         await fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'Accept-encoding': 'gzip, deflate',
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(messages)
+          body: JSON.stringify(messages),
         });
         console.log(`Sent payday notifications to ${tokens.length} employees.`);
       }
@@ -222,31 +303,34 @@ async function checkAndSendPaydayNotification() {
 export async function loadTimesheets() {
   const timesheetGrid = document.getElementById('timesheet-grid');
   if (!timesheetGrid) return;
-  timesheetGrid.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">Loading timesheets...</p>';
+  timesheetGrid.innerHTML =
+    '<p style="text-align:center;color:var(--text-muted);padding:20px;">Loading timesheets...</p>';
 
   try {
     const { data: usersData, error: usersError } = await window.supabaseClient
-      .from('users').select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar');
+      .from('users')
+      .select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar');
     // Only the columns the hours aggregation below uses. In particular this
     // avoids pulling photo_base64 (a base64 image per punch), which the
     // timesheet never reads and which dominated the payload size. The Manage
     // Logs modal fetches photos separately when they're actually needed.
     const { data: logsData, error: logsError } = await window.supabaseClient
-      .from('time_logs').select('user_id, action, created_at')
+      .from('time_logs')
+      .select('user_id, action, created_at')
       .order('created_at', { ascending: true });
 
     if (usersError || logsError) throw new Error('Failed to fetch timesheet data');
 
     const startOfWeek = getStartOfWeek().getTime();
-    const startOfLastWeek = startOfWeek - (7 * 24 * 60 * 60 * 1000);
-    const startOf2WeeksAgo = startOfWeek - (14 * 24 * 60 * 60 * 1000);
-    const startOf3WeeksAgo = startOfWeek - (21 * 24 * 60 * 60 * 1000);
-    const startOf4WeeksAgo = startOfWeek - (28 * 24 * 60 * 60 * 1000);
+    const startOfLastWeek = startOfWeek - 7 * 24 * 60 * 60 * 1000;
+    const startOf2WeeksAgo = startOfWeek - 14 * 24 * 60 * 60 * 1000;
+    const startOf3WeeksAgo = startOfWeek - 21 * 24 * 60 * 60 * 1000;
+    const startOf4WeeksAgo = startOfWeek - 28 * 24 * 60 * 60 * 1000;
 
     const { week1Start, week2Start } = getBiweeklyWeeks(new Date());
     const biweeklyW1 = week1Start.getTime();
     const biweeklyW2 = week2Start.getTime();
-    const biweeklyNextW = biweeklyW2 + (7 * 24 * 60 * 60 * 1000);
+    const biweeklyNextW = biweeklyW2 + 7 * 24 * 60 * 60 * 1000;
 
     const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`;
     const w1Range = `${fmt(week1Start)} - ${fmt(new Date(biweeklyW2 - 86400000))}`;
@@ -258,35 +342,52 @@ export async function loadTimesheets() {
     if (headerW2) headerW2.textContent = `Week 2 (${w2Range}) (Hrs)`;
 
     state.employeeMap = {};
-    usersData.forEach(u => {
+    usersData.forEach((u) => {
       state.employeeMap[u.id] = {
-        id: u.id, name: u.name, payroll_name: u.payroll_name,
-        pay_rate: u.pay_rate || 0, is_salary: u.is_salary || false,
+        id: u.id,
+        name: u.name,
+        payroll_name: u.payroll_name,
+        pay_rate: u.pay_rate || 0,
+        is_salary: u.is_salary || false,
         tax_status: u.tax_status || 'Single',
         avatar: u.avatar || null,
         role: u.role || 'Employee',
-        weekMs: [0, 0, 0, 0, 0, 0, 0], lastWeekMs: 0,
-        week2Ms: 0, week3Ms: 0, week4Ms: 0,
-        biweeklyWeek1Ms: 0, biweeklyWeek2Ms: 0,
-        currentStatus: 'OUT', lastIn: null
+        weekMs: [0, 0, 0, 0, 0, 0, 0],
+        lastWeekMs: 0,
+        week2Ms: 0,
+        week3Ms: 0,
+        week4Ms: 0,
+        biweeklyWeek1Ms: 0,
+        biweeklyWeek2Ms: 0,
+        currentStatus: 'OUT',
+        lastIn: null,
       };
     });
 
     // 30-day purge in background
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    window.supabaseClient.from('time_logs').delete().lt('created_at', thirtyDaysAgo.toISOString())
-      .then(({ error }) => { if (error) console.error('Purge error', error); });
+    window.supabaseClient
+      .from('time_logs')
+      .delete()
+      .lt('created_at', thirtyDaysAgo.toISOString())
+      .then(({ error }) => {
+        if (error) console.error('Purge error', error);
+      });
 
-    logsData.forEach(log => {
+    logsData.forEach((log) => {
       const emp = state.employeeMap[log.user_id];
       if (!emp) return;
       const time = new Date(log.created_at).getTime();
 
-      if (log.action === 'IN' || log.action === 'END_LUNCH') {
+      if (log.action === 'IN' || log.action === 'END_LUNCH' || log.action === 'CLOCK_IN') {
         emp.currentStatus = 'IN';
         emp.lastIn = time;
-      } else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
+      } else if (
+        log.action === 'OUT' ||
+        log.action === 'START_LUNCH' ||
+        log.action === 'CLOCK_OUT'
+      ) {
         if (emp.currentStatus === 'IN' && emp.lastIn) {
           const d = time - emp.lastIn;
           if (emp.lastIn >= startOfWeek) {
@@ -300,7 +401,7 @@ export async function loadTimesheets() {
           } else if (emp.lastIn >= startOf4WeeksAgo) {
             emp.week4Ms += d;
           } else if (time >= startOfWeek) {
-            emp.weekMs[0] += (time - startOfWeek);
+            emp.weekMs[0] += time - startOfWeek;
           }
           if (emp.lastIn >= biweeklyW1 && emp.lastIn < biweeklyW2) emp.biweeklyWeek1Ms += d;
           else if (emp.lastIn >= biweeklyW2 && emp.lastIn < biweeklyNextW) emp.biweeklyWeek2Ms += d;
@@ -324,7 +425,7 @@ export async function loadTimesheets() {
     let overtimeCount = 0;
     let pendingCount = 0;
 
-    Object.values(state.employeeMap).forEach(emp => {
+    Object.values(state.employeeMap).forEach((emp) => {
       if (emp.currentStatus === 'IN' && emp.lastIn) {
         const activeMs = Date.now() - emp.lastIn;
         if (emp.lastIn >= startOfWeek) {
@@ -338,10 +439,11 @@ export async function loadTimesheets() {
         } else if (emp.lastIn >= startOf4WeeksAgo) {
           emp.week4Ms += activeMs;
         } else {
-          emp.weekMs[0] += (Date.now() - startOfWeek);
+          emp.weekMs[0] += Date.now() - startOfWeek;
         }
         if (emp.lastIn >= biweeklyW1 && emp.lastIn < biweeklyW2) emp.biweeklyWeek1Ms += activeMs;
-        else if (emp.lastIn >= biweeklyW2 && emp.lastIn < biweeklyNextW) emp.biweeklyWeek2Ms += activeMs;
+        else if (emp.lastIn >= biweeklyW2 && emp.lastIn < biweeklyNextW)
+          emp.biweeklyWeek2Ms += activeMs;
       }
 
       const totalWeekMs = emp.weekMs.reduce((s, v) => s + v, 0);
@@ -350,8 +452,13 @@ export async function loadTimesheets() {
       const totalLastWeekHrs = (emp.lastWeekMs / 3600000).toFixed(2);
 
       let totalColor = 'var(--primary)';
-      if (totalWeekHrsVal >= 40) { totalColor = 'var(--danger)'; overtimeCount++; }
-      else if (totalWeekHrsVal >= 36) { totalColor = 'var(--warning)'; overtimeCount++; }
+      if (totalWeekHrsVal >= 40) {
+        totalColor = 'var(--danger)';
+        overtimeCount++;
+      } else if (totalWeekHrsVal >= 36) {
+        totalColor = 'var(--warning)';
+        overtimeCount++;
+      }
 
       const statusColors = { IN: 'var(--success)', LUNCH: 'var(--warning)', OUT: 'var(--danger)' };
       const statusColor = statusColors[emp.currentStatus] || 'var(--danger)';
@@ -360,15 +467,21 @@ export async function loadTimesheets() {
 
       const weeklyPayVal = calculatePayWithOvertime([totalWeekHrsVal], emp.pay_rate);
       const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : weeklyPayVal.toFixed(2);
-      const rateText = emp.is_salary ? `$${emp.pay_rate.toFixed(2)} (Salary)` : `$${emp.pay_rate.toFixed(2)}/hr`;
+      const rateText = emp.is_salary
+        ? `$${emp.pay_rate.toFixed(2)} (Salary)`
+        : `$${emp.pay_rate.toFixed(2)}/hr`;
       const dayLetters = ['W', 'T', 'F', 'S', 'S', 'M', 'T'];
       const dayNames = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
-      const weekStrip = emp.weekMs.map((ms, i) => {
-        const h = ms / 3600000;
-        return `<div class="ts-day${h > 0 ? ' on' : ''}"><span class="dl">${dayLetters[i]}</span><span class="dv${h > 0 ? '' : ' zero'}" title="${dayNames[i]}">${h > 0 ? h.toFixed(1) : '–'}</span></div>`;
-      }).join('');
+      const weekStrip = emp.weekMs
+        .map((ms, i) => {
+          const h = ms / 3600000;
+          return `<div class="ts-day${h > 0 ? ' on' : ''}"><span class="dl">${dayLetters[i]}</span><span class="dv${h > 0 ? '' : ' zero'}" title="${dayNames[i]}">${h > 0 ? h.toFixed(1) : '–'}</span></div>`;
+        })
+        .join('');
       const otTag = totalWeekHrsVal >= 40 ? ' <span class="ts-ot">OT</span>' : '';
-      const tsAvatar = emp.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23bbb'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+      const tsAvatar =
+        emp.avatar ||
+        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23bbb'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
 
       if (timesheetGrid) {
         const card = document.createElement('div');
@@ -398,7 +511,7 @@ export async function loadTimesheets() {
       state.weeklyTimesheetRows.push({
         name: displayName,
         status: emp.currentStatus,
-        days: emp.weekMs.map(ms => ms / 3600000),
+        days: emp.weekMs.map((ms) => ms / 3600000),
         total: totalWeekHrsVal,
         rateText,
         estGross: parseFloat(estWeeklyPay) || 0,
@@ -411,9 +524,13 @@ export async function loadTimesheets() {
         const w1Hrs = (emp.biweeklyWeek1Ms / 3600000).toFixed(2);
         const w2Hrs = (emp.biweeklyWeek2Ms / 3600000).toFixed(2);
         const biweeklyTotal = (Number(w1Hrs) + Number(w2Hrs)).toFixed(2);
-        const biweeklyPay = emp.is_salary ? emp.pay_rate.toFixed(2) : calculatePayWithOvertime([Number(w1Hrs), Number(w2Hrs)], emp.pay_rate).toFixed(2);
+        const biweeklyPay = emp.is_salary
+          ? emp.pay_rate.toFixed(2)
+          : calculatePayWithOvertime([Number(w1Hrs), Number(w2Hrs)], emp.pay_rate).toFixed(2);
         const trB = document.createElement('tr');
-        trB.dataset.id = emp.id; trB.dataset.isSalary = emp.is_salary; trB.dataset.payRate = emp.pay_rate;
+        trB.dataset.id = emp.id;
+        trB.dataset.isSalary = emp.is_salary;
+        trB.dataset.payRate = emp.pay_rate;
         trB.innerHTML = `
           <td>${displayName}</td>
           <td>${w1Hrs}</td><td>${w2Hrs}</td>
@@ -428,11 +545,29 @@ export async function loadTimesheets() {
         const w2h = (emp.week2Ms / 3600000).toFixed(2);
         const w3h = (emp.week3Ms / 3600000).toFixed(2);
         const w4h = (emp.week4Ms / 3600000).toFixed(2);
-        const monthlyTotal = (Number(totalWeekHrs) + Number(totalLastWeekHrs) + Number(w2h) + Number(w3h) + Number(w4h)).toFixed(2);
-        const monthlyPay = emp.is_salary ? emp.pay_rate.toFixed(2)
-          : calculatePayWithOvertime([Number(totalWeekHrs), Number(totalLastWeekHrs), Number(w2h), Number(w3h), Number(w4h)], emp.pay_rate).toFixed(2);
+        const monthlyTotal = (
+          Number(totalWeekHrs) +
+          Number(totalLastWeekHrs) +
+          Number(w2h) +
+          Number(w3h) +
+          Number(w4h)
+        ).toFixed(2);
+        const monthlyPay = emp.is_salary
+          ? emp.pay_rate.toFixed(2)
+          : calculatePayWithOvertime(
+              [
+                Number(totalWeekHrs),
+                Number(totalLastWeekHrs),
+                Number(w2h),
+                Number(w3h),
+                Number(w4h),
+              ],
+              emp.pay_rate,
+            ).toFixed(2);
         const trM = document.createElement('tr');
-        trM.dataset.id = emp.id; trM.dataset.isSalary = emp.is_salary; trM.dataset.payRate = emp.pay_rate;
+        trM.dataset.id = emp.id;
+        trM.dataset.isSalary = emp.is_salary;
+        trM.dataset.payRate = emp.pay_rate;
         trM.innerHTML = `
           <td>${displayName}</td>
           <td>${w4h}</td><td>${w3h}</td><td>${w2h}</td><td>${totalLastWeekHrs}</td><td>${totalWeekHrs}</td>
@@ -458,12 +593,14 @@ export async function loadTimesheets() {
       pendingPinsBody.innerHTML = '';
       let hasPending = false;
 
-      usersData.forEach(u => {
+      usersData.forEach((u) => {
         if (u.is_approved === false) {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const avatarUrl =
+            u.avatar ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           tr.innerHTML = `
             <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
               <img src="${avatarUrl}" class="avatar-circle" />
@@ -482,7 +619,9 @@ export async function loadTimesheets() {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const avatarUrl =
+            u.avatar ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           tr.innerHTML = `
             <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
               <img src="${avatarUrl}" class="avatar-circle" />
@@ -501,7 +640,9 @@ export async function loadTimesheets() {
           hasPending = true;
           pendingCount++;
           const tr = document.createElement('tr');
-          const avatarUrl = u.avatar || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const avatarUrl =
+            u.avatar ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           tr.innerHTML = `
             <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
               <img src="${avatarUrl}" class="avatar-circle" />
@@ -522,18 +663,22 @@ export async function loadTimesheets() {
 
     // Time off requests
     const { data: timeoffData, error: timeoffError } = await window.supabaseClient
-      .from('time_off_requests').select('id, user_id, start_date, end_date, reason, status, created_at').eq('status', 'Pending');
+      .from('time_off_requests')
+      .select('id, user_id, start_date, end_date, reason, status, created_at')
+      .eq('status', 'Pending');
     const managerTimeoffBody = document.getElementById('manager-timeoff-body');
     const pendingTimeoffSection = document.getElementById('pending-timeoff-section');
     if (managerTimeoffBody) {
       managerTimeoffBody.innerHTML = '';
       if (!timeoffError && timeoffData && timeoffData.length > 0) {
         if (pendingTimeoffSection) pendingTimeoffSection.classList.remove('hidden');
-        timeoffData.forEach(req => {
+        timeoffData.forEach((req) => {
           pendingCount++;
           const emp = state.employeeMap[req.user_id];
           const empName = emp ? emp.name : 'Unknown';
-          const avatarUrl = (emp && emp.avatar) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const avatarUrl =
+            (emp && emp.avatar) ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
@@ -566,11 +711,17 @@ export async function loadTimesheets() {
     if (earlyBody) {
       earlyBody.innerHTML = '';
       if (earlyRequests && earlyRequests.length > 0) {
-        earlyRequests.forEach(req => {
+        earlyRequests.forEach((req) => {
           pendingCount++;
-          const requestedAt = new Date(req.requested_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Chicago' });
-          const emp = Object.values(state.employeeMap).find(e => e.name === req.employee_name);
-          const avatarUrl = (emp && emp.avatar) || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const requestedAt = new Date(req.requested_at).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'America/Chicago',
+          });
+          const emp = Object.values(state.employeeMap).find((e) => e.name === req.employee_name);
+          const avatarUrl =
+            (emp && emp.avatar) ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
@@ -643,17 +794,21 @@ function wireExportButtons(w1Range, w2Range) {
 
 function exportWeeklyCsv() {
   const rows = state.weeklyTimesheetRows || [];
-  if (rows.length === 0) { showToast('No data to export', 'warning'); return; }
-  let csv = '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
+  if (rows.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
+  let csv =
+    '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
   let count = 1;
-  rows.forEach(r => {
+  rows.forEach((r) => {
     if (r.total === 0 && !r.isSalary) return;
     const estTaxes = calculateEstimatedTaxes(r.estGross, r.taxStatus, r.isSalary, 52);
     const estNet = Math.max(0, r.estGross - estTaxes);
     const cells = [
       formatNameLastFirst(r.name),
       r.status,
-      ...r.days.map(h => (h > 0 ? h.toFixed(2) : '0')),
+      ...r.days.map((h) => (h > 0 ? h.toFixed(2) : '0')),
       r.total.toFixed(2),
       r.rateText,
       r.estGross.toFixed(2),
@@ -661,7 +816,7 @@ function exportWeeklyCsv() {
       estTaxes.toFixed(2),
       estNet.toFixed(2),
       r.lastWeek.toFixed(2),
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
     csv += `"${count++}",${cells.join(',')}\n`;
   });
   downloadCsv(csv, `Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
@@ -670,10 +825,13 @@ function exportWeeklyCsv() {
 
 function exportBiweeklyCsv(w1Range, w2Range) {
   const rows = document.querySelectorAll('#biweekly-history-body-payroll tr');
-  if (rows.length === 0) { showToast('No data to export', 'warning'); return; }
+  if (rows.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
   let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n`;
   let count = 1;
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const cols = row.querySelectorAll('td');
     if (cols.length < 4) return;
     const empId = row.dataset.id;
@@ -684,7 +842,7 @@ function exportBiweeklyCsv(w1Range, w2Range) {
     if (biweeklyTotal === 0 && !isSalary) return;
 
     const estGross = parseFloat(cols[4] ? cols[4].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
-    const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
+    const taxStatus = emp ? emp.tax_status || 'Single' : 'Single';
     const estTaxes = calculateEstimatedTaxes(estGross, taxStatus, isSalary, 26);
     const estNet = Math.max(0, estGross - estTaxes);
 
@@ -694,19 +852,33 @@ function exportBiweeklyCsv(w1Range, w2Range) {
       if (i === 0) text = formatNameLastFirst(text);
       rowData.push(`"${text.replace(/"/g, '""')}"`);
     }
-    rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`, `"${payRate}"`, `"${estGross.toFixed(2)}"`, `"${taxStatus}"`, `"${estTaxes.toFixed(2)}"`, `"${estNet.toFixed(2)}"`);
+    rowData.push(
+      `"${isSalary ? 'Salary' : 'Hourly'}"`,
+      `"${payRate}"`,
+      `"${estGross.toFixed(2)}"`,
+      `"${taxStatus}"`,
+      `"${estTaxes.toFixed(2)}"`,
+      `"${estNet.toFixed(2)}"`,
+    );
     csv += rowData.join(',') + '\n';
   });
-  downloadCsv(csv, `Biweekly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+  downloadCsv(
+    csv,
+    `Biweekly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`,
+  );
   showToast('Biweekly CSV Downloaded!');
 }
 
 function exportMonthlyCsv() {
   const rows = document.querySelectorAll('#monthly-archive-body-payroll tr');
-  if (rows.length === 0) { showToast('No data to export', 'warning'); return; }
-  let csv = '#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n';
+  if (rows.length === 0) {
+    showToast('No data to export', 'warning');
+    return;
+  }
+  let csv =
+    '#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n';
   let count = 1;
-  rows.forEach(row => {
+  rows.forEach((row) => {
     const cols = row.querySelectorAll('td');
     if (cols.length < 7) return;
     const empId = row.dataset.id;
@@ -717,7 +889,7 @@ function exportMonthlyCsv() {
     if (monthlyTotal === 0 && !isSalary) return;
 
     const estGross = parseFloat(cols[7] ? cols[7].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
-    const taxStatus = emp ? (emp.tax_status || 'Single') : 'Single';
+    const taxStatus = emp ? emp.tax_status || 'Single' : 'Single';
     const estTaxes = calculateEstimatedTaxes(estGross, taxStatus, isSalary, 12);
     const estNet = Math.max(0, estGross - estTaxes);
 
@@ -727,10 +899,20 @@ function exportMonthlyCsv() {
       if (i === 0) text = formatNameLastFirst(text);
       rowData.push(`"${text.replace(/"/g, '""')}"`);
     }
-    rowData.push(`"${isSalary ? 'Salary' : 'Hourly'}"`, `"${payRate}"`, `"${estGross.toFixed(2)}"`, `"${taxStatus}"`, `"${estTaxes.toFixed(2)}"`, `"${estNet.toFixed(2)}"`);
+    rowData.push(
+      `"${isSalary ? 'Salary' : 'Hourly'}"`,
+      `"${payRate}"`,
+      `"${estGross.toFixed(2)}"`,
+      `"${taxStatus}"`,
+      `"${estTaxes.toFixed(2)}"`,
+      `"${estNet.toFixed(2)}"`,
+    );
     csv += rowData.join(',') + '\n';
   });
-  downloadCsv(csv, `Monthly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
+  downloadCsv(
+    csv,
+    `Monthly_Payroll_Export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`,
+  );
   showToast('Monthly CSV Downloaded!');
 }
 
@@ -739,33 +921,47 @@ async function loadEmployeeLogs() {
   const manageLogsBody = document.getElementById('manage-logs-body');
   if (!state.selectedEmployeeForLogs || !manageLogsBody) return;
   try {
-    const { data, error } = await window.supabaseClient.from('time_logs')
+    const { data, error } = await window.supabaseClient
+      .from('time_logs')
       .select('id, user_id, action, created_at, edited_by_manager, photo_base64')
       .eq('user_id', state.selectedEmployeeForLogs)
       .order('created_at', { ascending: false });
     if (error) throw error;
 
     manageLogsBody.innerHTML = '';
-    data.forEach(log => {
-      const time = new Date(log.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago' });
-      const colors = { IN: 'var(--success)', CLOCK_IN: 'var(--success)', OUT: 'var(--danger)', CLOCK_OUT: 'var(--danger)', START_LUNCH: 'var(--warning)', END_LUNCH: 'var(--primary)', TIMESHEET_APPROVED: '#00BCD4' };
+    data.forEach((log) => {
+      const time = new Date(log.created_at).toLocaleString('en-US', {
+        timeZone: 'America/Chicago',
+      });
+      const colors = {
+        IN: 'var(--success)',
+        CLOCK_IN: 'var(--success)',
+        OUT: 'var(--danger)',
+        CLOCK_OUT: 'var(--danger)',
+        START_LUNCH: 'var(--warning)',
+        END_LUNCH: 'var(--primary)',
+        TIMESHEET_APPROVED: '#00BCD4',
+      };
       const color = colors[log.action] || 'var(--text)';
       const editedBy = log.edited_by_manager
-        ? `<span style="font-size:0.8rem;color:var(--warning);">[Edited] ${log.edited_by_manager}</span>` : '-';
+        ? `<span style="font-size:0.8rem;color:var(--warning);">[Edited] ${log.edited_by_manager}</span>`
+        : '-';
 
       const tr = document.createElement('tr');
       if (log.photo_base64) {
         const img = document.createElement('img');
         img.src = log.photo_base64;
         img.dataset.fullPhoto = 'true';
-        img.style.cssText = 'width:40px;height:40px;border-radius:5px;object-fit:cover;cursor:pointer;border:1px solid var(--border);';
+        img.style.cssText =
+          'width:40px;height:40px;border-radius:5px;object-fit:cover;cursor:pointer;border:1px solid var(--border);';
         img.title = 'Click to view full photo';
         const photoTd = document.createElement('td');
         photoTd.appendChild(img);
         tr.appendChild(photoTd);
       } else {
         const photoTd = document.createElement('td');
-        photoTd.innerHTML = '<span style="color:var(--text-muted);font-size:0.8rem;">No Photo</span>';
+        photoTd.innerHTML =
+          '<span style="color:var(--text-muted);font-size:0.8rem;">No Photo</span>';
         tr.appendChild(photoTd);
       }
 
@@ -806,7 +1002,10 @@ export function init() {
           const modal2FA = document.getElementById('modal-2fa-verify');
           const verify2FAPin = document.getElementById('verify-2fa-pin');
           if (modal2FA) modal2FA.classList.remove('hidden');
-          if (verify2FAPin) { verify2FAPin.value = ''; verify2FAPin.focus(); }
+          if (verify2FAPin) {
+            verify2FAPin.value = '';
+            verify2FAPin.focus();
+          }
           return;
         }
 
@@ -842,7 +1041,10 @@ export function init() {
           const modal2FA = document.getElementById('modal-2fa-verify');
           const verify2FAPin = document.getElementById('verify-2fa-pin');
           if (modal2FA) modal2FA.classList.remove('hidden');
-          if (verify2FAPin) { verify2FAPin.value = ''; verify2FAPin.focus(); }
+          if (verify2FAPin) {
+            verify2FAPin.value = '';
+            verify2FAPin.focus();
+          }
           return;
         }
         completeManagerLogin(data);
@@ -907,8 +1109,10 @@ export function init() {
         state.managerLoggedIn = true;
         state.currentManager = data;
         document.getElementById('schedule-manager-auth')?.classList.add('hidden');
-        document.getElementById('schedule-manager-username') && (document.getElementById('schedule-manager-username').value = '');
-        document.getElementById('schedule-manager-password') && (document.getElementById('schedule-manager-password').value = '');
+        document.getElementById('schedule-manager-username') &&
+          (document.getElementById('schedule-manager-username').value = '');
+        document.getElementById('schedule-manager-password') &&
+          (document.getElementById('schedule-manager-password').value = '');
         document.getElementById('btn-schedule-manager-login')?.classList.add('hidden');
         document.getElementById('btn-show-post-schedule')?.classList.remove('hidden');
         document.getElementById('manager-auth')?.classList.add('hidden');
@@ -927,7 +1131,7 @@ export function init() {
   const biweeklyHistoryBody = document.getElementById('biweekly-history-body-payroll');
   const monthlyArchiveBody = document.getElementById('monthly-archive-body-payroll');
 
-  [timesheetGrid, biweeklyHistoryBody, monthlyArchiveBody].forEach(container => {
+  [timesheetGrid, biweeklyHistoryBody, monthlyArchiveBody].forEach((container) => {
     if (container) {
       container.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-manage-logs');
@@ -947,41 +1151,59 @@ export function init() {
 
       if (e.target.classList.contains('btn-approve-pin')) {
         try {
-          const { error } = await window.supabaseClient.from('users').update({ pin: val, pending_pin: null }).eq('id', id);
+          const { error } = await window.supabaseClient
+            .from('users')
+            .update({ pin: val, pending_pin: null })
+            .eq('id', id);
           if (error) throw error;
           showToast('PIN change approved');
           loadTimesheets();
-        } catch (err) { showToast('Failed to approve PIN change.', 'error'); }
+        } catch (err) {
+          showToast('Failed to approve PIN change.', 'error');
+        }
       } else if (e.target.classList.contains('btn-reject-pin')) {
         try {
           await window.supabaseClient.from('users').update({ pending_pin: null }).eq('id', id);
           showToast('PIN request rejected');
           loadTimesheets();
-        } catch (err) { showToast('Failed to reject PIN request.', 'error'); }
+        } catch (err) {
+          showToast('Failed to reject PIN request.', 'error');
+        }
       } else if (e.target.classList.contains('btn-approve-pwd')) {
         try {
-          await window.supabaseClient.from('users').update({ password: val, pending_password: null }).eq('id', id);
+          await window.supabaseClient
+            .from('users')
+            .update({ password: val, pending_password: null })
+            .eq('id', id);
           showToast('Password reset approved!');
           loadTimesheets();
-        } catch (err) { showToast('Failed to approve password reset.', 'error'); }
+        } catch (err) {
+          showToast('Failed to approve password reset.', 'error');
+        }
       } else if (e.target.classList.contains('btn-reject-pwd')) {
         try {
           await window.supabaseClient.from('users').update({ pending_password: null }).eq('id', id);
           showToast('Password reset rejected');
           loadTimesheets();
-        } catch (err) { showToast('Failed to reject password reset.', 'error'); }
+        } catch (err) {
+          showToast('Failed to reject password reset.', 'error');
+        }
       } else if (e.target.classList.contains('btn-approve-account')) {
         try {
           await window.supabaseClient.from('users').update({ is_approved: true }).eq('id', id);
           showToast('Account approved!');
           loadTimesheets();
-        } catch (err) { showToast('Failed to approve account.', 'error'); }
+        } catch (err) {
+          showToast('Failed to approve account.', 'error');
+        }
       } else if (e.target.classList.contains('btn-reject-account')) {
         try {
           await window.supabaseClient.from('users').delete().eq('id', id);
           showToast('Account request removed');
           loadTimesheets();
-        } catch (err) { showToast('Failed to reject account.', 'error'); }
+        } catch (err) {
+          showToast('Failed to reject account.', 'error');
+        }
       }
     });
   }
@@ -993,16 +1215,26 @@ export function init() {
       const id = e.target.dataset.id;
       if (e.target.classList.contains('btn-approve-timeoff')) {
         try {
-          await window.supabaseClient.from('time_off_requests').update({ status: 'Approved' }).eq('id', id);
+          await window.supabaseClient
+            .from('time_off_requests')
+            .update({ status: 'Approved' })
+            .eq('id', id);
           showToast('Time off approved!');
           loadTimesheets();
-        } catch (err) { showToast('Failed to approve time off.', 'error'); }
+        } catch (err) {
+          showToast('Failed to approve time off.', 'error');
+        }
       } else if (e.target.classList.contains('btn-deny-timeoff')) {
         try {
-          await window.supabaseClient.from('time_off_requests').update({ status: 'Denied' }).eq('id', id);
+          await window.supabaseClient
+            .from('time_off_requests')
+            .update({ status: 'Denied' })
+            .eq('id', id);
           showToast('Time off denied.');
           loadTimesheets();
-        } catch (err) { showToast('Failed to deny time off.', 'error'); }
+        } catch (err) {
+          showToast('Failed to deny time off.', 'error');
+        }
       }
     });
   }
@@ -1015,18 +1247,26 @@ export function init() {
       if (!id) return;
       if (e.target.classList.contains('btn-approve-early')) {
         try {
-          await window.supabaseClient.from('early_clockin_approvals')
-            .update({ status: 'approved', approved_by: state.currentManager || 'Manager' }).eq('id', id);
+          await window.supabaseClient
+            .from('early_clockin_approvals')
+            .update({ status: 'approved', approved_by: state.currentManager || 'Manager' })
+            .eq('id', id);
           showToast('Early clock-in approved!');
           loadTimesheets();
-        } catch (err) { showToast('Failed to approve.', 'error'); }
+        } catch (err) {
+          showToast('Failed to approve.', 'error');
+        }
       } else if (e.target.classList.contains('btn-deny-early')) {
         try {
-          await window.supabaseClient.from('early_clockin_approvals')
-            .update({ status: 'denied', approved_by: state.currentManager || 'Manager' }).eq('id', id);
+          await window.supabaseClient
+            .from('early_clockin_approvals')
+            .update({ status: 'denied', approved_by: state.currentManager || 'Manager' })
+            .eq('id', id);
           showToast('Early clock-in denied.');
           loadTimesheets();
-        } catch (err) { showToast('Failed to deny.', 'error'); }
+        } catch (err) {
+          showToast('Failed to deny.', 'error');
+        }
       }
     });
   }
@@ -1054,16 +1294,29 @@ export function init() {
   if (btnDeleteEmployee) {
     btnDeleteEmployee.addEventListener('click', async () => {
       if (!state.selectedEmployeeForLogs) return;
-      if (!confirm('Are you ABSOLUTELY sure? This permanently removes the employee and all their time logs.')) return;
+      if (
+        !confirm(
+          'Are you ABSOLUTELY sure? This permanently removes the employee and all their time logs.',
+        )
+      )
+        return;
       try {
-        await window.supabaseClient.from('time_logs').delete().eq('user_id', state.selectedEmployeeForLogs);
-        const { error } = await window.supabaseClient.from('users').delete().eq('id', state.selectedEmployeeForLogs);
+        await window.supabaseClient
+          .from('time_logs')
+          .delete()
+          .eq('user_id', state.selectedEmployeeForLogs);
+        const { error } = await window.supabaseClient
+          .from('users')
+          .delete()
+          .eq('id', state.selectedEmployeeForLogs);
         if (error) throw error;
         showToast('Employee deleted successfully');
         if (modalManageLogs) modalManageLogs.classList.add('hidden');
         state.selectedEmployeeForLogs = null;
         loadTimesheets();
-      } catch (err) { showToast('Failed to delete employee.', 'error'); }
+      } catch (err) {
+        showToast('Failed to delete employee.', 'error');
+      }
     });
   }
 
@@ -1077,12 +1330,16 @@ export function init() {
           if (error) throw error;
           showToast('Log deleted successfully');
           await loadEmployeeLogs();
-        } catch (err) { showToast('Failed to delete log.', 'error'); }
+        } catch (err) {
+          showToast('Failed to delete log.', 'error');
+        }
       } else if (e.target.classList.contains('btn-edit-log')) {
         state.currentEditingPunchId = e.target.dataset.id;
         if (editPunchAction) editPunchAction.value = e.target.dataset.action;
         const d = new Date(e.target.dataset.time);
-        const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
         if (editPunchDatetime) editPunchDatetime.value = localISO;
         if (modalEditPunch) {
           ensureModalTopLevel(modalEditPunch);
@@ -1105,9 +1362,13 @@ export function init() {
     btnSaveEditPunch.addEventListener('click', async () => {
       if (!state.currentEditingPunchId) return;
       const localDate = new Date(editPunchDatetime.value);
-      if (isNaN(localDate.getTime())) { showToast('Invalid date/time', 'error'); return; }
+      if (isNaN(localDate.getTime())) {
+        showToast('Invalid date/time', 'error');
+        return;
+      }
       try {
-        const { error } = await window.supabaseClient.from('time_logs')
+        const { error } = await window.supabaseClient
+          .from('time_logs')
           .update({ action: editPunchAction.value, created_at: localDate.toISOString() })
           .eq('id', state.currentEditingPunchId);
         if (error) throw error;
@@ -1115,7 +1376,9 @@ export function init() {
         if (modalEditPunch) modalEditPunch.classList.add('hidden');
         state.currentEditingPunchId = null;
         await loadEmployeeLogs();
-      } catch (err) { showToast('Failed to update punch.', 'error'); }
+      } catch (err) {
+        showToast('Failed to update punch.', 'error');
+      }
     });
   }
 
@@ -1124,19 +1387,26 @@ export function init() {
       if (!state.selectedEmployeeForLogs) return;
       const action = document.getElementById('new-log-action')?.value;
       const timeVal = document.getElementById('new-log-time')?.value;
-      if (!timeVal) { showToast('Please select a date and time', 'error'); return; }
+      if (!timeVal) {
+        showToast('Please select a date and time', 'error');
+        return;
+      }
       try {
-        const { error } = await window.supabaseClient.from('time_logs').insert([{
-          user_id: state.selectedEmployeeForLogs,
-          action,
-          created_at: new Date(timeVal).toISOString()
-        }]);
+        const { error } = await window.supabaseClient.from('time_logs').insert([
+          {
+            user_id: state.selectedEmployeeForLogs,
+            action,
+            created_at: new Date(timeVal).toISOString(),
+          },
+        ]);
         if (error) throw error;
         showToast('Manual punch added');
         const newLogTime = document.getElementById('new-log-time');
         if (newLogTime) newLogTime.value = '';
         await loadEmployeeLogs();
-      } catch (err) { showToast('Failed to add manual log.', 'error'); }
+      } catch (err) {
+        showToast('Failed to add manual log.', 'error');
+      }
     });
   }
 
@@ -1171,19 +1441,29 @@ export function init() {
 
       const payrollName = `${lastName}, ${firstName}`;
       try {
-        const payload = { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, role: role };
+        const payload = {
+          name: loginName,
+          payroll_name: payrollName,
+          pay_rate: payRate,
+          is_salary: isSalary,
+          role: role,
+        };
         if (taxStatus !== null) payload.tax_status = taxStatus;
         if (isLeadership) {
-          if (managerPassword) payload.password = managerPassword;   // set / change dashboard password
+          if (managerPassword) payload.password = managerPassword; // set / change dashboard password
           // otherwise keep their existing password
         } else {
-          payload.password = null;   // demoted to Employee → revoke dashboard access
+          payload.password = null; // demoted to Employee → revoke dashboard access
         }
 
-        const { error } = await window.supabaseClient.from('users').update(payload).eq('id', state.selectedEmployeeForLogs);
+        const { error } = await window.supabaseClient
+          .from('users')
+          .update(payload)
+          .eq('id', state.selectedEmployeeForLogs);
         if (error) {
           // Retry without optional columns
-          const { error: retryError } = await window.supabaseClient.from('users')
+          const { error: retryError } = await window.supabaseClient
+            .from('users')
             .update({ name: loginName, payroll_name: payrollName, pay_rate: payRate })
             .eq('id', state.selectedEmployeeForLogs);
           if (retryError) throw retryError;
@@ -1193,13 +1473,22 @@ export function init() {
         }
 
         if (state.employeeMap[state.selectedEmployeeForLogs]) {
-          Object.assign(state.employeeMap[state.selectedEmployeeForLogs], { name: loginName, payroll_name: payrollName, pay_rate: payRate, is_salary: isSalary, tax_status: taxStatus, role: role });
+          Object.assign(state.employeeMap[state.selectedEmployeeForLogs], {
+            name: loginName,
+            payroll_name: payrollName,
+            pay_rate: payRate,
+            is_salary: isSalary,
+            tax_status: taxStatus,
+            role: role,
+          });
         }
         const pwdEl = document.getElementById('edit-employee-password');
         if (pwdEl) pwdEl.value = '';
         toggleEditEmployeePassword();
         loadTimesheets();
-      } catch (err) { showToast('Error updating employee details.', 'error'); }
+      } catch (err) {
+        showToast('Error updating employee details.', 'error');
+      }
     });
   }
 
@@ -1214,40 +1503,59 @@ export function init() {
   const editEmployeesBody = document.getElementById('edit-employees-body');
   const editEmployeesSearch = document.getElementById('edit-employees-search');
 
-  const escHtml = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const escHtml = (s) =>
+    String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
 
   function renderEditEmployees(filter = '') {
     if (!editEmployeesBody) return;
     const f = filter.trim().toLowerCase();
     const emps = Object.values(state.employeeMap || {})
-      .filter(e => !f || (e.payroll_name || '').toLowerCase().includes(f) || (e.name || '').toLowerCase().includes(f))
-      .sort((a, b) => (a.payroll_name || a.name || '').localeCompare(b.payroll_name || b.name || ''));
+      .filter(
+        (e) =>
+          !f ||
+          (e.payroll_name || '').toLowerCase().includes(f) ||
+          (e.name || '').toLowerCase().includes(f),
+      )
+      .sort((a, b) =>
+        (a.payroll_name || a.name || '').localeCompare(b.payroll_name || b.name || ''),
+      );
 
     if (!emps.length) {
-      editEmployeesBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">No employees found</td></tr>';
+      editEmployeesBody.innerHTML =
+        '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">No employees found</td></tr>';
       return;
     }
-    editEmployeesBody.innerHTML = emps.map(e => {
-      const displayName = e.payroll_name || e.name || 'Unknown';
-      return `<tr>
+    editEmployeesBody.innerHTML = emps
+      .map((e) => {
+        const displayName = e.payroll_name || e.name || 'Unknown';
+        return `<tr>
         <td>${escHtml(displayName)}</td>
         <td>${escHtml(e.role || 'Employee')}</td>
         <td><button class="btn-primary btn-edit-emp" data-id="${escHtml(e.id)}" data-name="${escHtml(displayName)}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Edit</button></td>
       </tr>`;
-    }).join('');
+      })
+      .join('');
   }
 
   if (btnShowEditEmployees) {
     btnShowEditEmployees.addEventListener('click', async () => {
       if (modalEditEmployees) modalEditEmployees.classList.remove('hidden');
       if (editEmployeesSearch) editEmployeesSearch.value = '';
-      if (editEmployeesBody) editEmployeesBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">Loading…</td></tr>';
+      if (editEmployeesBody)
+        editEmployeesBody.innerHTML =
+          '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:15px;">Loading…</td></tr>';
       if (!Object.keys(state.employeeMap || {}).length) await loadTimesheets();
       renderEditEmployees('');
     });
   }
   if (btnCloseEditEmployees) {
-    btnCloseEditEmployees.addEventListener('click', () => { if (modalEditEmployees) modalEditEmployees.classList.add('hidden'); });
+    btnCloseEditEmployees.addEventListener('click', () => {
+      if (modalEditEmployees) modalEditEmployees.classList.add('hidden');
+    });
   }
   if (editEmployeesSearch) {
     editEmployeesSearch.addEventListener('input', (e) => renderEditEmployees(e.target.value));
@@ -1268,23 +1576,35 @@ export function init() {
   const btnConfirmCreate = document.getElementById('btn-confirm-create');
   const btnCancelCreate = document.getElementById('btn-cancel-create');
 
-  if (btnShowCreateUser) btnShowCreateUser.addEventListener('click', () => { if (modalCreateUser) modalCreateUser.classList.remove('hidden'); });
+  if (btnShowCreateUser)
+    btnShowCreateUser.addEventListener('click', () => {
+      if (modalCreateUser) modalCreateUser.classList.remove('hidden');
+    });
   if (btnCancelCreate) {
     btnCancelCreate.addEventListener('click', () => {
       if (modalCreateUser) modalCreateUser.classList.add('hidden');
-      ['new-user-first-name', 'new-user-last-name', 'new-user-login-name', 'new-user-pin', 'new-user-password'].forEach(id => {
+      [
+        'new-user-first-name',
+        'new-user-last-name',
+        'new-user-login-name',
+        'new-user-pin',
+        'new-user-password',
+      ].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
     });
   }
 
-  document.querySelectorAll('input[name="new-user-role"]').forEach(radio => {
+  document.querySelectorAll('input[name="new-user-role"]').forEach((radio) => {
     radio.addEventListener('change', (e) => {
       const pwd = document.getElementById('new-user-password');
       if (pwd) {
         if (e.target.value !== 'Employee') pwd.classList.remove('hidden');
-        else { pwd.classList.add('hidden'); pwd.value = ''; }
+        else {
+          pwd.classList.add('hidden');
+          pwd.value = '';
+        }
       }
     });
   });
@@ -1308,26 +1628,48 @@ export function init() {
       }
 
       try {
-        const { data: existing } = await window.supabaseClient.from('users').select('id').eq('pin', pin).single();
-        if (existing) { showToast('PIN is already in use.', 'error'); return; }
+        const { data: existing } = await window.supabaseClient
+          .from('users')
+          .select('id')
+          .eq('pin', pin)
+          .single();
+        if (existing) {
+          showToast('PIN is already in use.', 'error');
+          return;
+        }
 
         const isSalaryNew = document.getElementById('new-user-is-salary')?.checked || false;
-        const { error } = await window.supabaseClient.from('users').insert([{
-          name, payroll_name: `${lastName}, ${firstName}`, pin, role,
-          password: role !== 'Employee' ? password : null, is_approved: false,
-          is_salary: isSalaryNew,
-        }]);
+        const { error } = await window.supabaseClient.from('users').insert([
+          {
+            name,
+            payroll_name: `${lastName}, ${firstName}`,
+            pin,
+            role,
+            password: role !== 'Employee' ? password : null,
+            is_approved: false,
+            is_salary: isSalaryNew,
+          },
+        ]);
         if (error) throw error;
 
         showToast(`Account request for ${firstName} ${lastName} submitted for approval.`);
-        ['new-user-first-name', 'new-user-last-name', 'new-user-login-name', 'new-user-pin', 'new-user-password'].forEach(id => {
-          const el = document.getElementById(id); if (el) el.value = '';
+        [
+          'new-user-first-name',
+          'new-user-last-name',
+          'new-user-login-name',
+          'new-user-pin',
+          'new-user-password',
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
         });
         const salaryCheckbox = document.getElementById('new-user-is-salary');
         if (salaryCheckbox) salaryCheckbox.checked = false;
         if (modalCreateUser) modalCreateUser.classList.add('hidden');
         loadTimesheets();
-      } catch (err) { showToast('Failed to create user.', 'error'); }
+      } catch (err) {
+        showToast('Failed to create user.', 'error');
+      }
     });
   }
 
@@ -1340,7 +1682,9 @@ export function init() {
     const btnCancelPwdReset = document.getElementById('btn-cancel-password-reset');
     const btnSubmitPwdReset = document.getElementById('btn-submit-password-reset');
 
-    btnForgotPwd.addEventListener('click', () => { if (modalForgotPwd) modalForgotPwd.classList.remove('hidden'); });
+    btnForgotPwd.addEventListener('click', () => {
+      if (modalForgotPwd) modalForgotPwd.classList.remove('hidden');
+    });
     if (btnCancelPwdReset) {
       btnCancelPwdReset.addEventListener('click', () => {
         if (modalForgotPwd) modalForgotPwd.classList.add('hidden');
@@ -1352,16 +1696,32 @@ export function init() {
       btnSubmitPwdReset.addEventListener('click', async () => {
         const name = forgotPwdName?.value.trim();
         const newPwd = forgotPwdNew?.value;
-        if (!name || !newPwd) { showToast('Enter username and new password', 'error'); return; }
+        if (!name || !newPwd) {
+          showToast('Enter username and new password', 'error');
+          return;
+        }
         try {
-          const { data: user, error } = await window.supabaseClient.from('users').select('id').eq('name', name).in('role', MANAGEMENT_ROLES).single();
-          if (error || !user) { showToast('Username not found', 'error'); return; }
-          await window.supabaseClient.from('users').update({ pending_password: newPwd }).eq('id', user.id);
+          const { data: user, error } = await window.supabaseClient
+            .from('users')
+            .select('id')
+            .eq('name', name)
+            .in('role', MANAGEMENT_ROLES)
+            .single();
+          if (error || !user) {
+            showToast('Username not found', 'error');
+            return;
+          }
+          await window.supabaseClient
+            .from('users')
+            .update({ pending_password: newPwd })
+            .eq('id', user.id);
           showToast('Password reset requested! Another manager must approve it.');
           if (modalForgotPwd) modalForgotPwd.classList.add('hidden');
           if (forgotPwdName) forgotPwdName.value = '';
           if (forgotPwdNew) forgotPwdNew.value = '';
-        } catch (err) { showToast('Failed to request password reset.', 'error'); }
+        } catch (err) {
+          showToast('Failed to request password reset.', 'error');
+        }
       });
     }
   }
@@ -1370,7 +1730,7 @@ export function init() {
   const btnScrollApprovals = document.getElementById('btn-scroll-approvals');
   const modalApprovals = document.getElementById('modal-approvals');
   const btnCloseApprovals = document.getElementById('btn-close-approvals');
-  
+
   if (btnScrollApprovals && modalApprovals) {
     btnScrollApprovals.addEventListener('click', () => {
       modalApprovals.classList.remove('hidden');
@@ -1389,31 +1749,47 @@ export function init() {
       try {
         showToast('Generating Payroll CSV...');
         const { data: usersData, error: uErr } = await window.supabaseClient
-          .from('users').select('id, name, is_salary');
+          .from('users')
+          .select('id, name, is_salary');
         const { data: logsData, error: lErr } = await window.supabaseClient
-          .from('time_logs').select('user_id, action, created_at').order('created_at', { ascending: true });
+          .from('time_logs')
+          .select('user_id, action, created_at')
+          .order('created_at', { ascending: true });
         if (uErr || lErr) throw new Error('Fetch failed');
 
         const startOfWeek = getStartOfWeek().getTime();
         const startOfLastWeek = startOfWeek - 7 * 86400000;
         const empMap = {};
-        usersData.forEach(u => { empMap[u.id] = { name: u.name, thisWeekMs: 0, lastWeekMs: 0, status: 'OUT', lastIn: null, is_salary: u.is_salary || false }; });
+        usersData.forEach((u) => {
+          empMap[u.id] = {
+            name: u.name,
+            thisWeekMs: 0,
+            lastWeekMs: 0,
+            status: 'OUT',
+            lastIn: null,
+            is_salary: u.is_salary || false,
+          };
+        });
 
-        logsData.forEach(log => {
-          const emp = empMap[log.user_id]; if (!emp) return;
+        logsData.forEach((log) => {
+          const emp = empMap[log.user_id];
+          if (!emp) return;
           const time = new Date(log.created_at).getTime();
-          if (log.action === 'IN' || log.action === 'END_LUNCH') { emp.status = 'IN'; emp.lastIn = time; }
-          else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
+          if (log.action === 'IN' || log.action === 'END_LUNCH') {
+            emp.status = 'IN';
+            emp.lastIn = time;
+          } else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
             if (emp.status === 'IN' && emp.lastIn) {
               const d = time - emp.lastIn;
               if (emp.lastIn >= startOfWeek) emp.thisWeekMs += d;
               else if (emp.lastIn >= startOfLastWeek) emp.lastWeekMs += d;
             }
-            emp.status = 'OUT'; emp.lastIn = null;
+            emp.status = 'OUT';
+            emp.lastIn = null;
           }
         });
 
-        Object.values(empMap).forEach(emp => {
+        Object.values(empMap).forEach((emp) => {
           if (emp.status === 'IN' && emp.lastIn) {
             const d = Date.now() - emp.lastIn;
             if (emp.lastIn >= startOfWeek) emp.thisWeekMs += d;
@@ -1424,7 +1800,8 @@ export function init() {
         const { customPayrollFormat } = state;
         const startDate = new Date(startOfWeek);
         const endDate = new Date(startOfWeek + 6 * 86400000);
-        const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
+        const fmt = (d) =>
+          `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
         let currentLabel = customPayrollFormat.current || `${fmt(startDate)} - ${fmt(endDate)}`;
         const nextS = new Date(startOfWeek + 7 * 86400000);
         const nextE = new Date(startOfWeek + 13 * 86400000);
@@ -1432,15 +1809,21 @@ export function init() {
 
         let csv = `#,Employee Name,${currentLabel},${nextLabel}\n`;
         let count = 1;
-        Object.values(empMap).forEach(emp => {
+        Object.values(empMap).forEach((emp) => {
           const hrs = emp.thisWeekMs / 3600000;
           if (hrs === 0 && !emp.is_salary) return;
           csv += `"${count++}","${formatNameLastFirst(emp.name)}",${hrs.toFixed(2)},0.00\n`;
         });
 
-        const safe = currentLabel.replace(/[/\\]/g, '-').replace(/\s*-\s*/g, '_').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+        const safe = currentLabel
+          .replace(/[/\\]/g, '-')
+          .replace(/\s*-\s*/g, '_')
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9_-]/g, '');
         downloadCsv(csv, `Payroll_Export_${safe}.csv`);
-      } catch (err) { showToast('Error exporting payroll: ' + (err.message || ''), 'error'); }
+      } catch (err) {
+        showToast('Error exporting payroll: ' + (err.message || ''), 'error');
+      }
     });
   }
 }
@@ -1448,7 +1831,11 @@ export function init() {
 function openFullPhoto(src) {
   const modal = document.getElementById('modal-view-photo');
   const fullImg = document.getElementById('full-size-photo');
-  if (modal && fullImg) { ensureModalTopLevel(modal); fullImg.src = src; modal.classList.remove('hidden'); }
+  if (modal && fullImg) {
+    ensureModalTopLevel(modal);
+    fullImg.src = src;
+    modal.classList.remove('hidden');
+  }
 }
 
 export async function openManageLogs(userId, userName, options = {}) {
@@ -1456,16 +1843,16 @@ export async function openManageLogs(userId, userName, options = {}) {
   state.selectedEmployeeForLogs = userId;
   const emp = state.employeeMap[userId];
 
-  ['edit-employee-login-name', 'edit-employee-pay-rate'].forEach(id => {
+  ['edit-employee-login-name', 'edit-employee-pay-rate'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.value = emp ? (id === 'edit-employee-pay-rate' ? emp.pay_rate : emp.name) : '';
   });
   const salaryEl = document.getElementById('edit-employee-is-salary');
   if (salaryEl) salaryEl.checked = emp ? emp.is_salary : false;
   const taxEl = document.getElementById('edit-employee-tax-status');
-  if (taxEl) taxEl.value = emp ? (emp.tax_status || '') : '';
+  if (taxEl) taxEl.value = emp ? emp.tax_status || '' : '';
   const roleEl = document.getElementById('edit-employee-role');
-  if (roleEl) roleEl.value = emp ? (emp.role || 'Employee') : 'Employee';
+  if (roleEl) roleEl.value = emp ? emp.role || 'Employee' : 'Employee';
   const pwdInput = document.getElementById('edit-employee-password');
   if (pwdInput) pwdInput.value = '';
   toggleEditEmployeePassword();
@@ -1490,7 +1877,10 @@ export async function openManageLogs(userId, userName, options = {}) {
 
   const manageLogsTitle = document.getElementById('manage-logs-title');
   const modalManageLogs = document.getElementById('modal-manage-logs');
-  if (manageLogsTitle) manageLogsTitle.textContent = detailsOnly ? `Edit Employee: ${userName}` : `Manage Logs: ${userName}`;
+  if (manageLogsTitle)
+    manageLogsTitle.textContent = detailsOnly
+      ? `Edit Employee: ${userName}`
+      : `Manage Logs: ${userName}`;
   if (modalManageLogs) {
     ensureModalTopLevel(modalManageLogs);
     modalManageLogs.classList.remove('hidden');

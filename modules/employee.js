@@ -1,4 +1,10 @@
-import { state, showToast, getStartOfWeek, getBiweeklyWeeks, calculateEstimatedTaxes } from './utils.js';
+import {
+  state,
+  showToast,
+  getStartOfWeek,
+  getBiweeklyWeeks,
+  calculateEstimatedTaxes,
+} from './utils.js';
 
 // Decode + compress a camera photo into a small square avatar without ever
 // holding the full-resolution bitmap in memory. Phone cameras produce
@@ -69,99 +75,116 @@ export async function loadEmployeePortal(userId, name) {
 
   if (employeePortalWelcome) employeePortalWelcome.textContent = `Welcome, ${name}`;
 
-    // Load avatar if exists
-    try {
-      const { data: uData } = await window.supabaseClient.from('users').select('avatar').eq('id', userId).single();
-      const avatarImg = document.getElementById('emp-profile-avatar');
-      const uploadIcon = document.getElementById('avatar-upload-icon');
-      const subText = document.getElementById('employee-portal-welcome-sub');
-      const fileInput = document.getElementById('avatar-upload-input');
-      
-      if (uData && uData.avatar && avatarImg) {
-        avatarImg.src = uData.avatar;
-        // Lock it!
-        avatarImg.onclick = null;
-        avatarImg.style.cursor = 'default';
-        if (uploadIcon) uploadIcon.style.display = 'none';
-        if (subText) subText.textContent = 'Profile picture saved.';
-        if (fileInput) fileInput.disabled = true;
-      } else {
-        // Unlock if no avatar (e.g. testing)
-        avatarImg.onclick = () => fileInput.click();
-        avatarImg.style.cursor = 'pointer';
-        if (uploadIcon) uploadIcon.style.display = 'flex';
-        if (subText) subText.textContent = 'Tap to take a profile picture (One time only!)';
-        if (fileInput) fileInput.disabled = false;
-      }
-    } catch (e) {}
+  // Load avatar if exists
+  try {
+    const { data: uData } = await window.supabaseClient
+      .from('users')
+      .select('avatar')
+      .eq('id', userId)
+      .single();
+    const avatarImg = document.getElementById('emp-profile-avatar');
+    const uploadIcon = document.getElementById('avatar-upload-icon');
+    const subText = document.getElementById('employee-portal-welcome-sub');
+    const fileInput = document.getElementById('avatar-upload-input');
 
-
-    // Avatar upload listener
-    const avatarInput = document.getElementById('avatar-upload-input');
-    if (avatarInput && !avatarInput.dataset.bound) {
-      avatarInput.dataset.bound = 'true';
-      avatarInput.addEventListener('change', async (e) => {
-        const input = e.target;
-        const file = input.files && input.files[0];
-        // Always clear the input so the same photo can be retaken and any
-        // in-memory file reference is released.
-        input.value = '';
-        if (!file) return;
-
-        if (!file.type || !file.type.startsWith('image/')) {
-          showToast('Please choose an image.', 'error');
-          return;
-        }
-
-        try {
-          const base64Avatar = await compressAvatar(file);
-
-          // Update UI
-          const avatarImg = document.getElementById('emp-profile-avatar');
-          if (avatarImg) avatarImg.src = base64Avatar;
-
-          // Save to DB
-          const { error } = await window.supabaseClient.from('users').update({ avatar: base64Avatar }).eq('id', userId);
-          if (error) throw error;
-          showToast('Profile picture saved successfully!');
-
-          // Lock it!
-          if (avatarImg) {
-            avatarImg.onclick = null;
-            avatarImg.style.cursor = 'default';
-          }
-          const uploadIcon = document.getElementById('avatar-upload-icon');
-          if (uploadIcon) uploadIcon.style.display = 'none';
-          const subText = document.getElementById('employee-portal-welcome-sub');
-          if (subText) subText.textContent = 'Profile picture saved.';
-          const fileInput = document.getElementById('avatar-upload-input');
-          if (fileInput) fileInput.disabled = true;
-        } catch (err) {
-          console.error('Avatar capture failed:', err);
-          showToast('Could not process that photo. Please try again.', 'error');
-        }
-      });
+    if (uData && uData.avatar && avatarImg) {
+      avatarImg.src = uData.avatar;
+      // Lock it!
+      avatarImg.onclick = null;
+      avatarImg.style.cursor = 'default';
+      if (uploadIcon) uploadIcon.style.display = 'none';
+      if (subText) subText.textContent = 'Profile picture saved.';
+      if (fileInput) fileInput.disabled = true;
+    } else {
+      // Unlock if no avatar (e.g. testing)
+      avatarImg.onclick = () => fileInput.click();
+      avatarImg.style.cursor = 'pointer';
+      if (uploadIcon) uploadIcon.style.display = 'flex';
+      if (subText) subText.textContent = 'Tap to take a profile picture (One time only!)';
+      if (fileInput) fileInput.disabled = false;
     }
+  } catch (e) {}
 
+  // Avatar upload listener
+  const avatarInput = document.getElementById('avatar-upload-input');
+  if (avatarInput && !avatarInput.dataset.bound) {
+    avatarInput.dataset.bound = 'true';
+    avatarInput.addEventListener('change', async (e) => {
+      const input = e.target;
+      const file = input.files && input.files[0];
+      // Always clear the input so the same photo can be retaken and any
+      // in-memory file reference is released.
+      input.value = '';
+      if (!file) return;
+
+      if (!file.type || !file.type.startsWith('image/')) {
+        showToast('Please choose an image.', 'error');
+        return;
+      }
+
+      try {
+        const base64Avatar = await compressAvatar(file);
+
+        // Update UI
+        const avatarImg = document.getElementById('emp-profile-avatar');
+        if (avatarImg) avatarImg.src = base64Avatar;
+
+        // Save to DB
+        const { error } = await window.supabaseClient
+          .from('users')
+          .update({ avatar: base64Avatar })
+          .eq('id', userId);
+        if (error) throw error;
+        showToast('Profile picture saved successfully!');
+
+        // Lock it!
+        if (avatarImg) {
+          avatarImg.onclick = null;
+          avatarImg.style.cursor = 'default';
+        }
+        const uploadIcon = document.getElementById('avatar-upload-icon');
+        if (uploadIcon) uploadIcon.style.display = 'none';
+        const subText = document.getElementById('employee-portal-welcome-sub');
+        if (subText) subText.textContent = 'Profile picture saved.';
+        const fileInput = document.getElementById('avatar-upload-input');
+        if (fileInput) fileInput.disabled = true;
+      } catch (err) {
+        console.error('Avatar capture failed:', err);
+        showToast('Could not process that photo. Please try again.', 'error');
+      }
+    });
+  }
 
   try {
-    const { data: logsData, error } = await window.supabaseClient.from('time_logs')
-      .select('id, user_id, action, created_at').eq('user_id', userId).order('created_at', { ascending: true });
+    const { data: logsData, error } = await window.supabaseClient
+      .from('time_logs')
+      .select('id, user_id, action, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
     if (error) throw error;
 
     const startOfWeek = getStartOfWeek().getTime();
     const startOfLastWeek = startOfWeek - 7 * 86400000;
 
-    let currentStatus = 'OUT', lastIn = null, thisWeekMs = 0, lastWeekMs = 0;
-    logsData.forEach(log => {
+    let currentStatus = 'OUT',
+      lastIn = null,
+      thisWeekMs = 0,
+      lastWeekMs = 0;
+    logsData.forEach((log) => {
       const time = new Date(log.created_at).getTime();
-      if (log.action === 'IN' || log.action === 'END_LUNCH') { currentStatus = 'IN'; lastIn = time; }
-      else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
+      if (log.action === 'IN' || log.action === 'END_LUNCH' || log.action === 'CLOCK_IN') {
+        currentStatus = 'IN';
+        lastIn = time;
+      } else if (
+        log.action === 'OUT' ||
+        log.action === 'START_LUNCH' ||
+        log.action === 'CLOCK_OUT'
+      ) {
         if (currentStatus === 'IN' && lastIn) {
           const d = time - lastIn;
           if (lastIn >= startOfWeek) thisWeekMs += d;
           else if (lastIn >= startOfLastWeek && lastIn < startOfWeek) lastWeekMs += d;
-          else if (time >= startOfWeek) thisWeekMs += (time - startOfWeek);
+          else if (time >= startOfWeek) thisWeekMs += time - startOfWeek;
         }
         currentStatus = log.action === 'START_LUNCH' ? 'LUNCH' : 'OUT';
         lastIn = null;
@@ -172,41 +195,69 @@ export async function loadEmployeePortal(userId, name) {
       const d = Date.now() - lastIn;
       if (lastIn >= startOfWeek) thisWeekMs += d;
       else if (lastIn >= startOfLastWeek) lastWeekMs += d;
-      else thisWeekMs += (Date.now() - startOfWeek);
+      else thisWeekMs += Date.now() - startOfWeek;
     }
 
     if (empThisWeek) empThisWeek.textContent = (thisWeekMs / 3600000).toFixed(2);
     if (empLastWeek) empLastWeek.textContent = (lastWeekMs / 3600000).toFixed(2);
 
     // Pay calculation
-    let isSalary = false, payRate = 0, taxStatus = 'Single';
-    if (state.currentPortalEmployee && state.currentPortalEmployee.id === userId && 'is_salary' in state.currentPortalEmployee) {
+    let isSalary = false,
+      payRate = 0,
+      taxStatus = 'Single';
+    if (
+      state.currentPortalEmployee &&
+      state.currentPortalEmployee.id === userId &&
+      'is_salary' in state.currentPortalEmployee &&
+      'pay_rate' in state.currentPortalEmployee &&
+      'tax_status' in state.currentPortalEmployee
+    ) {
       isSalary = state.currentPortalEmployee.is_salary;
       payRate = state.currentPortalEmployee.pay_rate || 0;
       taxStatus = state.currentPortalEmployee.tax_status || 'Single';
     } else {
       try {
-        const { data: uData } = await window.supabaseClient.from('users')
-          .select('pay_rate, is_salary, tax_status').eq('id', userId).single();
-        if (uData) { isSalary = uData.is_salary || false; payRate = uData.pay_rate || 0; taxStatus = uData.tax_status || 'Single'; }
-      } catch (e) { console.error('Error fetching employee pay rate', e); }
+        const { data: uData } = await window.supabaseClient
+          .from('users')
+          .select('pay_rate, is_salary, tax_status')
+          .eq('id', userId)
+          .single();
+        if (uData) {
+          isSalary = uData.is_salary || false;
+          payRate = uData.pay_rate || 0;
+          taxStatus = uData.tax_status || 'Single';
+        }
+      } catch (e) {
+        console.error('Error fetching employee pay rate', e);
+      }
     }
 
     const { week1Start, week2Start } = getBiweeklyWeeks(new Date());
-    const bw1 = week1Start.getTime(), bw2 = week2Start.getTime();
+    const bw1 = week1Start.getTime(),
+      bw2 = week2Start.getTime();
     const bwNext = bw2 + 7 * 86400000;
 
-    let bwW1Ms = 0, bwW2Ms = 0, bwStatus = 'OUT', bwLastIn = null;
-    logsData.forEach(log => {
+    let bwW1Ms = 0,
+      bwW2Ms = 0,
+      bwStatus = 'OUT',
+      bwLastIn = null;
+    logsData.forEach((log) => {
       const time = new Date(log.created_at).getTime();
-      if (log.action === 'IN' || log.action === 'END_LUNCH') { bwStatus = 'IN'; bwLastIn = time; }
-      else if (log.action === 'OUT' || log.action === 'START_LUNCH') {
+      if (log.action === 'IN' || log.action === 'END_LUNCH' || log.action === 'CLOCK_IN') {
+        bwStatus = 'IN';
+        bwLastIn = time;
+      } else if (
+        log.action === 'OUT' ||
+        log.action === 'START_LUNCH' ||
+        log.action === 'CLOCK_OUT'
+      ) {
         if (bwStatus === 'IN' && bwLastIn) {
           const d = time - bwLastIn;
           if (bwLastIn >= bw1 && bwLastIn < bw2) bwW1Ms += d;
           else if (bwLastIn >= bw2 && bwLastIn < bwNext) bwW2Ms += d;
         }
-        bwStatus = 'OUT'; bwLastIn = null;
+        bwStatus = 'OUT';
+        bwLastIn = null;
       }
     });
 
@@ -216,12 +267,13 @@ export async function loadEmployeePortal(userId, name) {
       else if (bwLastIn >= bw2 && bwLastIn < bwNext) bwW2Ms += d;
     }
 
-    const w1Hrs = bwW1Ms / 3600000, w2Hrs = bwW2Ms / 3600000;
+    const w1Hrs = bwW1Ms / 3600000,
+      w2Hrs = bwW2Ms / 3600000;
     const regHrs = Math.min(40, w1Hrs) + Math.min(40, w2Hrs);
     const otHrs = Math.max(0, w1Hrs - 40) + Math.max(0, w2Hrs - 40);
     const regPay = regHrs * payRate;
     const otPay = otHrs * payRate * 1.5;
-    const estPay = isSalary ? payRate : (regPay + otPay);
+    const estPay = isSalary ? payRate : regPay + otPay;
     const estTaxes = calculateEstimatedTaxes(estPay, taxStatus, isSalary, 26);
     const netPay = Math.max(0, estPay - estTaxes);
 
@@ -232,8 +284,17 @@ export async function loadEmployeePortal(userId, name) {
       if (desc) desc.textContent = isSalary ? 'Biweekly salary' : 'Biweekly payout (Net)';
     }
 
-    const ids = { 'breakdown-regular': `${regHrs.toFixed(2)} hrs`, 'breakdown-overtime': `${otHrs.toFixed(2)} hrs`, 'breakdown-gross': `$${estPay.toFixed(2)}`, 'breakdown-taxes': `-$${estTaxes.toFixed(2)}`, 'breakdown-net': `$${netPay.toFixed(2)}` };
-    Object.entries(ids).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = val; });
+    const ids = {
+      'breakdown-regular': `${regHrs.toFixed(2)} hrs`,
+      'breakdown-overtime': `${otHrs.toFixed(2)} hrs`,
+      'breakdown-gross': `$${estPay.toFixed(2)}`,
+      'breakdown-taxes': `-$${estTaxes.toFixed(2)}`,
+      'breakdown-net': `$${netPay.toFixed(2)}`,
+    };
+    Object.entries(ids).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    });
 
     const empNextPayday = document.getElementById('emp-next-payday');
     if (empNextPayday) {
@@ -244,12 +305,19 @@ export async function loadEmployeePortal(userId, name) {
 
     // Time off requests
     if (empTimeoffBody) {
-      const { data: timeoffs, error: toError } = await window.supabaseClient.from('time_off_requests')
-        .select('id, start_date, end_date, reason, status').eq('user_id', userId).order('created_at', { ascending: false });
+      const { data: timeoffs, error: toError } = await window.supabaseClient
+        .from('time_off_requests')
+        .select('id, start_date, end_date, reason, status')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
       if (!toError && timeoffs) {
         empTimeoffBody.innerHTML = '';
-        timeoffs.forEach(req => {
-          const colors = { Approved: 'var(--success)', Denied: 'var(--danger)', Pending: 'var(--warning)' };
+        timeoffs.forEach((req) => {
+          const colors = {
+            Approved: 'var(--success)',
+            Denied: 'var(--danger)',
+            Pending: 'var(--warning)',
+          };
           const tr = document.createElement('tr');
           const td1 = document.createElement('td');
           td1.textContent = `${req.start_date} to ${req.end_date}`;
@@ -270,28 +338,38 @@ export async function loadEmployeePortal(userId, name) {
     const empChecklistsContainer = document.getElementById('emp-checklists-container');
     if (empChecklistsContainer) {
       try {
-        const { data: checklists, error: checkError } = await window.supabaseClient.from('checklists').select('id, title, description, role_required, tasks').order('created_at', { ascending: true });
+        const { data: checklists, error: checkError } = await window.supabaseClient
+          .from('checklists')
+          .select('id, title, description, role_required, tasks')
+          .order('created_at', { ascending: true });
         if (!checkError && checklists) {
           empChecklistsContainer.innerHTML = '';
-          const myChecklists = checklists.filter(c => c.role_required === 'Employee');
+          const myChecklists = checklists.filter((c) => c.role_required === 'Employee');
           if (myChecklists.length === 0) {
-            empChecklistsContainer.innerHTML = '<p style="color:var(--text-muted);">No checklists assigned to you.</p>';
+            empChecklistsContainer.innerHTML =
+              '<p style="color:var(--text-muted);">No checklists assigned to you.</p>';
           } else {
             const { showChecklistExecution } = await import('./ops.js');
-            myChecklists.forEach(list => {
+            myChecklists.forEach((list) => {
               const div = document.createElement('div');
-              div.style.cssText = 'background:var(--surface);padding:15px;border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:transform 0.2s;';
+              div.style.cssText =
+                'background:var(--surface);padding:15px;border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:transform 0.2s;';
               div.innerHTML = `<div style="text-align:left;"><strong style="color:var(--primary);display:block;">${list.title}</strong><span style="font-size:0.8rem;color:var(--text-muted);">${list.description || 'No description'}</span></div><button class="btn-primary" style="padding:5px 15px;font-size:0.8rem;border-radius:6px;border:none;">Start</button>`;
-              div.onmouseover = () => { div.style.transform = 'translateY(-2px)'; };
-              div.onmouseout = () => { div.style.transform = 'translateY(0)'; };
+              div.onmouseover = () => {
+                div.style.transform = 'translateY(-2px)';
+              };
+              div.onmouseout = () => {
+                div.style.transform = 'translateY(0)';
+              };
               div.onclick = () => showChecklistExecution(list);
               empChecklistsContainer.appendChild(div);
             });
           }
         }
-      } catch (e) { console.error('Error loading employee checklists', e); }
+      } catch (e) {
+        console.error('Error loading employee checklists', e);
+      }
     }
-
   } catch (err) {
     showToast('Failed to load portal data.', 'error');
   }
@@ -307,8 +385,11 @@ export async function loadMySchedule() {
   const newScheduleAlert = document.getElementById('new-schedule-alert');
 
   try {
-    const { data: schedules, error } = await window.supabaseClient.from('schedules')
-      .select('id, content, created_at').order('created_at', { ascending: false }).limit(10);
+    const { data: schedules, error } = await window.supabaseClient
+      .from('schedules')
+      .select('id, content, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
 
     if (error || !schedules || schedules.length === 0) {
       if (empScheduleSection) empScheduleSection.classList.add('hidden');
@@ -322,7 +403,7 @@ export async function loadMySchedule() {
 
     function parseWeekRange(weekRange) {
       if (!weekRange) return null;
-      const parts = weekRange.split('-').map(p => p.trim());
+      const parts = weekRange.split('-').map((p) => p.trim());
       if (parts.length < 2) return null;
       const year = new Date().getFullYear();
 
@@ -352,35 +433,50 @@ export async function loadMySchedule() {
           matchedSchedule = sched;
           break;
         }
-      } catch (e) { console.error('Error matching schedule range', e); }
+      } catch (e) {
+        console.error('Error matching schedule range', e);
+      }
     }
 
     if (!matchedSchedule) matchedSchedule = latestSchedule;
 
     const lastSeenId = localStorage.getItem('last_seen_schedule_id');
-    if (newScheduleAlert) newScheduleAlert.classList.toggle('hidden', lastSeenId === latestSchedule.id);
+    if (newScheduleAlert)
+      newScheduleAlert.classList.toggle('hidden', lastSeenId === latestSchedule.id);
 
     const parsed = JSON.parse(matchedSchedule.content);
-    const myRow = parsed.rows.find(r => r.employee === state.currentPortalEmployee.name);
+    const myRow = parsed.rows.find((r) => r.employee === state.currentPortalEmployee.name);
 
-    if (!myRow) { if (empScheduleSection) empScheduleSection.classList.add('hidden'); return; }
+    if (!myRow) {
+      if (empScheduleSection) empScheduleSection.classList.add('hidden');
+      return;
+    }
 
     if (empScheduleSection) empScheduleSection.classList.remove('hidden');
-    if (empScheduleWeek) empScheduleWeek.textContent = `Schedule: ${parsed.weekRange || 'This Week'}`;
+    if (empScheduleWeek)
+      empScheduleWeek.textContent = `Schedule: ${parsed.weekRange || 'This Week'}`;
 
     if (empScheduleContainer) {
       empScheduleContainer.innerHTML = '';
       myRow.shifts.forEach((shift, idx) => {
         const dayName = parsed.headers[idx] || 'Day';
         const div = document.createElement('div');
-        div.style.cssText = 'background:var(--bg);padding:10px;border-radius:8px;border:1px solid var(--border);';
+        div.style.cssText =
+          'background:var(--bg);padding:10px;border-radius:8px;border:1px solid var(--border);';
         div.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:5px;">${dayName}</div><div style="font-weight:700;font-size:0.9rem;">${shift}</div>`;
         empScheduleContainer.appendChild(div);
       });
     }
 
     const triggerSync = () => {
-      const rowData = encodeURIComponent(JSON.stringify({ employee: myRow.employee, shifts: myRow.shifts, weekRange: parsed.weekRange, headers: parsed.headers }));
+      const rowData = encodeURIComponent(
+        JSON.stringify({
+          employee: myRow.employee,
+          shifts: myRow.shifts,
+          weekRange: parsed.weekRange,
+          headers: parsed.headers,
+        }),
+      );
       window.downloadCalendar(rowData);
       localStorage.setItem('last_seen_schedule_id', latestSchedule.id);
       if (newScheduleAlert) newScheduleAlert.classList.add('hidden');
@@ -408,12 +504,22 @@ export function init() {
     btnEmployeeLogin.addEventListener('click', async () => {
       const username = document.getElementById('employee-username-input')?.value.trim();
       const pin = document.getElementById('employee-pin-input')?.value;
-      if (!username || !pin) { showToast('Please enter Name and PIN', 'error'); return; }
+      if (!username || !pin) {
+        showToast('Please enter Name and PIN', 'error');
+        return;
+      }
 
       try {
-        const { data: user, error } = await window.supabaseClient.from('users')
-          .select('id, name, pay_rate, is_salary, tax_status').eq('name', username).eq('pin', pin).single();
-        if (error || !user) { showToast('Invalid Name or PIN', 'error'); return; }
+        const { data: user, error } = await window.supabaseClient
+          .from('users')
+          .select('id, name, pay_rate, is_salary, tax_status')
+          .eq('name', username)
+          .eq('pin', pin)
+          .single();
+        if (error || !user) {
+          showToast('Invalid Name or PIN', 'error');
+          return;
+        }
 
         state.currentPortalEmployee = user;
         const usernameEl = document.getElementById('employee-username-input');
@@ -425,7 +531,9 @@ export function init() {
 
         loadMySchedule();
         loadEmployeePortal(user.id, user.name);
-      } catch (err) { showToast('Error logging in. Try again.', 'error'); }
+      } catch (err) {
+        showToast('Error logging in. Try again.', 'error');
+      }
     });
   }
 
@@ -451,8 +559,9 @@ export function init() {
   if (btnCancelTimeoff) {
     btnCancelTimeoff.addEventListener('click', () => {
       if (modalRequestTimeoff) modalRequestTimeoff.classList.add('hidden');
-      ['timeoff-start', 'timeoff-end', 'timeoff-reason'].forEach(id => {
-        const el = document.getElementById(id); if (el) el.value = '';
+      ['timeoff-start', 'timeoff-end', 'timeoff-reason'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
       });
     });
   }
@@ -464,20 +573,36 @@ export function init() {
       const end = document.getElementById('timeoff-end')?.value;
       const reason = document.getElementById('timeoff-reason')?.value.trim();
 
-      if (!start || !end || !reason) { showToast('Please fill in all fields', 'error'); return; }
-      if (new Date(end) < new Date(start)) { showToast('End date must be after start date', 'error'); return; }
+      if (!start || !end || !reason) {
+        showToast('Please fill in all fields', 'error');
+        return;
+      }
+      if (new Date(end) < new Date(start)) {
+        showToast('End date must be after start date', 'error');
+        return;
+      }
 
       try {
-        const { error } = await window.supabaseClient.from('time_off_requests').insert([{
-          user_id: state.currentPortalEmployee.id,
-          start_date: start, end_date: end, reason, status: 'Pending'
-        }]);
+        const { error } = await window.supabaseClient.from('time_off_requests').insert([
+          {
+            user_id: state.currentPortalEmployee.id,
+            start_date: start,
+            end_date: end,
+            reason,
+            status: 'Pending',
+          },
+        ]);
         if (error) throw error;
         showToast('Time off request submitted!');
         if (modalRequestTimeoff) modalRequestTimeoff.classList.add('hidden');
-        ['timeoff-start', 'timeoff-end', 'timeoff-reason'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        ['timeoff-start', 'timeoff-end', 'timeoff-reason'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
         loadEmployeePortal(state.currentPortalEmployee.id, state.currentPortalEmployee.name);
-      } catch (err) { showToast('Failed to submit time off request.', 'error'); }
+      } catch (err) {
+        showToast('Failed to submit time off request.', 'error');
+      }
     });
   }
 }

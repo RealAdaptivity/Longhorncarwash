@@ -6,12 +6,7 @@ import globals from 'globals';
 // ignored here.
 export default [
   {
-    ignores: [
-      'node_modules/**',
-      'mobile/**',
-      'supabase/**',
-      'logo.png',
-    ],
+    ignores: ['node_modules/**', 'mobile/**', 'supabase/**', 'logo.png'],
   },
 
   js.configs.recommended,
@@ -79,10 +74,7 @@ export default [
   // args (and error bindings in catch blocks).
   {
     rules: {
-      'no-unused-vars': [
-        'error',
-        { args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' },
-      ],
+      'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none', varsIgnorePattern: '^_' }],
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },

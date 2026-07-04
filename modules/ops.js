@@ -41,7 +41,7 @@ async function getBase64(file) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result);
-    reader.onerror = err => reject(err);
+    reader.onerror = (err) => reject(err);
   });
 }
 
@@ -50,11 +50,13 @@ async function submitSiteLog(type, data) {
     const payload = {
       type,
       description: data.description,
-      equipment_name: data.equipment_name || null,
+      equipment_name: data.equipment_name || data.customer_name || null,
       photo_base64: data.photo_base64 || null,
       user_id: state.currentUser
         ? state.currentUser.id
-        : (state.currentManager ? state.currentManager.id : null),
+        : state.currentManager
+          ? state.currentManager.id
+          : null,
     };
     const { error } = await window.supabaseClient.from('site_logs').insert([payload]);
     if (error) throw error;
@@ -90,7 +92,7 @@ export async function loadChecklists() {
       return;
     }
 
-    checklists.forEach(list => {
+    checklists.forEach((list) => {
       const div = document.createElement('div');
       div.className = 'action-card';
       div.style =
@@ -106,7 +108,8 @@ export async function loadChecklists() {
       roleSpan.textContent = list.role_required;
 
       const header = document.createElement('div');
-      header.style = 'display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;';
+      header.style =
+        'display: flex; justify-content: space-between; width: 100%; margin-bottom: 10px;';
 
       const btnGroup = document.createElement('div');
       btnGroup.style = 'display: flex; gap: 8px; align-items: center;';
@@ -144,7 +147,7 @@ export async function loadChecklists() {
       div.appendChild(descEl);
       div.appendChild(taskCount);
 
-      div.addEventListener('click', e => {
+      div.addEventListener('click', (e) => {
         if (e.target.closest('.btn-edit-checklist')) {
           editChecklist(list);
         } else if (e.target.closest('.btn-delete-checklist')) {
@@ -186,7 +189,7 @@ function editChecklist(list) {
     checklistTasksInputContainer.innerHTML =
       '<input type="text" class="input-field checklist-task-item-input" placeholder="Task 1" style="margin-bottom: 0;" />';
   } else {
-    tasks.forEach(task => {
+    tasks.forEach((task) => {
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'input-field checklist-task-item-input';
@@ -217,7 +220,7 @@ export async function loadSiteLogs() {
       return;
     }
 
-    logs.forEach(log => {
+    logs.forEach((log) => {
       const date = new Date(log.created_at).toLocaleString();
       const typeColor = log.type === 'Maintenance' ? '#fb8c00' : '#e53935';
       const div = document.createElement('div');
@@ -333,7 +336,7 @@ export async function loadChecklistHistory() {
       return;
     }
 
-    completions.forEach(comp => {
+    completions.forEach((comp) => {
       const date = new Date(comp.completed_at).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -343,7 +346,9 @@ export async function loadChecklistHistory() {
       const title = comp.checklists ? comp.checklists.title : 'Deleted Checklist';
       const completedBy = comp.users
         ? comp.users.name
-        : (comp.closers_names ? comp.closers_names.split(',')[0] : 'Unknown');
+        : comp.closers_names
+          ? comp.closers_names.split(',')[0]
+          : 'Unknown';
 
       const div = document.createElement('div');
       div.style =
@@ -392,13 +397,11 @@ export async function loadChecklistHistory() {
 export function init() {
   if (btnShowMaintenanceForm) {
     btnShowMaintenanceForm.addEventListener('click', () =>
-      modalMaintenance.classList.remove('hidden')
+      modalMaintenance.classList.remove('hidden'),
     );
   }
   if (btnShowIncidentForm) {
-    btnShowIncidentForm.addEventListener('click', () =>
-      modalIncident.classList.remove('hidden')
-    );
+    btnShowIncidentForm.addEventListener('click', () => modalIncident.classList.remove('hidden'));
   }
   if (btnCancelMaint) {
     btnCancelMaint.addEventListener('click', () => modalMaintenance.classList.add('hidden'));
@@ -423,7 +426,7 @@ export function init() {
 
   if (btnCancelCreateChecklist) {
     btnCancelCreateChecklist.addEventListener('click', () =>
-      modalCreateChecklist.classList.add('hidden')
+      modalCreateChecklist.classList.add('hidden'),
     );
   }
 
@@ -445,8 +448,8 @@ export function init() {
       const role = checklistRoleInput.value;
       const taskInputs = document.querySelectorAll('.checklist-task-item-input');
       const tasks = Array.from(taskInputs)
-        .map(inp => inp.value.trim())
-        .filter(t => t !== '');
+        .map((inp) => inp.value.trim())
+        .filter((t) => t !== '');
 
       if (!title) {
         showToast('Please enter a title', 'error');
@@ -467,7 +470,10 @@ export function init() {
           error = res.error;
         }
         if (error) throw error;
-        showToast(state.editingChecklistId ? 'Checklist updated!' : 'Checklist created!', 'success');
+        showToast(
+          state.editingChecklistId ? 'Checklist updated!' : 'Checklist created!',
+          'success',
+        );
         modalCreateChecklist.classList.add('hidden');
         state.editingChecklistId = null;
         loadChecklists();
@@ -486,7 +492,11 @@ export function init() {
         return;
       }
       const photo = await getBase64(maintPhotoInput.files[0]);
-      await submitSiteLog('Maintenance', { equipment_name: equipment, description: desc, photo_base64: photo });
+      await submitSiteLog('Maintenance', {
+        equipment_name: equipment,
+        description: desc,
+        photo_base64: photo,
+      });
       modalMaintenance.classList.add('hidden');
       document.getElementById('maint-equipment').value = '';
       document.getElementById('maint-desc').value = '';
@@ -503,7 +513,11 @@ export function init() {
         return;
       }
       const photo = await getBase64(incidentPhotoInput.files[0]);
-      await submitSiteLog('Incident', { customer_name: customer, description: desc, photo_base64: photo });
+      await submitSiteLog('Incident', {
+        customer_name: customer,
+        description: desc,
+        photo_base64: photo,
+      });
       modalIncident.classList.add('hidden');
       document.getElementById('incident-customer').value = '';
       document.getElementById('incident-desc').value = '';
@@ -512,9 +526,7 @@ export function init() {
   }
 
   if (btnCancelExecute) {
-    btnCancelExecute.addEventListener('click', () =>
-      modalExecuteChecklist.classList.add('hidden')
-    );
+    btnCancelExecute.addEventListener('click', () => modalExecuteChecklist.classList.add('hidden'));
   }
 
   if (btnSubmitCompletion) {
@@ -522,7 +534,7 @@ export function init() {
       const listId = modalExecuteChecklist.dataset.listId;
       const closers = document.getElementById('execute-closers-names').value.trim();
       const checkboxes = document.querySelectorAll('.checklist-checkbox');
-      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
 
       if (!closers) {
         showToast('Please enter the names of the closers', 'error');
@@ -537,13 +549,17 @@ export function init() {
           checklist_id: listId,
           user_id: state.currentUser
             ? state.currentUser.id
-            : (state.currentManager
+            : state.currentManager
               ? state.currentManager.id
-              : (state.currentPortalEmployee ? state.currentPortalEmployee.id : null)),
+              : state.currentPortalEmployee
+                ? state.currentPortalEmployee.id
+                : null,
           completed_at: new Date().toISOString(),
           closers_names: closers,
         };
-        const { error } = await window.supabaseClient.from('checklist_completions').insert([payload]);
+        const { error } = await window.supabaseClient
+          .from('checklist_completions')
+          .insert([payload]);
         if (error) throw error;
         showToast('Checklist completed!', 'success');
         modalExecuteChecklist.classList.add('hidden');
@@ -561,7 +577,7 @@ export function init() {
   }
 
   if (modalViewPhoto) {
-    modalViewPhoto.addEventListener('click', e => {
+    modalViewPhoto.addEventListener('click', (e) => {
       if (e.target === modalViewPhoto) modalViewPhoto.classList.add('hidden');
     });
   }

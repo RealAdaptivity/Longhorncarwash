@@ -7,38 +7,43 @@ const CORE_ASSETS = [
   './index.css',
   './renderer.js',
   './supabaseConfig.js',
-  './manifest.json'
+  './manifest.json',
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
   // Activate this worker as soon as it finishes installing instead of waiting
   // for every open tab to close — so fixes reach users on their next load.
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
+    caches.open(CACHE_NAME).then((cache) =>
       // Cache each core asset individually so one missing/renamed file can't
       // fail the whole install (cache.addAll rejects atomically).
-      Promise.all(CORE_ASSETS.map(url =>
-        fetch(url, { cache: 'no-cache' })
-          .then(resp => { if (resp.ok) return cache.put(url, resp); })
-          .catch(() => {})
-      ))
-    )
+      Promise.all(
+        CORE_ASSETS.map((url) =>
+          fetch(url, { cache: 'no-cache' })
+            .then((resp) => {
+              if (resp.ok) return cache.put(url, resp);
+            })
+            .catch(() => {}),
+        ),
+      ),
+    ),
   );
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys()
-      .then(names => Promise.all(
-        names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
-      ))
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))),
+      )
       // Take control of already-open pages immediately.
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   const req = event.request;
 
   // Only handle same-origin GETs. Let Supabase API calls, CDN scripts, fonts,
@@ -53,19 +58,20 @@ self.addEventListener('fetch', event => {
   // the cache is used only as an offline fallback.
   event.respondWith(
     fetch(req)
-      .then(networkResponse => {
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.ok) {
           const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
         }
         return networkResponse;
       })
       .catch(() =>
-        caches.match(req).then(cached =>
-          // For navigations that miss the cache while offline, fall back to the
-          // app shell so the user still gets the login screen.
-          cached || (req.mode === 'navigate' ? caches.match('./index.html') : undefined)
-        )
-      )
+        caches.match(req).then(
+          (cached) =>
+            // For navigations that miss the cache while offline, fall back to the
+            // app shell so the user still gets the login screen.
+            cached || (req.mode === 'navigate' ? caches.match('./index.html') : undefined),
+        ),
+      ),
   );
 });
