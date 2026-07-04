@@ -1935,4 +1935,181 @@ nav {
   border: 1px solid var(--border);
 }
 
+/* Roster View Revamp */
+.schedule-day-tabs {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
 
+.sched-day-tab {
+  flex: 1;
+  min-width: 60px;
+  max-width: 100px;
+  text-align: center;
+  padding: 10px 5px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sched-day-tab:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-2px);
+}
+
+.sched-day-tab.active {
+  border-color: var(--primary);
+  background: rgba(169, 59, 47, 0.1);
+  box-shadow: 0 0 10px rgba(169, 59, 47, 0.2);
+}
+
+.sched-day-tab.active div:first-child {
+  color: var(--primary) !important;
+}
+
+.sched-day-tab.active div:last-child {
+  color: var(--text) !important;
+}
+
+.sched-roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.sched-roster-item:hover {
+  transform: translateX(4px);
+  border-color: var(--primary-tint);
+}
+
+.sched-roster-time {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-width: 160px;
+}
+
+.sched-roster-emp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.sched-roster-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  object-fit: cover;
+}
+
+.sched-roster-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.role-badge {
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.role-site-manager {
+  background: rgba(169, 59, 47, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(169, 59, 47, 0.3);
+}
+
+.role-assistant-site-manager, .role-asst-site-manager {
+  background: rgba(142, 68, 173, 0.15);
+  color: #9b59b6;
+  border: 1px solid rgba(142, 68, 173, 0.3);
+}
+
+.role-supervisor {
+  background: rgba(212, 130, 10, 0.15);
+  color: var(--warning);
+  border: 1px solid rgba(212, 130, 10, 0.3);
+}
+
+.role-attendant, .role-employee {
+  background: rgba(46, 125, 50, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.role-generic {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-indicator.clocked-in {
+  color: #4caf50;
+}
+
+.status-indicator.scheduled {
+  color: var(--text-muted);
+}
+
+.status-indicator .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.status-indicator.clocked-in .status-dot {
+  background: #4caf50;
+  box-shadow: 0 0 6px #4caf50;
+}
+
+/* Hide legacy grid table on screen */
+.schedule-desktop-table {
+  display: none !important;
+}
+
+/* Override display for print layout */
+@media print {
+  .schedule-day-tabs,
+  .sched-day-rosters {
+    display: none !important;
+  }
+  .schedule-desktop-table {
+    display: block !important;
+  }
+}

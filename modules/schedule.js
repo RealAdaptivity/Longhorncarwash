@@ -54,8 +54,59 @@ export async function loadSchedules() {
   if (!scheduleList) return;
 
   try {
-    const { data: rawData, error } = await window.supabaseClient.from('schedules').select('*');
-    if (error) throw error;
+    const [schedulesRes, usersRes, logsRes] = await Promise.all([
+      window.supabaseClient.from('schedules').select('*'),
+      window.supabaseClient.from('users').select('id, name, role'),
+      window.supabaseClient
+        .from('time_logs')
+        .select('user_id, action, created_at')
+        .order('created_at', { ascending: true }),
+    ]);
+
+    if (schedulesRes.error) throw schedulesRes.error;
+    const rawData = schedulesRes.data;
+
+    const userStatus = {};
+    if (logsRes.data) {
+      logsRes.data.forEach((log) => {
+        userStatus[log.user_id] = log.action;
+      });
+    }
+
+    const employeeInfoByName = {};
+    if (usersRes.data) {
+      usersRes.data.forEach((u) => {
+        const lastAction = userStatus[u.id] || 'OUT';
+        const isClockedIn =
+          lastAction === 'IN' || lastAction === 'END_LUNCH' || lastAction === 'CLOCK_IN';
+        let displayRole = 'Attendant';
+        let roleClass = 'role-attendant';
+        const normRole = (u.role || '').trim().toLowerCase();
+
+        if (normRole === 'site manager') {
+          displayRole = 'Site Manager';
+          roleClass = 'role-site-manager';
+        } else if (normRole === 'assistant site manager' || normRole === 'asst. site manager') {
+          displayRole = 'Asst. Site Manager';
+          roleClass = 'role-asst-site-manager';
+        } else if (normRole === 'supervisor') {
+          displayRole = 'Supervisor';
+          roleClass = 'role-supervisor';
+        } else if (normRole === 'employee') {
+          displayRole = 'Attendant';
+          roleClass = 'role-attendant';
+        } else {
+          displayRole = u.role || 'Attendant';
+          roleClass = 'role-generic';
+        }
+
+        employeeInfoByName[u.name.trim().toLowerCase()] = {
+          role: displayRole,
+          roleClass: roleClass,
+          isClockedIn: isClockedIn,
+        };
+      });
+    }
 
     const data = rawData.sort((a, b) => {
       function getStart(sched) {
@@ -178,53 +229,171 @@ export async function loadSchedules() {
             })
             .join('');
 
-          // Mobile cards — one per employee
-          const cardsHtml = activeRows
-            .map((r) => {
-              let rowTotal = 0;
-              const shiftItems = r.shifts
-                .map((s, i) => {
-                  rowTotal += parseShiftHours(s);
-                  const isOff = !s || s === '-' || s.trim().toUpperCase() === 'OFF';
-                  return `<div class="sched-card-day${isOff ? ' sched-off' : ''}">
-                <span class="sched-card-day-label">${parsed.headers[i] || ''}</span>
-                <span class="sched-card-shift">${s || '-'}</span>
-              </div>`;
-                })
-                .join('');
-              const rowDataEncoded = encodeURIComponent(
-                JSON.stringify({
-                  employee: r.employee,
-                  shifts: r.shifts,
-                  weekRange: parsed.weekRange,
-                  headers: parsed.headers,
-                }),
-              );
-              const swapBtn =
-                state.currentPortalEmployee &&
-                r.employee
-                  .toLowerCase()
-                  .includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0])
-                  ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.75rem;border:1px solid var(--border);border-radius:4px;">Request Swap</button>`
-                  : '';
-              return `<div class="sched-emp-card">
-              <div class="sched-emp-card-header">
-                <strong>${r.employee}</strong>
-                <div style="display:flex;gap:6px;align-items:center;">
-                  <span class="sched-emp-total-badge">${rowTotal.toFixed(1)} hrs</span>
-                  <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
-                  ${swapBtn}
+          // Helper to get tab labels (e.g. "Wed", "18")
+          function getDayTabInfo(header) {
+            const parts = header.trim().split(/\s+/);
+            const name = parts[0].toUpperCase();
+            let number = '';
+            if (parts[1] && parts[1].includes('/')) {
+              number = parts[1].split('/')[1];
+            }
+            return { name, number };
+          }
+
+          // Determine which day index to display by default (matching today's day name, otherwise 0)
+          const dayMap = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6 };
+          const currentDayOfWeek = new Date().getDay();
+          let activeDayIndex = 0; // fallback to index 0 (usually Wednesday)
+          parsed.headers.forEach((h, idx) => {
+            const tab = getDayTabInfo(h);
+            if (dayMap[tab.name] === currentDayOfWeek) {
+              activeDayIndex = idx;
+            }
+          });
+
+          // Generate day tabs
+          const dayTabsHtml = parsed.headers
+            .map((h, idx) => {
+              const tab = getDayTabInfo(h);
+              const isActive = idx === activeDayIndex;
+              return `
+                <div class="sched-day-tab ${isActive ? 'active' : ''}" data-day-idx="${idx}" data-sched-id="${sched.id}">
+                  <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">${tab.name}</div>
+                  <div style="font-size: 1.2rem; font-weight: bold; margin-top: 2px;">${tab.number || idx + 1}</div>
                 </div>
-              </div>
-              <div class="sched-card-days">${shiftItems}</div>
-            </div>`;
+              `;
             })
             .join('');
 
-          contentHtml = `<h4 style="margin-bottom:15px;color:var(--primary);">${parsed.weekRange || 'Weekly Schedule'}</h4>
-            <div class="schedule-desktop-table"><div class="sched-table-scroll"><table class="data-table schedule-full-table"><thead><tr><th>Employee</th>${headersHtml}<th>Total</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>
-            <div class="schedule-mobile-cards">${cardsHtml}</div>`;
+          // Helper to sort shifts by start time
+          function getShiftStartMinutes(s) {
+            if (!s || s === '-' || s.toUpperCase() === 'OFF') return 9999;
+            const timePart = s.split('-')[0].trim().toUpperCase();
+            let [time, ampm] = timePart.split(/\s+/);
+            if (!ampm && (timePart.endsWith('AM') || timePart.endsWith('PM'))) {
+              ampm = timePart.slice(-2);
+              time = timePart.slice(0, -2);
+            }
+            let [hours, minutes] = time.split(':').map(Number);
+            if (isNaN(minutes)) minutes = 0;
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+            return hours * 60 + minutes;
+          }
+
+          // Generate daily rosters HTML
+          const rostersHtml = parsed.headers
+            .map((h, dayIdx) => {
+              const isPaneHidden = dayIdx !== activeDayIndex ? 'hidden' : '';
+
+              // Filter active rows that have a valid shift (not OFF) on this day
+              const dayEmployees = activeRows.filter((r) => {
+                const s = r.shifts[dayIdx];
+                return s && s !== '-' && s.trim().toUpperCase() !== 'OFF';
+              });
+
+              // Sort chronologically by start time
+              dayEmployees.sort((a, b) => {
+                return (
+                  getShiftStartMinutes(a.shifts[dayIdx]) - getShiftStartMinutes(b.shifts[dayIdx])
+                );
+              });
+
+              const listItemsHtml =
+                dayEmployees.length > 0
+                  ? dayEmployees
+                      .map((r) => {
+                        const shift = r.shifts[dayIdx];
+                        const normName = r.employee.trim().toLowerCase();
+                        const info = employeeInfoByName[normName] || {
+                          role: 'Attendant',
+                          roleClass: 'role-attendant',
+                          isClockedIn: false,
+                        };
+
+                        const initials = r.employee
+                          .split(/\s+/)
+                          .map((p) => p[0])
+                          .join('')
+                          .slice(0, 2)
+                          .toUpperCase();
+
+                        const rowDataEncoded = encodeURIComponent(
+                          JSON.stringify({
+                            employee: r.employee,
+                            shifts: r.shifts,
+                            weekRange: parsed.weekRange,
+                            headers: parsed.headers,
+                          }),
+                        );
+
+                        const swapBtn =
+                          state.currentPortalEmployee &&
+                          normName.includes(
+                            state.currentPortalEmployee.name.toLowerCase().split(' ')[0],
+                          )
+                            ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
+                            : '';
+
+                        return `
+                      <div class="sched-roster-item">
+                        <div class="sched-roster-emp">
+                          <div class="sched-roster-avatar">${initials}</div>
+                          <div>
+                            <div class="sched-roster-name">${r.employee}</div>
+                          </div>
+                          <span class="role-badge ${info.roleClass}" style="margin-left: 10px;">${info.role}</span>
+                        </div>
+                        <div class="sched-roster-time">${shift}</div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                          <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}">
+                            <span class="status-dot"></span>
+                            <span>${info.isClockedIn ? 'Clocked In' : 'Scheduled'}</span>
+                          </div>
+                          <button data-calendar="${rowDataEncoded}" class="btn-calendar" style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px;" title="Add to Calendar">📅</button>
+                          ${swapBtn}
+                        </div>
+                      </div>
+                    `;
+                      })
+                      .join('')
+                  : `<div style="text-align: center; color: var(--text-muted); padding: 30px; background: var(--surface); border-radius: 10px; border: 1px dashed var(--border);">No employees scheduled for this day.</div>`;
+
+              return `
+                <div class="sched-day-roster-pane ${isPaneHidden}" data-pane-day-idx="${dayIdx}" data-sched-id="${sched.id}">
+                  <div style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 12px; font-weight: 600;">
+                    ${h} | ${dayEmployees.length} Employees Scheduled
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 10px;">
+                    ${listItemsHtml}
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+
+          contentHtml = `
+            <div class="schedule-day-tabs">
+              ${dayTabsHtml}
+            </div>
+            <div class="sched-day-rosters">
+              ${rostersHtml}
+            </div>
+            <div class="schedule-desktop-table" style="display: none;">
+              <div class="sched-table-scroll">
+                <table class="data-table schedule-full-table">
+                  <thead>
+                    <tr><th>Employee</th>${headersHtml}<th>Total</th></tr>
+                  </thead>
+                  <tbody>
+                    ${rowsHtml}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
         } catch (e) {
+          console.error(e);
           contentHtml = `<div style="white-space:pre-wrap;line-height:1.5;">${sched.content}</div>`;
         }
       } else {
@@ -242,6 +411,34 @@ export async function loadSchedules() {
         <span>Posted on ${time}</span><div>${editBtn}${deleteBtn}</div></div>${contentHtml}`;
 
       scheduleList.appendChild(div);
+    });
+
+    // Bind click handlers for roster day tabs
+    document.querySelectorAll('.sched-day-tab').forEach((tab) => {
+      tab.addEventListener('click', (e) => {
+        const tabEl = e.currentTarget;
+        const dayIdx = parseInt(tabEl.dataset.dayIdx);
+        const schedId = tabEl.dataset.schedId;
+
+        // Deactivate all sibling tabs for this schedule card
+        document.querySelectorAll(`.sched-day-tab[data-sched-id="${schedId}"]`).forEach((t) => {
+          t.classList.remove('active');
+        });
+        tabEl.classList.add('active');
+
+        // Hide all panes for this schedule card and show the selected pane
+        document
+          .querySelectorAll(`.sched-day-roster-pane[data-sched-id="${schedId}"]`)
+          .forEach((p) => {
+            p.classList.add('hidden');
+          });
+        const activePane = document.querySelector(
+          `.sched-day-roster-pane[data-sched-id="${schedId}"][data-pane-day-idx="${dayIdx}"]`,
+        );
+        if (activePane) {
+          activePane.classList.remove('hidden');
+        }
+      });
     });
   } catch (e) {
     scheduleList.innerHTML =
