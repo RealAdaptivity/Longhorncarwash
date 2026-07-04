@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
     .order('created_at', { ascending: true });
 
   // Only keep logs from this week (Friday onward) in CT
-  const logs = (allLogs ?? []).filter(l =>
+  const logs = (allLogs ?? []).filter((l: any) =>
     new Date(l.created_at).toLocaleDateString('en-CA', { timeZone: TZ }) >= weekStart
   );
 
