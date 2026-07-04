@@ -323,17 +323,17 @@ export async function loadSchedules() {
                           : `<div class="sched-roster-avatar">${initials}</div>`;
 
                         return `
-                      <div class="sched-roster-item">
-                        <div class="sched-roster-time">${shift}</div>
-                        <div class="sched-roster-emp">
+                      <div class="sched-roster-item" style="display: flex; align-items: center; justify-content: flex-start; padding: 14px 20px; gap: 25px; flex-wrap: wrap;">
+                        <div class="sched-roster-time" style="font-family: inherit; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); flex: 0 0 110px; text-align: left; min-width: 110px;">${shift}</div>
+                        <div class="sched-roster-emp" style="display: flex; align-items: center; gap: 12px; flex: 1 1 auto; min-width: 0;">
                           ${avatarHtml}
-                          <div class="sched-roster-emp-meta">
-                            <span class="sched-roster-name">${r.employee}</span>
+                          <div class="sched-roster-emp-meta" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span class="sched-roster-name" style="font-weight: 600;">${r.employee}</span>
                             <span class="role-badge ${info.roleClass}">${info.role}</span>
                           </div>
                         </div>
-                        <div class="sched-roster-actions">
-                          <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}">
+                        <div class="sched-roster-actions" style="display: flex; align-items: center; justify-content: flex-start; gap: 15px; flex: 0 0 auto; min-width: fit-content; flex-shrink: 0;">
+                          <div class="status-indicator ${info.isClockedIn ? 'clocked-in' : 'scheduled'}" style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; flex-shrink: 0;">
                             <span class="status-dot"></span>
                             <span>${info.isClockedIn ? 'Clocked In' : 'Scheduled'}</span>
                           </div>
