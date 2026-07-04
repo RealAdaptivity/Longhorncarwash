@@ -1,5 +1,54 @@
 import { state, showToast, parseShiftHours } from './utils.js';
 
+function updateCellStyles(input) {
+  const val = input.value.trim().toUpperCase();
+  input.style.fontWeight = 'bold';
+  input.style.borderRadius = '6px';
+  input.style.border = '1px solid var(--border)';
+  input.style.textAlign = 'center';
+  input.style.width = '80px';
+  input.style.padding = '6px';
+  if (!val || val === '-' || val === 'OFF') {
+    input.style.background = 'rgba(231, 76, 60, 0.15)';
+    input.style.color = 'var(--danger)';
+    input.style.borderColor = 'var(--danger)';
+  } else if (val === 'OC') {
+    input.style.background = 'rgba(243, 156, 18, 0.15)';
+    input.style.color = '#f39c12';
+    input.style.borderColor = '#f39c12';
+  } else {
+    input.style.background = 'rgba(46, 204, 113, 0.15)';
+    input.style.color = 'var(--success)';
+    input.style.borderColor = 'var(--success)';
+  }
+}
+
+function recalculateRowTotal(tr) {
+  let rowTotal = 0;
+  tr.querySelectorAll('.sched-cell').forEach((inp) => {
+    rowTotal += parseShiftHours(inp.value);
+  });
+  const totalCell = tr.cells[tr.cells.length - 1];
+  if (totalCell) {
+    totalCell.textContent = rowTotal.toFixed(1);
+    if (rowTotal > 40) {
+      totalCell.style.color = 'var(--danger)';
+    } else {
+      totalCell.style.color = 'var(--text)';
+    }
+  }
+}
+
+function bindEditorRowEvents(tr) {
+  tr.querySelectorAll('.sched-cell').forEach((input) => {
+    updateCellStyles(input);
+    input.addEventListener('input', () => {
+      updateCellStyles(input);
+      recalculateRowTotal(tr);
+    });
+  });
+}
+
 export async function loadSchedules() {
   const scheduleList = document.getElementById('schedule-list');
   if (!scheduleList) return;
@@ -344,6 +393,7 @@ export function init() {
                 .join('');
               tr.innerHTML = `<td><strong>${u.name}</strong></td>${inputs}<td style="text-align:center;font-weight:bold;">-</td>`;
               scheduleEditorBody.appendChild(tr);
+              bindEditorRowEvents(tr);
             });
           }
           scheduleHeaderInputs.forEach((inp, idx) => {
@@ -508,6 +558,7 @@ export function init() {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
             scheduleEditorBody?.appendChild(tr);
+            bindEditorRowEvents(tr);
           });
 
           if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Changes';
@@ -612,8 +663,8 @@ export function init() {
     btnSaveTemplate.addEventListener('click', async () => {
       const rows = [];
       document.querySelectorAll('#schedule-editor-table tbody tr').forEach((tr) => {
-        const empName = tr.cells[0].textContent;
-        const shifts = Array.from(tr.querySelectorAll('.schedule-shift-input')).map((i) => i.value);
+        const empName = tr.querySelector('td strong')?.innerText || tr.cells[0].textContent;
+        const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map((i) => i.value);
         rows.push({ employee: empName, shifts });
       });
       try {
@@ -643,19 +694,68 @@ export function init() {
         if (!tbody) return;
         tbody.innerHTML = '';
         rows.forEach((r) => {
-          const tr = document.createElement('tr');
+          let rowTotal = 0;
           const cells = r.shifts
-            .map(
-              (s) =>
-                `<td><input type="text" class="input-field schedule-shift-input" value="${s}" style="width:70px;margin-bottom:0;text-align:center;" /></td>`,
-            )
+            .map((s) => {
+              rowTotal += parseShiftHours(s);
+              return `<td><input type="text" class="input-field sched-cell" value="${s || '-'}" style="padding:5px;text-align:center;margin-bottom:0;" /></td>`;
+            })
             .join('');
-          tr.innerHTML = `<td>${r.employee}</td>${cells}`;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cells}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
           tbody.appendChild(tr);
+          bindEditorRowEvents(tr);
         });
         showToast('Template loaded!');
       } catch (e) {
         showToast('Failed to load template.', 'error');
+      }
+    });
+  }
+
+  // Auto-Fill Previous Week
+  const btnAutofill = document.getElementById('btn-autofill-previous-week');
+  if (btnAutofill) {
+    btnAutofill.addEventListener('click', async () => {
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('schedules')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (error || !data || data.length === 0) {
+          showToast('No previous schedule found.', 'error');
+          return;
+        }
+        const parsed = JSON.parse(data[0].content);
+        const tbody = document.getElementById('schedule-editor-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const { data: currentUsers } = await window.supabaseClient
+          .from('users')
+          .select('name')
+          .eq('is_approved', true)
+          .order('name', { ascending: true });
+
+        (currentUsers || []).forEach((u) => {
+          const savedRow = parsed.rows.find((r) => r.employee === u.name);
+          const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
+          let rowTotal = 0;
+          const cellsHtml = shifts
+            .map((s) => {
+              rowTotal += parseShiftHours(s);
+              return `<td><input type="text" class="input-field sched-cell" value="${s}" style="padding:5px;text-align:center;margin-bottom:0;"></td>`;
+            })
+            .join('');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
+          tbody.appendChild(tr);
+          bindEditorRowEvents(tr);
+        });
+        showToast('Auto-filled from previous week!');
+      } catch (e) {
+        showToast('Failed to auto-fill schedule.', 'error');
       }
     });
   }

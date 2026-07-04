@@ -1498,10 +1498,13 @@
           <div id="post-schedule-section" class="hidden"
             style="margin-bottom: 20px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); overflow-x: auto;">
             <h3 style="margin-bottom: 15px;">Create Weekly Schedule</h3>
-            <div style="margin-bottom: 15px;">
-              <label style="color: var(--text-muted); margin-right: 10px;">Week Range:</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
               <input type="text" id="schedule-week-range" placeholder="e.g. 4/28 - 5/4" class="input-field"
-                style="width: 250px; margin-bottom: 0;" />
+                style="max-width: 250px; margin-bottom: 0;" />
+              <button id="btn-autofill-previous-week" class="btn-ghost"
+                style="padding: 10px 15px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;">
+                Auto-Fill Previous Week
+              </button>
             </div>
             <table class="data-table" id="schedule-editor-table" style="min-width: 800px;">
               <thead>
