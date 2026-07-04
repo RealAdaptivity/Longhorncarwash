@@ -1552,6 +1552,14 @@ export function init() {
       renderEditEmployees('');
     });
   }
+
+  // Timesheet quick-action card — jump to the Weekly Timesheet view
+  const btnShowTimesheet = document.getElementById('btn-show-timesheet');
+  if (btnShowTimesheet) {
+    btnShowTimesheet.addEventListener('click', () => {
+      if (window.switchView) window.switchView('timesheet');
+    });
+  }
   if (btnCloseEditEmployees) {
     btnCloseEditEmployees.addEventListener('click', () => {
       if (modalEditEmployees) modalEditEmployees.classList.add('hidden');
