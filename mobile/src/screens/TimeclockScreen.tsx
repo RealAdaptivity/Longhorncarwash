@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
-  ActivityIndicator, ScrollView, Modal, TextInput,
+  ActivityIndicator, ScrollView, Modal, TextInput, Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,25 +26,8 @@ const MISSED_PUNCH_OPTIONS: { action: ActionType; label: string }[] = [
   { action: 'END_LUNCH', label: 'End Lunch' },
 ];
 
-// Parse a loose time string like "5:00 PM", "5pm", "17:00", or "5:30" into
-// 24-hour parts. Returns null if it can't be understood.
-function parseTimeInput(raw: string): { h: number; m: number } | null {
-  const s = raw.trim().toLowerCase();
-  if (!s) return null;
-  const match = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?$/);
-  if (!match) return null;
-  let h = parseInt(match[1], 10);
-  const m = match[2] ? parseInt(match[2], 10) : 0;
-  if (isNaN(h) || h > 23 || m > 59) return null;
-  const mer = match[3];
-  if (mer === 'pm' || mer === 'p') {
-    if (h !== 12) h += 12;
-  } else if (mer === 'am' || mer === 'a') {
-    if (h === 12) h = 0;
-  }
-  if (h > 23) return null;
-  return { h, m };
-}
+// How far back a missed-punch request may reach (mirrors the web validator).
+const MISSED_PUNCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -111,8 +95,8 @@ export function TimeclockScreen() {
 
   const [showMissedModal, setShowMissedModal] = useState(false);
   const [missedAction, setMissedAction] = useState<ActionType>('OUT');
-  const [missedDay, setMissedDay] = useState<'today' | 'yesterday'>('today');
-  const [missedTime, setMissedTime] = useState('');
+  const [missedDate, setMissedDate] = useState<Date>(new Date());
+  const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
   const [missedReason, setMissedReason] = useState('');
   const [submittingMissed, setSubmittingMissed] = useState(false);
 
@@ -278,20 +262,40 @@ export function TimeclockScreen() {
     }
   }
 
+  function openMissedModal() {
+    // Default to now; the employee scrolls the picker back to when they forgot.
+    setMissedAction('OUT');
+    setMissedDate(new Date());
+    setMissedReason('');
+    setPickerMode(null);
+    setShowMissedModal(true);
+  }
+
+  function onPickerChange(event: { type: string }, selected?: Date) {
+    // Android fires once and dismisses itself; iOS updates live in the inline
+    // spinner until the employee taps Done.
+    if (Platform.OS === 'android') setPickerMode(null);
+    if (event.type === 'dismissed' || !selected) return;
+    setMissedDate(prev => {
+      const next = new Date(prev);
+      if (pickerMode === 'time') {
+        next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+      } else {
+        next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      }
+      return next;
+    });
+  }
+
   async function submitMissedPunch() {
     if (!user) return;
-    const parsed = parseTimeInput(missedTime);
-    if (!parsed) {
-      Alert.alert('Invalid time', 'Enter a time like "5:00 PM".');
-      return;
-    }
-    // Build the requested moment from the device's local clock, matching how
-    // normal punches are recorded.
-    const target = new Date();
-    if (missedDay === 'yesterday') target.setDate(target.getDate() - 1);
-    target.setHours(parsed.h, parsed.m, 0, 0);
+    const target = new Date(missedDate);
     if (target.getTime() > Date.now() + 60 * 1000) {
       Alert.alert('Invalid time', "The punch time can't be in the future.");
+      return;
+    }
+    if (Date.now() - target.getTime() > MISSED_PUNCH_MAX_AGE_MS) {
+      Alert.alert('Too far back', 'Requests are limited to the last 30 days. Ask a manager to add older punches.');
       return;
     }
 
@@ -316,7 +320,6 @@ export function TimeclockScreen() {
     });
     await notifyManagers('Missed-Punch Request', `${user.name} requests a ${label} at ${timeStr}`);
 
-    setMissedTime('');
     setMissedReason('');
     setShowMissedModal(false);
     Alert.alert('Request sent', 'A manager will review your missed-punch request.');
@@ -385,7 +388,7 @@ export function TimeclockScreen() {
         {!user?.is_salary && !loading && (
           <TouchableOpacity
             style={styles.missedLink}
-            onPress={() => setShowMissedModal(true)}
+            onPress={openMissedModal}
             activeOpacity={0.7}
           >
             <Text style={styles.missedLinkText}>Forgot to punch? Request a missed punch</Text>
@@ -433,34 +436,49 @@ export function TimeclockScreen() {
               })}
             </View>
 
-            <Text style={styles.inputLabel}>Which day?</Text>
+            <Text style={styles.inputLabel}>When should it have been?</Text>
             <View style={styles.chipRow}>
-              {(['today', 'yesterday'] as const).map(day => {
-                const active = missedDay === day;
-                return (
-                  <TouchableOpacity
-                    key={day}
-                    style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => setMissedDay(day)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                      {day === 'today' ? 'Today' : 'Yesterday'}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              <TouchableOpacity
+                style={styles.dateBtn}
+                onPress={() => setPickerMode('date')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dateBtnText}>
+                  {missedDate.toLocaleDateString('en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric',
+                  })}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dateBtn}
+                onPress={() => setPickerMode('time')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dateBtnText}>
+                  {missedDate.toLocaleTimeString('en-US', {
+                    hour: 'numeric', minute: '2-digit', hour12: true,
+                  })}
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>What time?</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 5:00 PM"
-              placeholderTextColor={colors.textMuted}
-              value={missedTime}
-              onChangeText={setMissedTime}
-              autoCapitalize="none"
-            />
+            {pickerMode && (
+              <>
+                <DateTimePicker
+                  value={missedDate}
+                  mode={pickerMode}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  maximumDate={new Date()}
+                  minimumDate={new Date(Date.now() - MISSED_PUNCH_MAX_AGE_MS)}
+                  onChange={onPickerChange}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity style={styles.pickerDoneBtn} onPress={() => setPickerMode(null)}>
+                    <Text style={styles.pickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
 
             <Text style={styles.inputLabel}>Reason (optional)</Text>
             <TextInput
@@ -654,6 +672,31 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     color: colors.text,
     fontSize: font.base,
+  },
+  dateBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  dateBtnText: {
+    color: colors.text,
+    fontSize: font.base,
+    fontWeight: '600',
+  },
+  pickerDoneBtn: {
+    alignSelf: 'flex-end',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
+  pickerDoneText: {
+    color: colors.primary,
+    fontSize: font.base,
+    fontWeight: '700',
   },
   chipRow: {
     flexDirection: 'row',
