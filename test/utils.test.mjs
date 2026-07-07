@@ -12,6 +12,7 @@ import {
   getBiweeklyWeeks,
   getDistanceInMeters,
   getPunchTransitionError,
+  getMissedPunchRequestError,
 } from '../modules/utils.js';
 
 const log = (action, t) => ({ action, created_at: t });
@@ -168,4 +169,46 @@ test('getPunchTransitionError: blocks duplicate/invalid transitions', () => {
   assert.equal(getPunchTransitionError('IN', 'END_LUNCH'), 'You must be on lunch to end lunch.');
   assert.equal(getPunchTransitionError('OUT', 'START_LUNCH'), 'You must clock in first.');
   assert.equal(getPunchTransitionError('OUT', 'END_LUNCH'), 'You must be on lunch to end lunch.');
+});
+
+test('getMissedPunchRequestError: accepts a recent, valid request', () => {
+  const now = new Date('2026-07-07T12:00:00Z');
+  const when = new Date('2026-07-06T22:00:00Z');
+  assert.equal(getMissedPunchRequestError('OUT', when, now), null);
+});
+
+test('getMissedPunchRequestError: rejects an unknown action', () => {
+  const now = new Date('2026-07-07T12:00:00Z');
+  assert.equal(
+    getMissedPunchRequestError('LUNCH', new Date('2026-07-07T11:00:00Z'), now),
+    'Choose which punch you missed.',
+  );
+});
+
+test('getMissedPunchRequestError: rejects an unparseable time', () => {
+  const now = new Date('2026-07-07T12:00:00Z');
+  assert.equal(
+    getMissedPunchRequestError('OUT', 'not a date', now),
+    'Enter a valid date and time.',
+  );
+});
+
+test('getMissedPunchRequestError: rejects a future time but allows small skew', () => {
+  const now = new Date('2026-07-07T12:00:00Z');
+  const future = new Date('2026-07-07T13:00:00Z');
+  assert.equal(
+    getMissedPunchRequestError('IN', future, now),
+    "The punch time can't be in the future.",
+  );
+  const skew = new Date(now.getTime() + 30 * 1000);
+  assert.equal(getMissedPunchRequestError('IN', skew, now), null);
+});
+
+test('getMissedPunchRequestError: rejects requests older than 30 days', () => {
+  const now = new Date('2026-07-07T12:00:00Z');
+  const old = new Date('2026-06-01T12:00:00Z');
+  assert.equal(
+    getMissedPunchRequestError('OUT', old, now),
+    'Requests are limited to the last 30 days. Ask a manager to add older punches.',
+  );
 });
