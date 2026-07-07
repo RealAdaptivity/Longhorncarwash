@@ -4,6 +4,7 @@ import {
   checkLocation,
   calculateTotalHoursForLogs,
   parseShiftStartTime,
+  getPunchTransitionError,
 } from './utils.js';
 
 // --- Camera (Anti-Buddy Punching) ---
@@ -352,6 +353,11 @@ export async function logTime(action, tips = 0) {
   }
 
   try {
+    // Make sure remote settings (geofence radius, WiFi lock) are loaded before
+    // we run any location/WiFi gate, so the first punch after page load doesn't
+    // race the initial fetch and get checked against the hardcoded defaults.
+    await state.settingsReady;
+
     if (navigator.onLine) {
       const { data: lastLog, error: logErr } = await window.supabaseClient
         .from('time_logs')
@@ -360,22 +366,12 @@ export async function logTime(action, tips = 0) {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!logErr && lastLog && lastLog.length > 0) {
-        const last = lastLog[0].action;
-        const isIn = last === 'IN' || last === 'END_LUNCH' || last === 'CLOCK_IN';
-        const isOut = last === 'OUT' || last === 'CLOCK_OUT';
-        const isLunch = last === 'START_LUNCH';
-
-        if (action === 'IN' && isIn) throw new Error('You are already clocked in.');
-        if (action === 'OUT' && isOut) throw new Error('You are already clocked out.');
-        if (action === 'START_LUNCH' && isLunch) throw new Error('You are already on lunch.');
-        if (action === 'END_LUNCH' && !isLunch)
-          throw new Error('You must be on lunch to end lunch.');
-        if ((action === 'START_LUNCH' || action === 'OUT') && !isIn && !isLunch) {
-          throw new Error('You must clock in first.');
-        }
-      } else if (action !== 'IN') {
-        throw new Error('You must clock in first.');
+      // Skip validation only on a query error (offline-style fallback);
+      // otherwise enforce the shared transition rules.
+      if (!logErr) {
+        const last = lastLog && lastLog.length > 0 ? lastLog[0].action : null;
+        const err = getPunchTransitionError(last, action);
+        if (err) throw new Error(err);
       }
     }
 
@@ -383,6 +379,12 @@ export async function logTime(action, tips = 0) {
 
     if (!navigator.onLine) {
       const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
+      // Can't reach the server to confirm the true last punch, but we can still
+      // stop back-to-back duplicates within the offline queue itself.
+      if (offlineLogs.length > 0) {
+        const err = getPunchTransitionError(offlineLogs[offlineLogs.length - 1].action, action);
+        if (err) throw new Error(err);
+      }
       const offlineEntry = {
         user_id: state.currentUser.id,
         action,
@@ -701,6 +703,9 @@ export function init() {
   }
 
   async function checkWifiLock() {
+    // Wait for the WiFi-lock setting to load before deciding, so an early punch
+    // isn't evaluated against the default (lock disabled).
+    await state.settingsReady;
     if (!state.WIFI_LOCK_ENABLED) return true;
     try {
       const res = await fetch('https://api.ipify.org?format=json');
@@ -956,9 +961,14 @@ export function init() {
             log.action === 'CLOCK_IN' ||
             log.action === 'START_LUNCH'
           ) {
+            // Compare calendar days in the shop's timezone explicitly — relying
+            // on the host's local timezone would sweep on the wrong boundary if
+            // the kiosk/runtime isn't set to Central time.
+            const TZ = 'America/Chicago';
             const logDate = new Date(log.created_at);
-            const now = new Date();
-            if (logDate.toLocaleDateString() !== now.toLocaleDateString()) {
+            const logDay = logDate.toLocaleDateString('en-CA', { timeZone: TZ });
+            const nowDay = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+            if (logDay !== nowDay) {
               const autoOut = new Date(logDate);
               autoOut.setHours(23, 59, 59, 999);
               await window.supabaseClient.from('time_logs').insert({
