@@ -552,6 +552,7 @@ export function init() {
   if (btnShowPostSchedule) {
     btnShowPostSchedule.addEventListener('click', async () => {
       state.editingScheduleId = null;
+      state.editingScheduleOriginalContent = null;
       if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Post Schedule';
       if (scheduleWeekRange) scheduleWeekRange.value = '';
       if (postScheduleSection) postScheduleSection.classList.toggle('hidden');
@@ -613,25 +614,32 @@ export function init() {
     });
   }
 
+  // Read the current state of the schedule editor into a plain object. Used
+  // both to build what gets saved and to snapshot the editor when editing
+  // begins, so an unchanged save can be detected reliably.
+  function readScheduleEditor() {
+    const weekRange = scheduleWeekRange
+      ? scheduleWeekRange.value.trim() || 'Weekly Schedule'
+      : 'Weekly Schedule';
+    const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(
+      (i) => i.value || '-',
+    );
+    const rows = [];
+    scheduleEditorBody?.querySelectorAll('tr').forEach((tr) => {
+      const employee = tr.querySelector('td strong')?.innerText || '';
+      const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map((i) => i.value || '-');
+      rows.push({ employee, shifts });
+    });
+    return { weekRange, headers, rows };
+  }
+
   if (btnSubmitSchedule) {
     btnSubmitSchedule.addEventListener('click', async () => {
       btnSubmitSchedule.disabled = true;
       btnSubmitSchedule.style.opacity = '0.5';
 
-      const weekRange = scheduleWeekRange
-        ? scheduleWeekRange.value.trim() || 'Weekly Schedule'
-        : 'Weekly Schedule';
-      const headers = Array.from(document.querySelectorAll('.schedule-header-input')).map(
-        (i) => i.value || '-',
-      );
-      const rows = [];
-      scheduleEditorBody?.querySelectorAll('tr').forEach((tr) => {
-        const employee = tr.querySelector('td strong')?.innerText || '';
-        const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map((i) => i.value || '-');
-        rows.push({ employee, shifts });
-      });
-
-      const scheduleData = { weekRange, headers, rows };
+      const scheduleData = readScheduleEditor();
+      const { weekRange, rows } = scheduleData;
 
       // Conflict detection
       try {
@@ -667,38 +675,59 @@ export function init() {
       }
 
       try {
+        const newContent = JSON.stringify(scheduleData);
+
+        // When editing, compare against the snapshot taken when the editor was
+        // opened. If the manager changed nothing, skip re-notifying everyone.
+        // A brand-new post has no snapshot and always counts as changed.
+        const contentChanged =
+          !state.editingScheduleId ||
+          state.editingScheduleOriginalContent == null ||
+          newContent !== state.editingScheduleOriginalContent;
+
         let error;
         if (state.editingScheduleId) {
           ({ error } = await window.supabaseClient
             .from('schedules')
-            .update({ content: JSON.stringify(scheduleData) })
+            .update({ content: newContent })
             .eq('id', state.editingScheduleId));
         } else {
           ({ error } = await window.supabaseClient
             .from('schedules')
-            .insert([{ content: JSON.stringify(scheduleData) }]));
+            .insert([{ content: newContent }]));
         }
         if (error) throw error;
 
-        // Notify employees about schedule update (isolated so CORS/network failures don't block the post)
-        try {
-          const employeeNames = rows.map((r) => r.employee);
-          const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
-            'send_schedule_notifications',
-            { employee_names: employeeNames, week_range: weekRange },
-          );
+        // Notify employees only when the schedule actually changed (a brand-new
+        // post always counts). Isolated so CORS/network failures don't block the
+        // save.
+        if (contentChanged) {
+          try {
+            const employeeNames = rows.map((r) => r.employee);
+            const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
+              'send_schedule_notifications',
+              { employee_names: employeeNames, week_range: weekRange },
+            );
 
-          if (rpcErr) {
-            console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
-          } else {
-            console.log('Schedule push notifications RPC result:', rpcData);
+            if (rpcErr) {
+              console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
+            } else {
+              console.log('Schedule push notifications RPC result:', rpcData);
+            }
+          } catch (pushErr) {
+            console.warn('Failed to invoke schedule notifications RPC:', pushErr);
           }
-        } catch (pushErr) {
-          console.warn('Failed to invoke schedule notifications RPC:', pushErr);
         }
 
-        showToast(state.editingScheduleId ? 'Schedule updated!' : 'Schedule posted!');
+        showToast(
+          !state.editingScheduleId
+            ? 'Schedule posted!'
+            : contentChanged
+              ? 'Schedule updated!'
+              : 'No changes to save.',
+        );
         state.editingScheduleId = null;
+        state.editingScheduleOriginalContent = null;
         if (postScheduleSection) postScheduleSection.classList.add('hidden');
         loadSchedules();
       } catch (err) {
@@ -715,6 +744,7 @@ export function init() {
     scheduleList.addEventListener('click', async (e) => {
       if (e.target.classList.contains('btn-edit-schedule')) {
         state.editingScheduleId = e.target.dataset.id;
+        state.editingScheduleOriginalContent = null;
         try {
           const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
           if (scheduleWeekRange) scheduleWeekRange.value = parsed.weekRange || '';
@@ -743,6 +773,10 @@ export function init() {
             scheduleEditorBody?.appendChild(tr);
             bindEditorRowEvents(tr);
           });
+
+          // Snapshot the freshly-populated editor; a save that matches this
+          // exactly means nothing was changed and no notification is sent.
+          state.editingScheduleOriginalContent = JSON.stringify(readScheduleEditor());
 
           if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Changes';
           if (postScheduleSection) {
