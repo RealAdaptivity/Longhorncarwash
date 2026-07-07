@@ -27,7 +27,40 @@ export const state = {
   ANTI_BUDDY_ENABLED: true,
   EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
+  // Resolves once fetchSettings() has finished loading remote settings (geofence
+  // radius, WiFi lock, etc.) into state. Punch flows await this so the first
+  // punch after page load doesn't run against the hardcoded defaults.
+  settingsReady: Promise.resolve(),
 };
+
+// Actions that mean the employee is currently on the clock (working or on a
+// paid break that still counts as "in"). Kept here so the timeclock UI, the
+// punch validator, and the auto-sweep all agree on what "clocked in" means.
+const CLOCKED_IN_ACTIONS = ['IN', 'END_LUNCH', 'CLOCK_IN'];
+const CLOCKED_OUT_ACTIONS = ['OUT', 'CLOCK_OUT'];
+
+// Pure validator for a punch transition. Given the employee's last recorded
+// action (or null/undefined if they have none) and the action they're
+// attempting, returns a human-readable error string if the transition is
+// invalid, or null if it's allowed. Shared by the online and offline punch
+// paths so both enforce the same rules.
+export function getPunchTransitionError(lastAction, action) {
+  if (lastAction === null || lastAction === undefined) {
+    return action === 'IN' ? null : 'You must clock in first.';
+  }
+  const isIn = CLOCKED_IN_ACTIONS.includes(lastAction);
+  const isOut = CLOCKED_OUT_ACTIONS.includes(lastAction);
+  const isLunch = lastAction === 'START_LUNCH';
+
+  if (action === 'IN' && isIn) return 'You are already clocked in.';
+  if (action === 'OUT' && isOut) return 'You are already clocked out.';
+  if (action === 'START_LUNCH' && isLunch) return 'You are already on lunch.';
+  if (action === 'END_LUNCH' && !isLunch) return 'You must be on lunch to end lunch.';
+  if ((action === 'START_LUNCH' || action === 'OUT') && !isIn && !isLunch) {
+    return 'You must clock in first.';
+  }
+  return null;
+}
 
 // --- Toast ---
 export function showToast(msg, type = 'success') {
@@ -177,6 +210,11 @@ export function calculatePayWithOvertime(weekHrsArray, rate) {
 }
 
 // --- Geolocation ---
+// A reading fuzzier than this is treated as unusable regardless of the geofence
+// radius. Decoupled from the radius so a tight geofence doesn't reject normal
+// phone GPS (which is typically accurate to ~5-65 m but can drift indoors).
+const MAX_GPS_ACCURACY_METERS = 150;
+
 export function getDistanceInMeters(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
   const p1 = (lat1 * Math.PI) / 180;
@@ -201,7 +239,13 @@ export function checkLocation() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
-        if (accuracy > state.ALLOWED_RADIUS_METERS) {
+        // GPS accuracy (how fuzzy the reading is) and the geofence radius (how
+        // close to the site you must be) are independent concepts — the old
+        // code compared accuracy directly against the radius, so tightening the
+        // radius would start rejecting normal punches as "signal too weak."
+        // Gate weak signal on its own threshold, never stricter than the radius.
+        const accuracyLimit = Math.max(state.ALLOWED_RADIUS_METERS, MAX_GPS_ACCURACY_METERS);
+        if (accuracy > accuracyLimit) {
           const accFt = Math.round(accuracy * 3.28084);
           reject(
             new Error(
@@ -216,7 +260,9 @@ export function checkLocation() {
           latitude,
           longitude,
         );
-        if (dist <= state.ALLOWED_RADIUS_METERS) {
+        // Give the reading the benefit of its own accuracy margin: allow the
+        // punch if the employee could plausibly be within the radius.
+        if (dist - accuracy <= state.ALLOWED_RADIUS_METERS) {
           resolve({ lat: latitude, lon: longitude, accuracy });
         } else {
           const feetAway = Math.round(dist * 3.28084);

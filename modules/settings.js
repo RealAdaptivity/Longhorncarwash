@@ -1,5 +1,12 @@
 import { state, showToast, saveSettingRobust } from './utils.js';
 
+// Expose a promise that resolves once remote settings have been loaded into
+// state, so punch flows can wait for it instead of racing the initial fetch.
+let resolveSettingsReady;
+state.settingsReady = new Promise((resolve) => {
+  resolveSettingsReady = resolve;
+});
+
 // --- Announcement ---
 const announcementInput = document.getElementById('announcement-input');
 const btnPostAnnouncement = document.getElementById('btn-post-announcement');
@@ -282,6 +289,10 @@ export async function fetchSettings() {
   } catch (e) {
     console.error('Failed to load geofence/anti-buddy settings:', e);
   }
+
+  // Signal that settings are loaded (even on partial failure — punches should
+  // fall back to defaults rather than hang forever waiting on this).
+  resolveSettingsReady();
 }
 
 export function init() {

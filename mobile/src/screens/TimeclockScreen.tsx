@@ -17,6 +17,7 @@ const CAR_WASH_LON = -97.29654;
 const ALLOWED_RADIUS = 100;
 const QUEUE_KEY = '@lcw_punch_queue';
 const TZ = 'America/Chicago';
+const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -77,12 +78,20 @@ export function TimeclockScreen() {
   const { user } = useAuth();
   const [now, setNow] = useState(new Date());
   const [logs, setLogs] = useState<TimeLog[]>([]);
+  const [lastAction, setLastAction] = useState<TimeLog['action'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState(false);
   const [geofenceEnabled, setGeofenceEnabled] = useState(true);
 
-  const lastAction = logs.length ? logs[logs.length - 1].action : null;
   const todayHours = calcHours(logs);
+
+  // Derive clock state from the true most recent punch, not just today's, so a
+  // session that crossed midnight (clocked in last night, still not out) keeps
+  // Clock Out enabled and Clock In disabled instead of allowing a duplicate IN.
+  const isClockedIn =
+    lastAction === 'IN' || lastAction === 'END_LUNCH' || lastAction === 'CLOCK_IN';
+  const isClockedOut = !lastAction || lastAction === 'OUT' || lastAction === 'CLOCK_OUT';
+  const isOnLunch = lastAction === 'START_LUNCH';
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -104,7 +113,8 @@ export function TimeclockScreen() {
     if (!user) return;
     setLoading(true);
     const today = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
-    const since = new Date(Date.now() - 28 * 3600000).toISOString();
+    // Look back far enough to catch an overnight shift that was never closed.
+    const since = new Date(Date.now() - 48 * 3600000).toISOString();
     const { data } = await supabase
       .from('time_logs')
       .select('id, user_id, action, created_at, edited_by_manager, punch_lat, punch_lon, punch_accuracy')
@@ -112,10 +122,15 @@ export function TimeclockScreen() {
       .gte('created_at', since)
       .order('created_at', { ascending: true });
 
-    const todayLogs = (data ?? []).filter(
+    const rows = (data ?? []) as TimeLog[];
+    const todayLogs = rows.filter(
       l => new Date(l.created_at).toLocaleDateString('en-CA', { timeZone: TZ }) === today
     );
-    setLogs(todayLogs as TimeLog[]);
+    // The true clock state is the last actual punch in the window, which may be
+    // from a prior day; ignore non-punch rows like TIMESHEET_APPROVED.
+    const lastPunch = [...rows].reverse().find(l => PUNCH_ACTIONS.includes(l.action));
+    setLogs(todayLogs);
+    setLastAction(lastPunch ? lastPunch.action : null);
     setLoading(false);
   }, [user]);
 
@@ -231,10 +246,10 @@ export function TimeclockScreen() {
   }
 
   const buttons = [
-    { label: 'CLOCK IN', action: 'IN' as ActionType, color: colors.success, disabled: lastAction === 'IN' || lastAction === 'END_LUNCH' },
-    { label: 'CLOCK OUT', action: 'OUT' as ActionType, color: colors.danger, disabled: !lastAction || lastAction === 'OUT' },
-    { label: 'START LUNCH', action: 'START_LUNCH' as ActionType, color: colors.lunch, disabled: lastAction !== 'IN' && lastAction !== 'END_LUNCH' },
-    { label: 'END LUNCH', action: 'END_LUNCH' as ActionType, color: colors.success, disabled: lastAction !== 'START_LUNCH' },
+    { label: 'CLOCK IN', action: 'IN' as ActionType, color: colors.success, disabled: isClockedIn },
+    { label: 'CLOCK OUT', action: 'OUT' as ActionType, color: colors.danger, disabled: isClockedOut },
+    { label: 'START LUNCH', action: 'START_LUNCH' as ActionType, color: colors.lunch, disabled: !isClockedIn },
+    { label: 'END LUNCH', action: 'END_LUNCH' as ActionType, color: colors.success, disabled: !isOnLunch },
   ];
 
   return (

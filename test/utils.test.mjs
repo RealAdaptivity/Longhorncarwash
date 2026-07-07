@@ -11,6 +11,7 @@ import {
   getStartOfWeek,
   getBiweeklyWeeks,
   getDistanceInMeters,
+  getPunchTransitionError,
 } from '../modules/utils.js';
 
 const log = (action, t) => ({ action, created_at: t });
@@ -141,4 +142,30 @@ test('getDistanceInMeters: identical points are zero', () => {
 test('getDistanceInMeters: ~111km per degree of latitude', () => {
   const d = getDistanceInMeters(0, 0, 1, 0);
   assert.ok(Math.abs(d - 111195) < 500, `expected ~111195m, got ${d}`);
+});
+
+test('getPunchTransitionError: first punch must be a clock-in', () => {
+  assert.equal(getPunchTransitionError(null, 'IN'), null);
+  assert.equal(getPunchTransitionError(null, 'OUT'), 'You must clock in first.');
+  assert.equal(getPunchTransitionError(undefined, 'START_LUNCH'), 'You must clock in first.');
+});
+
+test('getPunchTransitionError: normal in/out cycle is allowed', () => {
+  assert.equal(getPunchTransitionError('IN', 'OUT'), null);
+  assert.equal(getPunchTransitionError('IN', 'START_LUNCH'), null);
+  assert.equal(getPunchTransitionError('START_LUNCH', 'END_LUNCH'), null);
+  // Regression: returning from lunch counts as clocked in, so OUT is allowed.
+  assert.equal(getPunchTransitionError('END_LUNCH', 'OUT'), null);
+  assert.equal(getPunchTransitionError('CLOCK_IN', 'OUT'), null);
+});
+
+test('getPunchTransitionError: blocks duplicate/invalid transitions', () => {
+  assert.equal(getPunchTransitionError('IN', 'IN'), 'You are already clocked in.');
+  assert.equal(getPunchTransitionError('END_LUNCH', 'IN'), 'You are already clocked in.');
+  assert.equal(getPunchTransitionError('OUT', 'OUT'), 'You are already clocked out.');
+  assert.equal(getPunchTransitionError('CLOCK_OUT', 'OUT'), 'You are already clocked out.');
+  assert.equal(getPunchTransitionError('START_LUNCH', 'START_LUNCH'), 'You are already on lunch.');
+  assert.equal(getPunchTransitionError('IN', 'END_LUNCH'), 'You must be on lunch to end lunch.');
+  assert.equal(getPunchTransitionError('OUT', 'START_LUNCH'), 'You must clock in first.');
+  assert.equal(getPunchTransitionError('OUT', 'END_LUNCH'), 'You must be on lunch to end lunch.');
 });
