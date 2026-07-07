@@ -5,6 +5,7 @@ import {
   calculateTotalHoursForLogs,
   parseShiftStartTime,
   getPunchTransitionError,
+  getMissedPunchRequestError,
 } from './utils.js';
 
 // --- Camera (Anti-Buddy Punching) ---
@@ -550,6 +551,80 @@ function initTimesheetSigning() {
   }
 }
 
+// --- Missed Punch Request ---
+function initMissedPunchRequest() {
+  const btnShow = document.getElementById('btn-show-missed-punch');
+  const modal = document.getElementById('modal-missed-punch');
+  const actionSel = document.getElementById('missed-punch-action');
+  const datetimeInput = document.getElementById('missed-punch-datetime');
+  const reasonInput = document.getElementById('missed-punch-reason');
+  const btnCancel = document.getElementById('btn-cancel-missed-punch');
+  const btnSubmit = document.getElementById('btn-submit-missed-punch');
+
+  if (btnShow) {
+    btnShow.addEventListener('click', () => {
+      if (!state.currentUser || !modal) return;
+      stopCamera();
+      if (actionSel) actionSel.value = 'OUT';
+      if (reasonInput) reasonInput.value = '';
+      // Default to now (in local time, which the kiosk runs in) so the employee
+      // only has to adjust the time back to when they forgot to punch.
+      if (datetimeInput) {
+        const now = new Date();
+        datetimeInput.value = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      }
+      modal.classList.remove('hidden');
+    });
+  }
+
+  if (btnCancel) {
+    btnCancel.addEventListener('click', () => {
+      if (modal) modal.classList.add('hidden');
+      startCamera();
+    });
+  }
+
+  if (btnSubmit) {
+    btnSubmit.addEventListener('click', async () => {
+      if (!state.currentUser) return;
+      const action = actionSel ? actionSel.value : '';
+      const when = datetimeInput && datetimeInput.value ? new Date(datetimeInput.value) : null;
+
+      const validationError = getMissedPunchRequestError(action, when);
+      if (validationError) {
+        showToast(validationError, 'error');
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Sending...';
+      try {
+        const { error } = await window.supabaseClient.from('missed_punch_requests').insert([
+          {
+            user_id: state.currentUser.id,
+            employee_name: state.currentUser.name,
+            action,
+            punch_at: when.toISOString(),
+            reason: reasonInput && reasonInput.value.trim() ? reasonInput.value.trim() : null,
+            status: 'pending',
+          },
+        ]);
+        if (error) throw error;
+        showToast('Request sent — a manager will review it.');
+        if (modal) modal.classList.add('hidden');
+        startCamera();
+      } catch (err) {
+        showToast('Failed to send request.', 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Send Request';
+      }
+    });
+  }
+}
+
 // --- Module Init ---
 export function init() {
   setInterval(updateClock, 1000);
@@ -1010,6 +1085,7 @@ export function init() {
   purgeOldChecklists();
 
   initTimesheetSigning();
+  initMissedPunchRequest();
 
   // Auto-restore persistent session on page load
   (async () => {

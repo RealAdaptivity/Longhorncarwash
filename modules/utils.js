@@ -62,6 +62,29 @@ export function getPunchTransitionError(lastAction, action) {
   return null;
 }
 
+// The punch types an employee can file a missed-punch request for.
+export const MISSED_PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'];
+
+// How far back a missed-punch request may reach. Older corrections go through a
+// manager directly rather than the self-service request flow.
+const MISSED_PUNCH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Pure validator for a missed-punch request. Returns an error string if the
+// request is invalid, or null if it's acceptable. `now` is injectable for tests.
+export function getMissedPunchRequestError(action, when, now = new Date()) {
+  if (!MISSED_PUNCH_ACTIONS.includes(action)) return 'Choose which punch you missed.';
+  const t = when instanceof Date ? when : new Date(when);
+  if (isNaN(t.getTime())) return 'Enter a valid date and time.';
+  // Allow a minute of slack for clock skew between the device and server.
+  if (t.getTime() > now.getTime() + 60 * 1000) {
+    return "The punch time can't be in the future.";
+  }
+  if (now.getTime() - t.getTime() > MISSED_PUNCH_MAX_AGE_MS) {
+    return 'Requests are limited to the last 30 days. Ask a manager to add older punches.';
+  }
+  return null;
+}
+
 // --- Toast ---
 export function showToast(msg, type = 'success') {
   const toast = document.getElementById('toast');

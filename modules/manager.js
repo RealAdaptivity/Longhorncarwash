@@ -747,6 +747,63 @@ export async function loadTimesheets() {
       }
     }
 
+    // Missed-punch requests
+    const { data: missedRequests } = await window.supabaseClient
+      .from('missed_punch_requests')
+      .select('id, user_id, employee_name, action, punch_at, reason, requested_at')
+      .eq('status', 'pending')
+      .order('requested_at', { ascending: true });
+    const missedBody = document.getElementById('missed-punch-body');
+    const missedSection = document.getElementById('pending-missed-punch-section');
+    const actionLabels = {
+      IN: 'Clock In',
+      OUT: 'Clock Out',
+      START_LUNCH: 'Start Lunch',
+      END_LUNCH: 'End Lunch',
+    };
+    if (missedBody) {
+      missedBody.innerHTML = '';
+      if (missedRequests && missedRequests.length > 0) {
+        missedRequests.forEach((req) => {
+          pendingCount++;
+          const punchTime = new Date(req.punch_at).toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'America/Chicago',
+          });
+          const emp = Object.values(state.employeeMap).find((e) => e.name === req.employee_name);
+          const avatarUrl =
+            (emp && emp.avatar) ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const reasonText = req.reason
+            ? String(req.reason).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            : '<span style="color: var(--text-muted);">—</span>';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${req.employee_name}
+            </td>
+            <td>${actionLabels[req.action] || req.action}</td>
+            <td>${punchTime}</td>
+            <td style="max-width: 220px;">${reasonText}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-missed" data-id="${req.id}"
+                data-user="${req.user_id}" data-action="${req.action}" data-time="${req.punch_at}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-deny-missed" data-id="${req.id}">Deny</button>
+            </td>
+          `;
+          missedBody.appendChild(tr);
+        });
+        if (missedSection) missedSection.classList.remove('hidden');
+      } else {
+        if (missedSection) missedSection.classList.add('hidden');
+      }
+    }
+
     // Approval badge
     const badge = document.getElementById('approval-badge');
     if (badge) {
@@ -1270,6 +1327,52 @@ export function init() {
           loadTimesheets();
         } catch (err) {
           showToast('Failed to deny.', 'error');
+        }
+      }
+    });
+  }
+
+  // Missed-punch request approvals
+  const missedBodyEl = document.getElementById('missed-punch-body');
+  if (missedBodyEl) {
+    missedBodyEl.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      const manager = state.currentManager || 'Manager';
+      if (e.target.classList.contains('btn-approve-missed')) {
+        e.target.disabled = true;
+        try {
+          // Insert the punch the employee missed, tagged so it's clearly a
+          // manager-approved correction, then mark the request approved.
+          const { error: insertErr } = await window.supabaseClient.from('time_logs').insert([
+            {
+              user_id: e.target.dataset.user,
+              action: e.target.dataset.action,
+              created_at: new Date(e.target.dataset.time).toISOString(),
+              edited_by_manager: `${manager} (missed-punch)`,
+            },
+          ]);
+          if (insertErr) throw insertErr;
+          await window.supabaseClient
+            .from('missed_punch_requests')
+            .update({ status: 'approved', reviewed_by: manager })
+            .eq('id', id);
+          showToast('Missed punch approved and added.');
+          loadTimesheets();
+        } catch (err) {
+          e.target.disabled = false;
+          showToast('Failed to approve request.', 'error');
+        }
+      } else if (e.target.classList.contains('btn-deny-missed')) {
+        try {
+          await window.supabaseClient
+            .from('missed_punch_requests')
+            .update({ status: 'denied', reviewed_by: manager })
+            .eq('id', id);
+          showToast('Missed-punch request denied.');
+          loadTimesheets();
+        } catch (err) {
+          showToast('Failed to deny request.', 'error');
         }
       }
     });

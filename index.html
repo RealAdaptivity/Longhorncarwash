@@ -285,6 +285,21 @@
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
+
+              <button id="btn-show-missed-punch" class="admin-list-item">
+                <div class="admin-list-item-content">
+                  <svg class="admin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <polyline points="12 7 12 12 15 14" />
+                  </svg>
+                  <span>Request Missed Punch</span>
+                </div>
+                <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
             </div>
 
             <button onclick="window.signOut()" class="btn-signout-link">
@@ -363,6 +378,36 @@
               <button id="btn-skip-tips" class="btn-ghost" style="border: none; padding: 10px;">Skip / No Tips</button>
               <button id="btn-submit-tips" class="btn-success" style="padding: 10px 20px; border-radius: 8px;">Submit &
                 Clock Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Missed Punch Request Modal -->
+        <div id="modal-missed-punch" class="modal hidden">
+          <div class="modal-content" style="width: 400px; text-align: left;">
+            <h3 style="margin-bottom: 10px; color: var(--primary);">Request a Missed Punch</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Forgot to clock in or out? Tell
+              your manager what you missed and when. They'll review it in Pending Approvals.</p>
+
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Which punch did you miss?</label>
+            <select id="missed-punch-action" class="input-field">
+              <option value="OUT">Clock Out</option>
+              <option value="IN">Clock In</option>
+              <option value="START_LUNCH">Start Lunch</option>
+              <option value="END_LUNCH">End Lunch</option>
+            </select>
+
+            <label style="font-size: 0.85rem; color: var(--text-muted);">When should it have been?</label>
+            <input type="datetime-local" id="missed-punch-datetime" class="input-field" />
+
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Reason (optional)</label>
+            <input type="text" id="missed-punch-reason" class="input-field"
+              placeholder="e.g. phone died before I could clock out" />
+
+            <div class="modal-actions" style="margin-top: 20px;">
+              <button id="btn-cancel-missed-punch" class="btn-ghost" style="border: none; padding: 10px;">Cancel</button>
+              <button id="btn-submit-missed-punch" class="btn-primary"
+                style="padding: 10px 20px; border-radius: 8px;">Send Request</button>
             </div>
           </div>
         </div>
@@ -1272,6 +1317,27 @@
                       </tr>
                     </thead>
                     <tbody id="early-clockin-body">
+                      <!-- Populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Pending Missed-Punch Requests -->
+              <div id="pending-missed-punch-section" class="hidden" style="margin-bottom: 10px;">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">Missed-Punch Requests</h3>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee</th>
+                        <th>Punch</th>
+                        <th>Requested Time</th>
+                        <th>Reason</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="missed-punch-body">
                       <!-- Populated by JS -->
                     </tbody>
                   </table>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert,
-  ActivityIndicator, ScrollView,
+  ActivityIndicator, ScrollView, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -18,6 +18,32 @@ const ALLOWED_RADIUS = 100;
 const QUEUE_KEY = '@lcw_punch_queue';
 const TZ = 'America/Chicago';
 const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
+const MISSED_PUNCH_OPTIONS: { action: ActionType; label: string }[] = [
+  { action: 'OUT', label: 'Clock Out' },
+  { action: 'IN', label: 'Clock In' },
+  { action: 'START_LUNCH', label: 'Start Lunch' },
+  { action: 'END_LUNCH', label: 'End Lunch' },
+];
+
+// Parse a loose time string like "5:00 PM", "5pm", "17:00", or "5:30" into
+// 24-hour parts. Returns null if it can't be understood.
+function parseTimeInput(raw: string): { h: number; m: number } | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  const match = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?$/);
+  if (!match) return null;
+  let h = parseInt(match[1], 10);
+  const m = match[2] ? parseInt(match[2], 10) : 0;
+  if (isNaN(h) || h > 23 || m > 59) return null;
+  const mer = match[3];
+  if (mer === 'pm' || mer === 'p') {
+    if (h !== 12) h += 12;
+  } else if (mer === 'am' || mer === 'a') {
+    if (h === 12) h = 0;
+  }
+  if (h > 23) return null;
+  return { h, m };
+}
 
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371000;
@@ -82,6 +108,13 @@ export function TimeclockScreen() {
   const [loading, setLoading] = useState(true);
   const [punching, setPunching] = useState(false);
   const [geofenceEnabled, setGeofenceEnabled] = useState(true);
+
+  const [showMissedModal, setShowMissedModal] = useState(false);
+  const [missedAction, setMissedAction] = useState<ActionType>('OUT');
+  const [missedDay, setMissedDay] = useState<'today' | 'yesterday'>('today');
+  const [missedTime, setMissedTime] = useState('');
+  const [missedReason, setMissedReason] = useState('');
+  const [submittingMissed, setSubmittingMissed] = useState(false);
 
   const todayHours = calcHours(logs);
 
@@ -245,6 +278,50 @@ export function TimeclockScreen() {
     }
   }
 
+  async function submitMissedPunch() {
+    if (!user) return;
+    const parsed = parseTimeInput(missedTime);
+    if (!parsed) {
+      Alert.alert('Invalid time', 'Enter a time like "5:00 PM".');
+      return;
+    }
+    // Build the requested moment from the device's local clock, matching how
+    // normal punches are recorded.
+    const target = new Date();
+    if (missedDay === 'yesterday') target.setDate(target.getDate() - 1);
+    target.setHours(parsed.h, parsed.m, 0, 0);
+    if (target.getTime() > Date.now() + 60 * 1000) {
+      Alert.alert('Invalid time', "The punch time can't be in the future.");
+      return;
+    }
+
+    setSubmittingMissed(true);
+    const { error } = await supabase.from('missed_punch_requests').insert({
+      user_id: user.id,
+      employee_name: user.name,
+      action: missedAction,
+      punch_at: target.toISOString(),
+      reason: missedReason.trim() || null,
+      status: 'pending',
+    });
+    setSubmittingMissed(false);
+    if (error) {
+      Alert.alert('Error', 'Could not send request. Please try again.');
+      return;
+    }
+
+    const label = MISSED_PUNCH_OPTIONS.find(o => o.action === missedAction)?.label ?? missedAction;
+    const timeStr = target.toLocaleString('en-US', {
+      weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: TZ,
+    });
+    await notifyManagers('Missed-Punch Request', `${user.name} requests a ${label} at ${timeStr}`);
+
+    setMissedTime('');
+    setMissedReason('');
+    setShowMissedModal(false);
+    Alert.alert('Request sent', 'A manager will review your missed-punch request.');
+  }
+
   const buttons = [
     { label: 'CLOCK IN', action: 'IN' as ActionType, color: colors.success, disabled: isClockedIn },
     { label: 'CLOCK OUT', action: 'OUT' as ActionType, color: colors.danger, disabled: isClockedOut },
@@ -304,6 +381,17 @@ export function TimeclockScreen() {
           </View>
         )}
 
+        {/* Missed-punch request entry point */}
+        {!user?.is_salary && !loading && (
+          <TouchableOpacity
+            style={styles.missedLink}
+            onPress={() => setShowMissedModal(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.missedLinkText}>Forgot to punch? Request a missed punch</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Today's log */}
         {logs.length > 0 && (
           <View style={styles.logCard}>
@@ -321,6 +409,83 @@ export function TimeclockScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Missed-Punch Request Modal */}
+      <Modal visible={showMissedModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Request a Missed Punch</Text>
+
+            <Text style={styles.inputLabel}>Which punch did you miss?</Text>
+            <View style={styles.chipRow}>
+              {MISSED_PUNCH_OPTIONS.map(opt => {
+                const active = missedAction === opt.action;
+                return (
+                  <TouchableOpacity
+                    key={opt.action}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => setMissedAction(opt.action)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.inputLabel}>Which day?</Text>
+            <View style={styles.chipRow}>
+              {(['today', 'yesterday'] as const).map(day => {
+                const active = missedDay === day;
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => setMissedDay(day)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                      {day === 'today' ? 'Today' : 'Yesterday'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.inputLabel}>What time?</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 5:00 PM"
+              placeholderTextColor={colors.textMuted}
+              value={missedTime}
+              onChangeText={setMissedTime}
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.inputLabel}>Reason (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. phone died before I could clock out"
+              placeholderTextColor={colors.textMuted}
+              value={missedReason}
+              onChangeText={setMissedReason}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowMissedModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={submitMissedPunch} disabled={submittingMissed}>
+                {submittingMissed ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <Text style={styles.submitBtnText}>Send Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -448,5 +613,98 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: font.sm,
     fontWeight: '600',
+  },
+  missedLink: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  missedLinkText: {
+    color: colors.primary,
+    fontSize: font.sm,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+    gap: spacing.md,
+    paddingBottom: spacing.xl * 2,
+  },
+  modalTitle: {
+    fontSize: font.lg,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  inputLabel: {
+    fontSize: font.sm,
+    color: colors.textMuted,
+    marginBottom: -spacing.sm,
+  },
+  input: {
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    color: colors.text,
+    fontSize: font.base,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chip: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  chipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '22',
+  },
+  chipText: {
+    color: colors.textMuted,
+    fontSize: font.sm,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: colors.primary,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  cancelBtn: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  cancelBtnText: {
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
+  submitBtn: {
+    flex: 2,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  submitBtnText: {
+    color: colors.white,
+    fontWeight: '700',
   },
 });
