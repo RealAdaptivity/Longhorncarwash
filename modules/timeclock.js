@@ -943,7 +943,19 @@ export function init() {
           .limit(1);
         if (!logErr && latestLog && latestLog.length > 0) {
           const log = latestLog[0];
-          if (log.action === 'IN' || log.action === 'START_LUNCH') {
+          // Any action that leaves the employee on the clock needs an auto
+          // clock-out. END_LUNCH (returned from lunch) counts as clocked in
+          // everywhere else in the app — see updateClockActions and the logTime
+          // validation — so it must be swept too. Without it, an employee who
+          // comes back from lunch and forgets to clock out is never closed out
+          // and stays "Clocked In" across days, corrupting their hours and
+          // hiding the Clock In button on their next shift.
+          if (
+            log.action === 'IN' ||
+            log.action === 'END_LUNCH' ||
+            log.action === 'CLOCK_IN' ||
+            log.action === 'START_LUNCH'
+          ) {
             const logDate = new Date(log.created_at);
             const now = new Date();
             if (logDate.toLocaleDateString() !== now.toLocaleDateString()) {
