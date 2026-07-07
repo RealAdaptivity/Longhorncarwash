@@ -980,10 +980,13 @@ export function init() {
     try {
       const twoDaysAgo = new Date();
       twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+      // checklist_completions timestamps its rows with completed_at (there is
+      // no created_at column) — filtering on created_at made every purge 400
+      // and silently no-op, so old completions never got cleaned up.
       await window.supabaseClient
         .from('checklist_completions')
         .delete()
-        .lt('created_at', twoDaysAgo.toISOString());
+        .lt('completed_at', twoDaysAgo.toISOString());
     } catch (e) {
       console.error('Checklist purge failed:', e);
     }
