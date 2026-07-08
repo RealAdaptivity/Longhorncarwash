@@ -11,6 +11,9 @@ export const state = {
   currentPortalEmployee: null,
   selectedEmployeeForLogs: null,
   editingScheduleId: null,
+  // Snapshot of the schedule editor taken when editing begins, so a save that
+  // changes nothing can skip re-notifying employees.
+  editingScheduleOriginalContent: null,
   editingChecklistId: null,
   currentEditingPunchId: null,
   activeAnnouncement: null,
