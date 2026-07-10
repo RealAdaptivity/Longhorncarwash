@@ -55,6 +55,7 @@ const enable2FA = document.getElementById('enable-2fa');
 const setup2FASection = document.getElementById('setup-2fa-section');
 const setup2FAPin = document.getElementById('setup-2fa-pin');
 const btnCloseSecurity = document.getElementById('btn-close-security');
+const btnSaveSecurity = document.getElementById('btn-save-security');
 // --- Commission Rates ---
 const commSingleGoodInput = document.getElementById('comm-single-good-input');
 const commSingleBetterInput = document.getElementById('comm-single-better-input');
