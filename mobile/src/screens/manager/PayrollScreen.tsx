@@ -54,7 +54,9 @@ function getWeekRangeStart(weeksBack: number): Date {
 interface PayrollRow {
   user: User;
   weeks: number[];
+  weekComms: number[];
   total: number;
+  totalComm: number;
 }
 
 export function PayrollScreen() {
@@ -70,7 +72,7 @@ export function PayrollScreen() {
     const weeksToLoad = 4;
     const since = getWeekRangeStart(weeksToLoad).toISOString();
 
-    const [usersRes, logsRes, ratesRes] = await Promise.all([
+    const [usersRes, logsRes, ratesRes, salesRes, settingsRes] = await Promise.all([
       supabase.from('users').select('id, name, role, is_approved').eq('is_approved', true),
       supabase.from('time_logs')
         .select('id, user_id, action, created_at')
@@ -78,6 +80,10 @@ export function PayrollScreen() {
         .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
         .order('created_at', { ascending: true }),
       supabase.from('user_rates').select('user_id, hourly_rate'),
+      supabase.from('sales')
+        .select('employee_id, sale_type, item_description, created_at')
+        .gte('created_at', since),
+      supabase.from('settings').select('id, value')
     ]);
 
     const users = (usersRes.data ?? []) as User[];
@@ -86,11 +92,42 @@ export function PayrollScreen() {
     for (const r of (ratesRes.data ?? [])) rates[r.user_id] = r.hourly_rate;
     setHourlyRates(rates);
 
-    const weekStarts = Array.from({ length: weeksToLoad }, (_, i) => getWeekRangeStart(weeksToLoad - 1 - i));
+    const settings = (settingsRes.data ?? []) as { id: string; value: string }[];
+    const settingsMap = settings.reduce((acc, curr) => {
+      acc[curr.id] = curr.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const commSingleGood = parseFloat(settingsMap['comm_single_good'] || '50');
+    const commSingleBetter = parseFloat(settingsMap['comm_single_better'] || '100');
+    const commSingleBest = parseFloat(settingsMap['comm_single_best'] || '150');
+    const commMembershipGood = parseFloat(settingsMap['comm_membership_good'] || '200');
+    const commMembershipBetter = parseFloat(settingsMap['comm_membership_better'] || '300');
+    const commMembershipBest = parseFloat(settingsMap['comm_membership_best'] || '400');
+
+    const getCommAmount = (sale: any) => {
+      const desc = (sale.item_description || '').toLowerCase();
+      if (sale.sale_type === 'wash') {
+        if (desc.includes('express')) return commSingleGood;
+        if (desc.includes('deluxe')) return commSingleBetter;
+        if (desc.includes('premium')) return commSingleBest;
+        return commSingleGood;
+      } else if (sale.sale_type === 'membership') {
+        if (desc.includes('express')) return commMembershipGood;
+        if (desc.includes('deluxe')) return commMembershipBetter;
+        if (desc.includes('premium')) return commMembershipBest;
+        return commMembershipGood;
+      }
+      return 0;
+    };
+
+    const weekStarts = Array.from({ length: weeksToLoad }, (_: unknown, i: number) => getWeekRangeStart(weeksToLoad - 1 - i));
 
     const result: PayrollRow[] = users.map(u => {
       const userLogs = allLogs.filter(l => l.user_id === u.id);
-      const weeks = weekStarts.map((ws, i) => {
+      const userSales = (salesRes.data ?? []).filter((s: any) => s.employee_id === u.id);
+
+      const weeks = weekStarts.map((ws: Date, i: number) => {
         const nextWs = weekStarts[i + 1] ?? new Date(ws.getTime() + WEEK_MS);
         const weekLogs = userLogs.filter(l => {
           const t = new Date(l.created_at).getTime();
@@ -98,15 +135,32 @@ export function PayrollScreen() {
         });
         return calcHours(weekLogs);
       });
-      return { user: u, weeks, total: weeks.reduce((a, b) => a + b, 0) };
+
+      const weekComms = weekStarts.map((ws: Date, i: number) => {
+        const nextWs = weekStarts[i + 1] ?? new Date(ws.getTime() + WEEK_MS);
+        const weekSales = userSales.filter((s: any) => {
+          const t = new Date(s.created_at).getTime();
+          return t >= ws.getTime() && t < nextWs.getTime();
+        });
+        const totalCommCents = weekSales.reduce((sum: number, s: any) => sum + getCommAmount(s), 0);
+        return totalCommCents / 100;
+      });
+
+      return {
+        user: u,
+        weeks,
+        weekComms,
+        total: weeks.reduce((a: number, b: number) => a + b, 0),
+        totalComm: weekComms.reduce((a: number, b: number) => a + b, 0)
+      };
     });
 
     result.sort((a, b) => b.total - a.total);
-    setRows(result.filter(r => r.total > 0));
+    setRows(result.filter(r => r.total > 0 || r.totalComm > 0));
     setLoading(false);
   }, []);
 
-  const weekLabels = Array.from({ length: 4 }, (_, i) => {
+  const weekLabels = Array.from({ length: 4 }, (_: unknown, i: number) => {
     const ws = getWeekRangeStart(3 - i);
     return ws.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: TZ });
   });
@@ -147,14 +201,18 @@ export function PayrollScreen() {
               <Text key={wi} style={[styles.cell, styles.headerText]}>{weekLabels[wi]}</Text>
             ))}
             <Text style={[styles.cell, styles.headerText]}>Total</Text>
+            <Text style={[styles.cell, styles.headerText]}>Comm.</Text>
             <Text style={[styles.cell, styles.headerText]}>Est. Pay</Text>
           </View>
 
           <ScrollView>
-            {rows.map(row => {
+            {rows.map((row: PayrollRow) => {
               const displayHrs = displayWeeks.map(wi => row.weeks[wi]);
-              const total = displayHrs.reduce((a, b) => a + b, 0);
+              const displayComms = displayWeeks.map(wi => row.weekComms[wi]);
+              const total = displayHrs.reduce((a: number, b: number) => a + b, 0);
+              const totalComm = displayComms.reduce((a: number, b: number) => a + b, 0);
               const rate = hourlyRates[row.user.id] ?? 0;
+              const estPay = (total * rate) + totalComm;
               return (
                 <View key={row.user.id} style={styles.tableRow}>
                   <Text style={[styles.cell, styles.nameCell, styles.nameText]}>{row.user.name}</Text>
@@ -162,8 +220,9 @@ export function PayrollScreen() {
                     <Text key={i} style={[styles.cell, styles.dataText]}>{h.toFixed(1)}</Text>
                   ))}
                   <Text style={[styles.cell, styles.totalText]}>{total.toFixed(1)}</Text>
+                  <Text style={[styles.cell, styles.totalText, { color: colors.primary }]}>${totalComm.toFixed(0)}</Text>
                   <Text style={[styles.cell, styles.payText]}>
-                    {rate ? `$${(total * rate).toFixed(0)}` : '—'}
+                    {rate || totalComm ? `$${estPay.toFixed(0)}` : '—'}
                   </Text>
                 </View>
               );

@@ -917,6 +917,46 @@
             <div class="table-container">
               <div id="manager-settings-grid"
                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <!-- Commission Rates Settings -->
+                <div id="manager-commission-settings"
+                  style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);" class="hidden">
+                  <h3 style="color: var(--primary); margin-bottom: 10px;">Commission Rates</h3>
+                  <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;">Configure employee commission rates (in dollars) for washes and memberships.</p>
+                  
+                  <h4 style="color: var(--text); margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Single Washes</h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Good (Express)</label>
+                      <input type="number" step="0.01" id="comm-single-good-input" class="input-field" placeholder="e.g. 0.50" style="margin-bottom: 0;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Better (Deluxe)</label>
+                      <input type="number" step="0.01" id="comm-single-better-input" class="input-field" placeholder="e.g. 1.00" style="margin-bottom: 0;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Best (Premium)</label>
+                      <input type="number" step="0.01" id="comm-single-best-input" class="input-field" placeholder="e.g. 1.50" style="margin-bottom: 0;" />
+                    </div>
+                  </div>
+
+                  <h4 style="color: var(--text); margin-bottom: 10px; font-size: 0.95rem; border-bottom: 1px solid var(--border); padding-bottom: 5px;">Memberships</h4>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Good (Express)</label>
+                      <input type="number" step="0.01" id="comm-membership-good-input" class="input-field" placeholder="e.g. 2.00" style="margin-bottom: 0;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Better (Deluxe)</label>
+                      <input type="number" step="0.01" id="comm-membership-better-input" class="input-field" placeholder="e.g. 3.00" style="margin-bottom: 0;" />
+                    </div>
+                    <div>
+                      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Best (Premium)</label>
+                      <input type="number" step="0.01" id="comm-membership-best-input" class="input-field" placeholder="e.g. 4.00" style="margin-bottom: 0;" />
+                    </div>
+                  </div>
+
+                  <button id="btn-save-commissions" class="btn-primary" style="padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; width: 100%;">Save Commission Rates</button>
+                </div>
                 <!-- Announcement Setting -->
                 <div id="manager-announcements"
                   style="background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
@@ -1498,6 +1538,7 @@
                       <th id="biweekly-header-w1">Last Week (Hrs)</th>
                       <th id="biweekly-header-w2">This Week (Hrs)</th>
                       <th>Biweekly Total (Hrs)</th>
+                      <th>Commission ($)</th>
                       <th>Est. Pay ($)</th>
                       <th>Actions</th>
                     </tr>
@@ -1531,6 +1572,7 @@
                       <th>Last Week</th>
                       <th>This Week</th>
                       <th>Monthly Total (Hrs)</th>
+                      <th>Commission ($)</th>
                       <th>Est. Pay ($)</th>
                       <th>Actions</th>
                     </tr>

@@ -55,7 +55,14 @@ const enable2FA = document.getElementById('enable-2fa');
 const setup2FASection = document.getElementById('setup-2fa-section');
 const setup2FAPin = document.getElementById('setup-2fa-pin');
 const btnCloseSecurity = document.getElementById('btn-close-security');
-const btnSaveSecurity = document.getElementById('btn-save-security');
+// --- Commission Rates ---
+const commSingleGoodInput = document.getElementById('comm-single-good-input');
+const commSingleBetterInput = document.getElementById('comm-single-better-input');
+const commSingleBestInput = document.getElementById('comm-single-best-input');
+const commMembershipGoodInput = document.getElementById('comm-membership-good-input');
+const commMembershipBetterInput = document.getElementById('comm-membership-better-input');
+const commMembershipBestInput = document.getElementById('comm-membership-best-input');
+const btnSaveCommissions = document.getElementById('btn-save-commissions');
 
 export function applyTheme(theme) {
   if (theme === 'light') {
@@ -286,6 +293,28 @@ export async function fetchSettings() {
       const laborGoalInput = document.getElementById('labor-goal-input');
       if (laborGoalInput) laborGoalInput.value = state.laborCostGoalPercent;
     }
+
+    const commKeys = [
+      'comm_single_good',
+      'comm_single_better',
+      'comm_single_best',
+      'comm_membership_good',
+      'comm_membership_better',
+      'comm_membership_best'
+    ];
+    for (const key of commKeys) {
+      const { data } = await db.from('settings').select('value').eq('id', key).limit(1);
+      if (data && data.length > 0) {
+        state[key] = parseFloat(data[0].value) || 0;
+      }
+    }
+    if (commSingleGoodInput) commSingleGoodInput.value = (state.comm_single_good / 100).toFixed(2);
+    if (commSingleBetterInput) commSingleBetterInput.value = (state.comm_single_better / 100).toFixed(2);
+    if (commSingleBestInput) commSingleBestInput.value = (state.comm_single_best / 100).toFixed(2);
+    if (commMembershipGoodInput) commMembershipGoodInput.value = (state.comm_membership_good / 100).toFixed(2);
+    if (commMembershipBetterInput) commMembershipBetterInput.value = (state.comm_membership_better / 100).toFixed(2);
+    if (commMembershipBestInput) commMembershipBestInput.value = (state.comm_membership_best / 100).toFixed(2);
+
   } catch (e) {
     console.error('Failed to load geofence/anti-buddy settings:', e);
   }
@@ -612,5 +641,37 @@ export function init() {
     });
   }
 
-  // Gemini API key save
+  // Save Commission Rates
+  if (btnSaveCommissions) {
+    btnSaveCommissions.addEventListener('click', async () => {
+      try {
+        const singleGood = Math.round(parseFloat(commSingleGoodInput?.value || 0) * 100);
+        const singleBetter = Math.round(parseFloat(commSingleBetterInput?.value || 0) * 100);
+        const singleBest = Math.round(parseFloat(commSingleBestInput?.value || 0) * 100);
+        const membershipGood = Math.round(parseFloat(commMembershipGoodInput?.value || 0) * 100);
+        const membershipBetter = Math.round(parseFloat(commMembershipBetterInput?.value || 0) * 100);
+        const membershipBest = Math.round(parseFloat(commMembershipBestInput?.value || 0) * 100);
+
+        await Promise.all([
+          saveSettingRobust('comm_single_good', singleGood.toString()),
+          saveSettingRobust('comm_single_better', singleBetter.toString()),
+          saveSettingRobust('comm_single_best', singleBest.toString()),
+          saveSettingRobust('comm_membership_good', membershipGood.toString()),
+          saveSettingRobust('comm_membership_better', membershipBetter.toString()),
+          saveSettingRobust('comm_membership_best', membershipBest.toString()),
+        ]);
+
+        state.comm_single_good = singleGood;
+        state.comm_single_better = singleBetter;
+        state.comm_single_best = singleBest;
+        state.comm_membership_good = membershipGood;
+        state.comm_membership_better = membershipBetter;
+        state.comm_membership_best = membershipBest;
+
+        showToast('Commission rates saved successfully!', 'success');
+      } catch (err) {
+        showToast('Failed to save commission rates', 'error');
+      }
+    });
+  }
 }

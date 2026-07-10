@@ -137,6 +137,9 @@ function applyRolePermissions(role) {
   }
   const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
   if (btnScheduleManagerLogin) btnScheduleManagerLogin.classList.add('hidden');
+
+  if (role === 'Admin') show('manager-commission-settings');
+  else hide('manager-commission-settings');
 }
 
 function resetRolePermissions() {
@@ -146,6 +149,7 @@ function resetRolePermissions() {
   });
   document.getElementById('btn-show-post-schedule')?.classList.add('hidden');
   document.getElementById('btn-schedule-manager-login')?.classList.remove('hidden');
+  document.getElementById('manager-commission-settings')?.classList.add('hidden');
 }
 
 // --- Manager Authentication ---
@@ -311,25 +315,34 @@ export async function loadTimesheets() {
     '<p style="text-align:center;color:var(--text-muted);padding:20px;">Loading timesheets...</p>';
 
   try {
-    const { data: usersData, error: usersError } = await window.supabaseClient
-      .from('users')
-      .select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar');
-    // Only the columns the hours aggregation below uses. In particular this
-    // avoids pulling photo_base64 (a base64 image per punch), which the
-    // timesheet never reads and which dominated the payload size. The Manage
-    // Logs modal fetches photos separately when they're actually needed.
-    const { data: logsData, error: logsError } = await window.supabaseClient
-      .from('time_logs')
-      .select('user_id, action, created_at')
-      .order('created_at', { ascending: true });
-
-    if (usersError || logsError) throw new Error('Failed to fetch timesheet data');
-
     const startOfWeek = getStartOfWeek().getTime();
     const startOfLastWeek = startOfWeek - 7 * 24 * 60 * 60 * 1000;
     const startOf2WeeksAgo = startOfWeek - 14 * 24 * 60 * 60 * 1000;
     const startOf3WeeksAgo = startOfWeek - 21 * 24 * 60 * 60 * 1000;
     const startOf4WeeksAgo = startOfWeek - 28 * 24 * 60 * 60 * 1000;
+
+    const [usersRes, logsRes, salesRes] = await Promise.all([
+      window.supabaseClient
+        .from('users')
+        .select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar'),
+      window.supabaseClient
+        .from('time_logs')
+        .select('user_id, action, created_at')
+        .order('created_at', { ascending: true }),
+      window.supabaseClient
+        .from('sales')
+        .select('employee_id, sale_type, item_description, created_at')
+        .gte('created_at', new Date(startOf4WeeksAgo).toISOString())
+    ]);
+
+    const usersData = usersRes.data;
+    const logsData = logsRes.data;
+    const salesData = salesRes.data;
+    const usersError = usersRes.error;
+    const logsError = logsRes.error;
+    const salesError = salesRes.error;
+
+    if (usersError || logsError || salesError) throw new Error('Failed to fetch timesheet/sales data');
 
     const { week1Start, week2Start } = getBiweeklyWeeks(new Date());
     const biweeklyW1 = week1Start.getTime();
@@ -363,10 +376,68 @@ export async function loadTimesheets() {
         week4Ms: 0,
         biweeklyWeek1Ms: 0,
         biweeklyWeek2Ms: 0,
+        commThisWeek: 0,
+        commLastWeek: 0,
+        commWeek2: 0,
+        commWeek3: 0,
+        commWeek4: 0,
+        commBiweeklyWeek1: 0,
+        commBiweeklyWeek2: 0,
         currentStatus: 'OUT',
         lastIn: null,
       };
     });
+
+    const getCommAmount = (sale) => {
+      const desc = (sale.item_description || '').toLowerCase();
+      const singleGood = state.comm_single_good !== undefined ? state.comm_single_good : 50;
+      const singleBetter = state.comm_single_better !== undefined ? state.comm_single_better : 100;
+      const singleBest = state.comm_single_best !== undefined ? state.comm_single_best : 150;
+      const membershipGood = state.comm_membership_good !== undefined ? state.comm_membership_good : 200;
+      const membershipBetter = state.comm_membership_better !== undefined ? state.comm_membership_better : 300;
+      const membershipBest = state.comm_membership_best !== undefined ? state.comm_membership_best : 400;
+
+      if (sale.sale_type === 'wash') {
+        if (desc.includes('express')) return singleGood;
+        if (desc.includes('deluxe')) return singleBetter;
+        if (desc.includes('premium')) return singleBest;
+        return singleGood; // fallback
+      } else if (sale.sale_type === 'membership') {
+        if (desc.includes('express')) return membershipGood;
+        if (desc.includes('deluxe')) return membershipBetter;
+        if (desc.includes('premium')) return membershipBest;
+        return membershipGood; // fallback
+      }
+      return 0;
+    };
+
+    if (!salesError && salesData) {
+      salesData.forEach((s) => {
+        const emp = state.employeeMap[s.employee_id];
+        if (!emp) return;
+
+        const t = new Date(s.created_at).getTime();
+        const amt = getCommAmount(s) / 100; // in dollars
+
+        if (t >= startOfWeek) {
+          emp.commThisWeek += amt;
+        } else if (t >= startOfLastWeek) {
+          emp.commLastWeek += amt;
+        } else if (t >= startOf2WeeksAgo) {
+          emp.commWeek2 += amt;
+        } else if (t >= startOf3WeeksAgo) {
+          emp.commWeek3 += amt;
+        } else if (t >= startOf4WeeksAgo) {
+          emp.commWeek4 += amt;
+        }
+
+        if (t >= biweeklyW1 && t < biweeklyW2) {
+          emp.commBiweeklyWeek1 += amt;
+        } else if (t >= biweeklyW2 && t < biweeklyNextW) {
+          emp.commBiweeklyWeek2 += amt;
+        }
+      });
+    }
 
     // 30-day purge in background
     const thirtyDaysAgo = new Date();
@@ -470,7 +541,7 @@ export async function loadTimesheets() {
       const safeName = displayName.replace(/"/g, '&quot;');
 
       const weeklyPayVal = calculatePayWithOvertime([totalWeekHrsVal], emp.pay_rate);
-      const estWeeklyPay = emp.is_salary ? (emp.pay_rate / 2).toFixed(2) : weeklyPayVal.toFixed(2);
+      const estWeeklyPay = (emp.is_salary ? (emp.pay_rate / 2 + emp.commThisWeek) : (weeklyPayVal + emp.commThisWeek)).toFixed(2);
       const rateText = emp.is_salary
         ? `$${emp.pay_rate.toFixed(2)} (Salary)`
         : `$${emp.pay_rate.toFixed(2)}/hr`;
@@ -506,7 +577,7 @@ export async function loadTimesheets() {
             <div class="ts-stat"><span class="ts-big" style="color:${totalColor};">${totalWeekHrs}${otTag}</span><span class="ts-unit">Total hrs</span></div>
             <div class="ts-stat right"><span class="ts-big money">$${estWeeklyPay}${emp.is_salary ? ' <span class="ts-fixed">(Fixed)</span>' : ''}</span><span class="ts-unit">Est. pay</span></div>
           </div>
-          <div class="ts-meta"><span>${rateText}</span><span>Last week <b>${totalLastWeekHrs}</b></span></div>
+          <div class="ts-meta"><span>${rateText}</span><span>Comm: <b>$${emp.commThisWeek.toFixed(2)}</b></span><span>Last week <b>${totalLastWeekHrs}</b></span></div>
           <button class="btn-primary btn-manage-logs ts-manage" data-id="${emp.id}" data-name="${safeName}">Manage</button>
         `;
         timesheetGrid.appendChild(card);
@@ -518,6 +589,7 @@ export async function loadTimesheets() {
         days: emp.weekMs.map((ms) => ms / 3600000),
         total: totalWeekHrsVal,
         rateText,
+        commission: emp.commThisWeek,
         estGross: parseFloat(estWeeklyPay) || 0,
         taxStatus: emp.tax_status || 'Single',
         isSalary: !!emp.is_salary,
@@ -528,9 +600,10 @@ export async function loadTimesheets() {
         const w1Hrs = (emp.biweeklyWeek1Ms / 3600000).toFixed(2);
         const w2Hrs = (emp.biweeklyWeek2Ms / 3600000).toFixed(2);
         const biweeklyTotal = (Number(w1Hrs) + Number(w2Hrs)).toFixed(2);
-        const biweeklyPay = emp.is_salary
-          ? emp.pay_rate.toFixed(2)
-          : calculatePayWithOvertime([Number(w1Hrs), Number(w2Hrs)], emp.pay_rate).toFixed(2);
+        const biweeklyComm = emp.commBiweeklyWeek1 + emp.commBiweeklyWeek2;
+        const biweeklyPay = (emp.is_salary
+          ? emp.pay_rate + biweeklyComm
+          : calculatePayWithOvertime([Number(w1Hrs), Number(w2Hrs)], emp.pay_rate) + biweeklyComm).toFixed(2);
         const trB = document.createElement('tr');
         trB.dataset.id = emp.id;
         trB.dataset.isSalary = emp.is_salary;
@@ -539,6 +612,7 @@ export async function loadTimesheets() {
           <td>${displayName}</td>
           <td>${w1Hrs}</td><td>${w2Hrs}</td>
           <td style="font-weight:bold;color:var(--primary);">${biweeklyTotal}</td>
+          <td style="font-weight:bold;color:var(--primary);">$${biweeklyComm.toFixed(2)}</td>
           <td style="font-weight:bold;color:var(--success);">$${biweeklyPay}${emp.is_salary ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(Fixed)</span>' : ''}</td>
           <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${safeName}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Manage</button></td>
         `;
@@ -556,8 +630,9 @@ export async function loadTimesheets() {
           Number(w3h) +
           Number(w4h)
         ).toFixed(2);
-        const monthlyPay = emp.is_salary
-          ? emp.pay_rate.toFixed(2)
+        const monthlyComm = emp.commThisWeek + emp.commLastWeek + emp.commWeek2 + emp.commWeek3 + emp.commWeek4;
+        const monthlyPay = (emp.is_salary
+          ? emp.pay_rate + monthlyComm
           : calculatePayWithOvertime(
               [
                 Number(totalWeekHrs),
@@ -567,7 +642,7 @@ export async function loadTimesheets() {
                 Number(w4h),
               ],
               emp.pay_rate,
-            ).toFixed(2);
+            ) + monthlyComm).toFixed(2);
         const trM = document.createElement('tr');
         trM.dataset.id = emp.id;
         trM.dataset.isSalary = emp.is_salary;
@@ -576,6 +651,7 @@ export async function loadTimesheets() {
           <td>${displayName}</td>
           <td>${w4h}</td><td>${w3h}</td><td>${w2h}</td><td>${totalLastWeekHrs}</td><td>${totalWeekHrs}</td>
           <td style="font-weight:bold;color:var(--primary);">${monthlyTotal}</td>
+          <td style="font-weight:bold;color:var(--primary);">$${monthlyComm.toFixed(2)}</td>
           <td style="font-weight:bold;color:var(--success);">$${monthlyPay}${emp.is_salary ? ' <span style="font-size:0.7rem;color:var(--text-muted)">(Fixed)</span>' : ''}</td>
           <td><button class="btn-primary btn-manage-logs" data-id="${emp.id}" data-name="${safeName}" style="padding:5px 10px;font-size:0.8rem;cursor:pointer;border-radius:4px;border:none;">Manage</button></td>
         `;
@@ -860,7 +936,7 @@ function exportWeeklyCsv() {
     return;
   }
   let csv =
-    '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
+    '#,Employee,Status,Wed,Thu,Fri,Sat,Sun,Mon,Tue,Total This Week,Rate,Commission ($),Est. Weekly Gross ($),Tax Status,Est. Taxes ($),Est. Net Pay ($),Last Week Total\n';
   let count = 1;
   rows.forEach((r) => {
     if (r.total === 0 && !r.isSalary) return;
@@ -872,6 +948,7 @@ function exportWeeklyCsv() {
       ...r.days.map((h) => (h > 0 ? h.toFixed(2) : '0')),
       r.total.toFixed(2),
       r.rateText,
+      (r.commission || 0).toFixed(2),
       r.estGross.toFixed(2),
       r.taxStatus,
       estTaxes.toFixed(2),
@@ -890,11 +967,11 @@ function exportBiweeklyCsv(w1Range, w2Range) {
     showToast('No data to export', 'warning');
     return;
   }
-  let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n`;
+  let csv = `#,Employee,Week 1 (${w1Range}) (Hrs),Week 2 (${w2Range}) (Hrs),Biweekly Total (Hrs),Commission ($),Type,Rate/Salary,Est. Gross Pay ($),Tax Status,Est. Taxes ($),Est. Net Pay ($)\n`;
   let count = 1;
   rows.forEach((row) => {
     const cols = row.querySelectorAll('td');
-    if (cols.length < 4) return;
+    if (cols.length < 5) return;
     const empId = row.dataset.id;
     const emp = state.employeeMap[empId];
     const isSalary = row.dataset.isSalary === 'true' || (emp && emp.is_salary) || false;
@@ -902,7 +979,8 @@ function exportBiweeklyCsv(w1Range, w2Range) {
     const biweeklyTotal = parseFloat(cols[3].textContent.trim()) || 0;
     if (biweeklyTotal === 0 && !isSalary) return;
 
-    const estGross = parseFloat(cols[4] ? cols[4].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
+    const commission = parseFloat(cols[4] ? cols[4].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
+    const estGross = parseFloat(cols[5] ? cols[5].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
     const taxStatus = emp ? emp.tax_status || 'Single' : 'Single';
     const estTaxes = calculateEstimatedTaxes(estGross, taxStatus, isSalary, 26);
     const estNet = Math.max(0, estGross - estTaxes);
@@ -914,6 +992,7 @@ function exportBiweeklyCsv(w1Range, w2Range) {
       rowData.push(`"${text.replace(/"/g, '""')}"`);
     }
     rowData.push(
+      `"${commission.toFixed(2)}"`,
       `"${isSalary ? 'Salary' : 'Hourly'}"`,
       `"${payRate}"`,
       `"${estGross.toFixed(2)}"`,
@@ -937,11 +1016,11 @@ function exportMonthlyCsv() {
     return;
   }
   let csv =
-    '#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Type,Rate/Salary,Est. Gross Pay,Tax Status,Est. Taxes,Est. Net Pay\n';
+    '#,Employee,4 Weeks Ago,3 Weeks Ago,2 Weeks Ago,Last Week,This Week,Monthly Total (Hrs),Commission ($),Type,Rate/Salary,Est. Gross Pay ($),Tax Status,Est. Taxes ($),Est. Net Pay ($)\n';
   let count = 1;
   rows.forEach((row) => {
     const cols = row.querySelectorAll('td');
-    if (cols.length < 7) return;
+    if (cols.length < 8) return;
     const empId = row.dataset.id;
     const emp = state.employeeMap[empId];
     const isSalary = row.dataset.isSalary === 'true' || (emp && emp.is_salary) || false;
@@ -949,7 +1028,8 @@ function exportMonthlyCsv() {
     const monthlyTotal = parseFloat(cols[6].textContent.trim()) || 0;
     if (monthlyTotal === 0 && !isSalary) return;
 
-    const estGross = parseFloat(cols[7] ? cols[7].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
+    const commission = parseFloat(cols[7] ? cols[7].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
+    const estGross = parseFloat(cols[8] ? cols[8].textContent.replace(/[^0-9.-]/g, '') : '0') || 0;
     const taxStatus = emp ? emp.tax_status || 'Single' : 'Single';
     const estTaxes = calculateEstimatedTaxes(estGross, taxStatus, isSalary, 12);
     const estNet = Math.max(0, estGross - estTaxes);
@@ -961,6 +1041,7 @@ function exportMonthlyCsv() {
       rowData.push(`"${text.replace(/"/g, '""')}"`);
     }
     rowData.push(
+      `"${commission.toFixed(2)}"`,
       `"${isSalary ? 'Salary' : 'Hourly'}"`,
       `"${payRate}"`,
       `"${estGross.toFixed(2)}"`,

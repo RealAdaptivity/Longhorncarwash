@@ -30,6 +30,12 @@ export const state = {
   ANTI_BUDDY_ENABLED: true,
   EARLY_CLOCKIN_BLOCK_ENABLED: true,
   customPayrollFormat: { current: '', next: '' },
+  comm_single_good: 50,
+  comm_single_better: 100,
+  comm_single_best: 150,
+  comm_membership_good: 200,
+  comm_membership_better: 300,
+  comm_membership_best: 400,
   // Resolves once fetchSettings() has finished loading remote settings (geofence
   // radius, WiFi lock, etc.) into state. Punch flows await this so the first
   // punch after page load doesn't run against the hardcoded defaults.

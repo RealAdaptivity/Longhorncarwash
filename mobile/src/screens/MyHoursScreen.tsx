@@ -51,6 +51,7 @@ export function MyHoursScreen() {
   const { user } = useAuth();
   const [weekLogs, setWeekLogs] = useState<TimeLog[]>([]);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
+  const [weekCommission, setWeekCommission] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [reqDates, setReqDates] = useState('');
@@ -65,7 +66,7 @@ export function MyHoursScreen() {
     const weekStart = getWeekStart();
     const since = weekStart.toISOString();
 
-    const [logsRes, timeOffRes] = await Promise.all([
+    const [logsRes, timeOffRes, salesRes, settingsRes] = await Promise.all([
       supabase
         .from('time_logs')
         .select('id, user_id, action, created_at')
@@ -78,8 +79,49 @@ export function MyHoursScreen() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10),
+      supabase
+        .from('sales')
+        .select('employee_id, sale_type, item_description, created_at')
+        .eq('employee_id', user.id)
+        .gte('created_at', since),
+      supabase
+        .from('settings')
+        .select('id, value')
     ]);
 
+    const settings = (settingsRes.data ?? []) as { id: string; value: string }[];
+    const settingsMap = settings.reduce((acc, curr) => {
+      acc[curr.id] = curr.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const commSingleGood = parseFloat(settingsMap['comm_single_good'] || '50');
+    const commSingleBetter = parseFloat(settingsMap['comm_single_better'] || '100');
+    const commSingleBest = parseFloat(settingsMap['comm_single_best'] || '150');
+    const commMembershipGood = parseFloat(settingsMap['comm_membership_good'] || '200');
+    const commMembershipBetter = parseFloat(settingsMap['comm_membership_better'] || '300');
+    const commMembershipBest = parseFloat(settingsMap['comm_membership_best'] || '400');
+
+    const getCommAmount = (sale: any) => {
+      const desc = (sale.item_description || '').toLowerCase();
+      if (sale.sale_type === 'wash') {
+        if (desc.includes('express')) return commSingleGood;
+        if (desc.includes('deluxe')) return commSingleBetter;
+        if (desc.includes('premium')) return commSingleBest;
+        return commSingleGood;
+      } else if (sale.sale_type === 'membership') {
+        if (desc.includes('express')) return commMembershipGood;
+        if (desc.includes('deluxe')) return commMembershipBetter;
+        if (desc.includes('premium')) return commMembershipBest;
+        return commMembershipGood;
+      }
+      return 0;
+    };
+
+    const sales = (salesRes.data ?? []);
+    const totalCommCents = sales.reduce((sum: number, s: any) => sum + getCommAmount(s), 0);
+
+    setWeekCommission(totalCommCents / 100);
     setWeekLogs((logsRes.data ?? []) as TimeLog[]);
     setTimeOffRequests((timeOffRes.data ?? []) as TimeOffRequest[]);
     setLoading(false);
@@ -109,6 +151,7 @@ export function MyHoursScreen() {
 
   const statCards = [
     { label: 'This Week', value: `${weekHours.toFixed(2)} hrs`, color: colors.primary },
+    { label: 'Est. Commission', value: `$${weekCommission.toFixed(2)}`, color: colors.success },
   ];
 
   const statusColor: Record<string, string> = {
@@ -152,7 +195,7 @@ export function MyHoursScreen() {
           {timeOffRequests.length === 0 ? (
             <Text style={styles.emptyText}>No requests yet.</Text>
           ) : (
-            timeOffRequests.map(r => (
+            timeOffRequests.map((r: TimeOffRequest) => (
               <View key={r.id} style={styles.requestCard}>
                 <View style={styles.requestTop}>
                   <Text style={styles.requestDates}>{r.dates}</Text>
