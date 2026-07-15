@@ -257,43 +257,57 @@ export async function loadSchedules() {
             })
             .join('');
 
+          // Parse one side of a shift ("7", "2:30", "10 PM"...) into minutes since
+          // midnight. Employees are only ever scheduled between 7:00 AM and 8:00 PM,
+          // so a bare hour with no AM/PM is mapped into that window: 1-6 are always
+          // PM (e.g. "2-6" is 2pm-6pm), 9-11 are always AM, and the only genuinely
+          // ambiguous hours (7 and 8) default to AM for a start and PM for an end
+          // (so "7-2" opens at 7am and "10-8" closes at 8pm).
+          function parseClockTime(part, isEnd) {
+            if (!part) return NaN;
+            let str = part.trim().toUpperCase();
+            if (str === '' || str === '-' || str === 'OFF') return NaN;
+            let ampm = '';
+            const m = str.match(/(AM|PM)$/);
+            if (m) {
+              ampm = m[1];
+              str = str.slice(0, -2).trim();
+            }
+            let [hStr, minStr] = str.split(':');
+            let hours = parseInt(hStr, 10);
+            let minutes = parseInt(minStr, 10);
+            if (isNaN(hours)) return NaN;
+            if (isNaN(minutes)) minutes = 0;
+
+            if (ampm === 'AM') {
+              if (hours === 12) hours = 0;
+            } else if (ampm === 'PM') {
+              if (hours < 12) hours += 12;
+            } else {
+              // No AM/PM given: interpret within the 7am-8pm business window.
+              if (hours >= 1 && hours <= 6) {
+                hours += 12; // 1-6 -> 1pm-6pm
+              } else if (hours === 7 || hours === 8) {
+                if (isEnd) hours += 12; // ends default to 7pm/8pm, starts to 7am/8am
+              }
+              // 9, 10, 11 and 12 are left as-is (9am-12pm)
+            }
+            return hours * 60 + minutes;
+          }
+
           // Helper to sort shifts by start time
           function getShiftStartMinutes(s) {
-            if (!s || s === '-' || s.toUpperCase() === 'OFF') return 9999;
-            const timePart = s.split('-')[0].trim().toUpperCase();
-            let [time, ampm] = timePart.split(/\s+/);
-            if (!ampm && (timePart.endsWith('AM') || timePart.endsWith('PM'))) {
-              ampm = timePart.slice(-2);
-              time = timePart.slice(0, -2);
-            }
-            let [hours, minutes] = time.split(':').map(Number);
-            if (isNaN(minutes)) minutes = 0;
-            if (ampm === 'PM' && hours < 12) hours += 12;
-            if (ampm === 'AM' && hours === 12) hours = 0;
-            return hours * 60 + minutes;
+            if (!s) return 9999;
+            const start = parseClockTime(s.split('-')[0], false);
+            return isNaN(start) ? 9999 : start;
           }
 
           // Helper to get a shift's end time in minutes (for splitting openers vs closers)
           function getShiftEndMinutes(s) {
-            if (!s || s === '-' || s.toUpperCase() === 'OFF') return -1;
+            if (!s) return -1;
             const parts = s.split('-');
-            const endPart = (parts[1] || parts[0]).trim().toUpperCase();
-            let [time, ampm] = endPart.split(/\s+/);
-            if (!ampm && (endPart.endsWith('AM') || endPart.endsWith('PM'))) {
-              ampm = endPart.slice(-2);
-              time = endPart.slice(0, -2);
-            }
-            let [hours, minutes] = time.split(':').map(Number);
-            if (isNaN(hours)) return -1;
-            if (isNaN(minutes)) minutes = 0;
-            if (ampm === 'PM' && hours < 12) hours += 12;
-            else if (ampm === 'AM' && hours === 12) hours = 0;
-            else if (!ampm && hours < 12) {
-              // Bare end hour with no AM/PM: assume PM when it falls before the start
-              // (e.g. "7-2" ends 2pm, "10-8" ends 8pm)
-              if (hours * 60 + minutes < getShiftStartMinutes(s)) hours += 12;
-            }
-            return hours * 60 + minutes;
+            const end = parseClockTime(parts[1] || parts[0], true);
+            return isNaN(end) ? -1 : end;
           }
 
           // Generate daily rosters HTML
