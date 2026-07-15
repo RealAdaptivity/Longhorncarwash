@@ -273,6 +273,29 @@ export async function loadSchedules() {
             return hours * 60 + minutes;
           }
 
+          // Helper to get a shift's end time in minutes (for splitting openers vs closers)
+          function getShiftEndMinutes(s) {
+            if (!s || s === '-' || s.toUpperCase() === 'OFF') return -1;
+            const parts = s.split('-');
+            const endPart = (parts[1] || parts[0]).trim().toUpperCase();
+            let [time, ampm] = endPart.split(/\s+/);
+            if (!ampm && (endPart.endsWith('AM') || endPart.endsWith('PM'))) {
+              ampm = endPart.slice(-2);
+              time = endPart.slice(0, -2);
+            }
+            let [hours, minutes] = time.split(':').map(Number);
+            if (isNaN(hours)) return -1;
+            if (isNaN(minutes)) minutes = 0;
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            else if (ampm === 'AM' && hours === 12) hours = 0;
+            else if (!ampm && hours < 12) {
+              // Bare end hour with no AM/PM: assume PM when it falls before the start
+              // (e.g. "7-2" ends 2pm, "10-8" ends 8pm)
+              if (hours * 60 + minutes < getShiftStartMinutes(s)) hours += 12;
+            }
+            return hours * 60 + minutes;
+          }
+
           // Generate daily rosters HTML
           const rostersHtml = parsed.headers
             .map((h, dayIdx) => {
@@ -291,38 +314,34 @@ export async function loadSchedules() {
                 );
               });
 
-              const listItemsHtml =
-                dayEmployees.length > 0
-                  ? dayEmployees
-                      .map((r) => {
-                        const shift = r.shifts[dayIdx];
-                        const normName = r.employee.trim().toLowerCase();
-                        const info = employeeInfoByName[normName] || {
-                          role: 'Attendant',
-                          roleClass: 'role-attendant',
-                          isClockedIn: false,
-                        };
+              // Render a single roster row for one employee
+              const renderRosterItem = (r) => {
+                const shift = r.shifts[dayIdx];
+                const normName = r.employee.trim().toLowerCase();
+                const info = employeeInfoByName[normName] || {
+                  role: 'Attendant',
+                  roleClass: 'role-attendant',
+                  isClockedIn: false,
+                };
 
-                        const initials = r.employee
-                          .split(/\s+/)
-                          .map((p) => p[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase();
+                const initials = r.employee
+                  .split(/\s+/)
+                  .map((p) => p[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
 
-                        const swapBtn =
-                          state.currentPortalEmployee &&
-                          normName.includes(
-                            state.currentPortalEmployee.name.toLowerCase().split(' ')[0],
-                          )
-                            ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
-                            : '';
+                const swapBtn =
+                  state.currentPortalEmployee &&
+                  normName.includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0])
+                    ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
+                    : '';
 
-                        const avatarHtml = info.avatar
-                          ? `<img class="sched-roster-avatar" src="${info.avatar}" alt="" />`
-                          : `<div class="sched-roster-avatar">${initials}</div>`;
+                const avatarHtml = info.avatar
+                  ? `<img class="sched-roster-avatar" src="${info.avatar}" alt="" />`
+                  : `<div class="sched-roster-avatar">${initials}</div>`;
 
-                        return `
+                return `
                       <div class="sched-roster-item" style="display: flex; align-items: center; justify-content: flex-start; padding: 14px 20px; gap: 25px; flex-wrap: wrap;">
                         <div class="sched-roster-time" style="font-family: inherit; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); flex: 0 0 110px; text-align: left; min-width: 110px;">${shift}</div>
                         <div class="sched-roster-emp" style="display: flex; align-items: center; gap: 12px; flex: 0 1 auto; min-width: 0;">
@@ -341,8 +360,42 @@ export async function loadSchedules() {
                         </div>
                       </div>
                     `;
-                      })
-                      .join('')
+              };
+
+              // Split employees into Opening / Closing groups by where their shift
+              // midpoint falls within the day's operating window (open..close).
+              const openers = [];
+              const closers = [];
+              if (dayEmployees.length > 0) {
+                const dayOpenMin = Math.min(
+                  ...dayEmployees.map((r) => getShiftStartMinutes(r.shifts[dayIdx])),
+                );
+                const dayCloseMin = Math.max(
+                  ...dayEmployees.map((r) => getShiftEndMinutes(r.shifts[dayIdx])),
+                );
+                const dayMidpoint = (dayOpenMin + dayCloseMin) / 2;
+                dayEmployees.forEach((r) => {
+                  const start = getShiftStartMinutes(r.shifts[dayIdx]);
+                  const end = getShiftEndMinutes(r.shifts[dayIdx]);
+                  const shiftMid = (start + end) / 2;
+                  if (shiftMid <= dayMidpoint) openers.push(r);
+                  else closers.push(r);
+                });
+              }
+
+              const renderSection = (label, group) =>
+                group.length > 0
+                  ? `
+                      <div class="sched-roster-section-label" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 6px 2px 2px;">${label}</div>
+                      <div style="display: flex; flex-direction: column; gap: 10px;">
+                        ${group.map(renderRosterItem).join('')}
+                      </div>
+                    `
+                  : '';
+
+              const listItemsHtml =
+                dayEmployees.length > 0
+                  ? `${renderSection('Opening', openers)}${renderSection('Closing', closers)}`
                   : `<div style="text-align: center; color: var(--text-muted); padding: 30px; background: var(--surface); border-radius: 10px; border: 1px dashed var(--border);">No employees scheduled for this day.</div>`;
 
               return `
