@@ -1,5 +1,14 @@
 import { state, showToast, parseShiftHours } from './utils.js';
 
+// Format an ISO timestamp as a value for a <input type="datetime-local">
+// ("YYYY-MM-DDTHH:mm") in the browser's local time.
+function toLocalInputValue(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function updateCellStyles(input) {
   const val = input.value.trim().toUpperCase();
   input.style.fontWeight = 'bold';
@@ -130,13 +139,47 @@ export async function loadSchedules() {
     if (scheduleSelector) scheduleSelector.innerHTML = '';
     scheduleList.innerHTML = '';
 
-    if (!data || data.length === 0) {
+    const nowMs = Date.now();
+    // A schedule is "live" when it has no go-live time or that time has passed.
+    // Scheduled (not-yet-live) posts are visible to logged-in managers only.
+    const isLive = (s) => !s.publish_at || new Date(s.publish_at).getTime() <= nowMs;
+    const liveScheds = (data || []).filter(isLive);
+    const scheduledScheds = state.managerLoggedIn ? (data || []).filter((s) => !isLive(s)) : [];
+    const lastLiveId = liveScheds.length ? liveScheds[liveScheds.length - 1].id : null;
+
+    if (liveScheds.length === 0 && scheduledScheds.length === 0) {
       scheduleList.innerHTML =
         '<div style="background:var(--card);padding:30px;border-radius:15px;text-align:center;color:var(--text-muted);">No schedules posted yet.</div>';
       return;
     }
 
-    data.forEach((sched, index) => {
+    // Only show section headings when there is at least one scheduled post,
+    // so the default (no scheduled posts) view is unchanged.
+    const showSectionHeadings = scheduledScheds.length > 0;
+    let scheduledHeadingDone = false;
+    let liveHeadingDone = false;
+    const ordered = [...scheduledScheds, ...liveScheds];
+
+    ordered.forEach((sched) => {
+      const isScheduled = !isLive(sched);
+
+      if (showSectionHeadings) {
+        if (isScheduled && !scheduledHeadingDone) {
+          scheduledHeadingDone = true;
+          const hd = document.createElement('div');
+          hd.style.cssText =
+            'font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#f39c12;';
+          hd.textContent = 'Scheduled Posts · visible to managers only';
+          scheduleList.appendChild(hd);
+        } else if (!isScheduled && !liveHeadingDone) {
+          liveHeadingDone = true;
+          const hd = document.createElement('div');
+          hd.style.cssText =
+            'font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-top:10px;';
+          hd.textContent = 'Posted Schedules';
+          scheduleList.appendChild(hd);
+        }
+      }
       let parsed;
       try {
         parsed = JSON.parse(sched.content);
@@ -145,7 +188,7 @@ export async function loadSchedules() {
       }
       const weekRange = parsed ? parsed.weekRange || 'Weekly Schedule' : 'Weekly Schedule';
 
-      if (scheduleSelector) {
+      if (scheduleSelector && !isScheduled) {
         const btn = document.createElement('button');
         btn.className = 'btn-ghost';
         btn.style.cssText =
@@ -161,18 +204,25 @@ export async function loadSchedules() {
           btn.style.borderColor = 'var(--primary)';
           btn.style.background = 'rgba(169,59,47,0.1)';
         };
-        if (index === data.length - 1) {
+        if (sched.id === lastLiveId) {
           btn.style.borderColor = 'var(--primary)';
           btn.style.background = 'rgba(169,59,47,0.1)';
         }
         scheduleSelector.appendChild(btn);
       }
 
+      const isDefaultLive = !isScheduled && sched.id === lastLiveId;
       const div = document.createElement('div');
       div.id = `schedule-card-${sched.id}`;
-      div.className = 'schedule-card' + (index === data.length - 1 ? '' : ' hidden');
+      // Scheduled cards are always visible (never toggled by the selector);
+      // live cards use the selector's show-one-at-a-time behavior.
+      div.className = isScheduled
+        ? 'schedule-card-scheduled'
+        : 'schedule-card' + (isDefaultLive ? '' : ' hidden');
       div.style.cssText =
-        'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
+        'background:var(--card);padding:20px;border-radius:12px;margin-bottom:20px;border:1px solid ' +
+        (isScheduled ? '#f39c12' : 'var(--border)') +
+        ';';
 
       const time = new Date(sched.created_at).toLocaleString('en-US', {
         timeZone: 'America/Chicago',
@@ -257,20 +307,57 @@ export async function loadSchedules() {
             })
             .join('');
 
+          // Parse one side of a shift ("7", "2:30", "10 PM"...) into minutes since
+          // midnight. Employees are only ever scheduled between 7:00 AM and 8:00 PM,
+          // so a bare hour with no AM/PM is mapped into that window: 1-6 are always
+          // PM (e.g. "2-6" is 2pm-6pm), 9-11 are always AM, and the only genuinely
+          // ambiguous hours (7 and 8) default to AM for a start and PM for an end
+          // (so "7-2" opens at 7am and "10-8" closes at 8pm).
+          function parseClockTime(part, isEnd) {
+            if (!part) return NaN;
+            let str = part.trim().toUpperCase();
+            if (str === '' || str === '-' || str === 'OFF') return NaN;
+            let ampm = '';
+            const m = str.match(/(AM|PM)$/);
+            if (m) {
+              ampm = m[1];
+              str = str.slice(0, -2).trim();
+            }
+            let [hStr, minStr] = str.split(':');
+            let hours = parseInt(hStr, 10);
+            let minutes = parseInt(minStr, 10);
+            if (isNaN(hours)) return NaN;
+            if (isNaN(minutes)) minutes = 0;
+
+            if (ampm === 'AM') {
+              if (hours === 12) hours = 0;
+            } else if (ampm === 'PM') {
+              if (hours < 12) hours += 12;
+            } else {
+              // No AM/PM given: interpret within the 7am-8pm business window.
+              if (hours >= 1 && hours <= 6) {
+                hours += 12; // 1-6 -> 1pm-6pm
+              } else if (hours === 7 || hours === 8) {
+                if (isEnd) hours += 12; // ends default to 7pm/8pm, starts to 7am/8am
+              }
+              // 9, 10, 11 and 12 are left as-is (9am-12pm)
+            }
+            return hours * 60 + minutes;
+          }
+
           // Helper to sort shifts by start time
           function getShiftStartMinutes(s) {
-            if (!s || s === '-' || s.toUpperCase() === 'OFF') return 9999;
-            const timePart = s.split('-')[0].trim().toUpperCase();
-            let [time, ampm] = timePart.split(/\s+/);
-            if (!ampm && (timePart.endsWith('AM') || timePart.endsWith('PM'))) {
-              ampm = timePart.slice(-2);
-              time = timePart.slice(0, -2);
-            }
-            let [hours, minutes] = time.split(':').map(Number);
-            if (isNaN(minutes)) minutes = 0;
-            if (ampm === 'PM' && hours < 12) hours += 12;
-            if (ampm === 'AM' && hours === 12) hours = 0;
-            return hours * 60 + minutes;
+            if (!s) return 9999;
+            const start = parseClockTime(s.split('-')[0], false);
+            return isNaN(start) ? 9999 : start;
+          }
+
+          // Helper to get a shift's end time in minutes (for splitting openers vs closers)
+          function getShiftEndMinutes(s) {
+            if (!s) return -1;
+            const parts = s.split('-');
+            const end = parseClockTime(parts[1] || parts[0], true);
+            return isNaN(end) ? -1 : end;
           }
 
           // Generate daily rosters HTML
@@ -291,38 +378,34 @@ export async function loadSchedules() {
                 );
               });
 
-              const listItemsHtml =
-                dayEmployees.length > 0
-                  ? dayEmployees
-                      .map((r) => {
-                        const shift = r.shifts[dayIdx];
-                        const normName = r.employee.trim().toLowerCase();
-                        const info = employeeInfoByName[normName] || {
-                          role: 'Attendant',
-                          roleClass: 'role-attendant',
-                          isClockedIn: false,
-                        };
+              // Render a single roster row for one employee
+              const renderRosterItem = (r) => {
+                const shift = r.shifts[dayIdx];
+                const normName = r.employee.trim().toLowerCase();
+                const info = employeeInfoByName[normName] || {
+                  role: 'Attendant',
+                  roleClass: 'role-attendant',
+                  isClockedIn: false,
+                };
 
-                        const initials = r.employee
-                          .split(/\s+/)
-                          .map((p) => p[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase();
+                const initials = r.employee
+                  .split(/\s+/)
+                  .map((p) => p[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase();
 
-                        const swapBtn =
-                          state.currentPortalEmployee &&
-                          normName.includes(
-                            state.currentPortalEmployee.name.toLowerCase().split(' ')[0],
-                          )
-                            ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
-                            : '';
+                const swapBtn =
+                  state.currentPortalEmployee &&
+                  normName.includes(state.currentPortalEmployee.name.toLowerCase().split(' ')[0])
+                    ? `<button class="btn-request-swap btn-ghost" data-employee="${r.employee}" data-week="${parsed.weekRange}" style="padding:4px 8px;font-size:0.7rem;border:1px solid var(--border);border-radius:6px;cursor:pointer;">Request Swap</button>`
+                    : '';
 
-                        const avatarHtml = info.avatar
-                          ? `<img class="sched-roster-avatar" src="${info.avatar}" alt="" />`
-                          : `<div class="sched-roster-avatar">${initials}</div>`;
+                const avatarHtml = info.avatar
+                  ? `<img class="sched-roster-avatar" src="${info.avatar}" alt="" />`
+                  : `<div class="sched-roster-avatar">${initials}</div>`;
 
-                        return `
+                return `
                       <div class="sched-roster-item" style="display: flex; align-items: center; justify-content: flex-start; padding: 14px 20px; gap: 25px; flex-wrap: wrap;">
                         <div class="sched-roster-time" style="font-family: inherit; font-weight: 600; font-size: 0.95rem; color: var(--text-muted); flex: 0 0 110px; text-align: left; min-width: 110px;">${shift}</div>
                         <div class="sched-roster-emp" style="display: flex; align-items: center; gap: 12px; flex: 0 1 auto; min-width: 0;">
@@ -341,8 +424,42 @@ export async function loadSchedules() {
                         </div>
                       </div>
                     `;
-                      })
-                      .join('')
+              };
+
+              // Split employees into Opening / Closing groups by where their shift
+              // midpoint falls within the day's operating window (open..close).
+              const openers = [];
+              const closers = [];
+              if (dayEmployees.length > 0) {
+                const dayOpenMin = Math.min(
+                  ...dayEmployees.map((r) => getShiftStartMinutes(r.shifts[dayIdx])),
+                );
+                const dayCloseMin = Math.max(
+                  ...dayEmployees.map((r) => getShiftEndMinutes(r.shifts[dayIdx])),
+                );
+                const dayMidpoint = (dayOpenMin + dayCloseMin) / 2;
+                dayEmployees.forEach((r) => {
+                  const start = getShiftStartMinutes(r.shifts[dayIdx]);
+                  const end = getShiftEndMinutes(r.shifts[dayIdx]);
+                  const shiftMid = (start + end) / 2;
+                  if (shiftMid <= dayMidpoint) openers.push(r);
+                  else closers.push(r);
+                });
+              }
+
+              const renderSection = (label, group) =>
+                group.length > 0
+                  ? `
+                      <div class="sched-roster-section-label" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 6px 2px 2px;">${label}</div>
+                      <div style="display: flex; flex-direction: column; gap: 10px;">
+                        ${group.map(renderRosterItem).join('')}
+                      </div>
+                    `
+                  : '';
+
+              const listItemsHtml =
+                dayEmployees.length > 0
+                  ? `${renderSection('Opening', openers)}${renderSection('Closing', closers)}`
                   : `<div style="text-align: center; color: var(--text-muted); padding: 30px; background: var(--surface); border-radius: 10px; border: 1px dashed var(--border);">No employees scheduled for this day.</div>`;
 
               return `
@@ -387,14 +504,33 @@ export async function loadSchedules() {
       }
 
       const editBtn = state.managerLoggedIn
-        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
+        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" data-publish-at="${sched.publish_at || ''}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
         : '';
       const deleteBtn = state.managerLoggedIn
         ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>`
         : '';
+      const postNowBtn =
+        state.managerLoggedIn && isScheduled
+          ? `<button class="btn-success btn-post-now" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Post Now</button>`
+          : '';
 
-      div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
-        <span>Posted on ${time}</span><div>${editBtn}${deleteBtn}</div></div>${contentHtml}`;
+      let headerLabel;
+      if (isScheduled) {
+        const goLive = new Date(sched.publish_at).toLocaleString('en-US', {
+          timeZone: 'America/Chicago',
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        headerLabel = `<span style="display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="background:#f39c12;color:#fff;font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.03em;">SCHEDULED</span> Goes live ${goLive}</span>`;
+      } else {
+        headerLabel = `<span>Posted on ${time}</span>`;
+      }
+
+      div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        ${headerLabel}<div>${postNowBtn}${editBtn}${deleteBtn}</div></div>${contentHtml}`;
 
       scheduleList.appendChild(div);
     });
@@ -536,6 +672,8 @@ export function init() {
   const scheduleWeekRange = document.getElementById('schedule-week-range');
   const scheduleEditorBody = document.getElementById('schedule-editor-body');
   const btnSubmitSchedule = document.getElementById('btn-submit-schedule');
+  const btnSchedulePost = document.getElementById('btn-schedule-post');
+  const schedulePublishAt = document.getElementById('schedule-publish-at');
   const scheduleHeaderInputs = document.querySelectorAll('.schedule-header-input');
   const btnPrintSchedule = document.getElementById('btn-print-schedule');
   const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
@@ -553,8 +691,10 @@ export function init() {
     btnShowPostSchedule.addEventListener('click', async () => {
       state.editingScheduleId = null;
       state.editingScheduleOriginalContent = null;
+      state.editingSchedulePublishAt = null;
       if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Post Schedule';
       if (scheduleWeekRange) scheduleWeekRange.value = '';
+      if (schedulePublishAt) schedulePublishAt.value = '';
       if (postScheduleSection) postScheduleSection.classList.toggle('hidden');
 
       if (postScheduleSection && !postScheduleSection.classList.contains('hidden')) {
@@ -633,109 +773,169 @@ export function init() {
     return { weekRange, headers, rows };
   }
 
-  if (btnSubmitSchedule) {
-    btnSubmitSchedule.addEventListener('click', async () => {
-      btnSubmitSchedule.disabled = true;
-      btnSubmitSchedule.style.opacity = '0.5';
+  // Save the current editor. When publishAtIso is provided (a future ISO
+  // timestamp) the schedule is stored as a scheduled post: managers-only until
+  // that time, with its employee notification sent by the go-live job. A null
+  // publishAtIso posts immediately and notifies right away (existing behavior).
+  async function saveSchedule(publishAtIso) {
+    const buttons = [btnSubmitSchedule, btnSchedulePost].filter(Boolean);
+    buttons.forEach((b) => {
+      b.disabled = true;
+      b.style.opacity = '0.5';
+    });
+    const restoreButtons = () =>
+      buttons.forEach((b) => {
+        b.disabled = false;
+        b.style.opacity = '1';
+      });
 
-      const scheduleData = readScheduleEditor();
-      const { weekRange, rows } = scheduleData;
+    const isScheduledPost = !!publishAtIso;
 
-      // Conflict detection
-      try {
-        const { data: timeoffs } = await window.supabaseClient
-          .from('time_off_requests')
-          .select('*')
-          .eq('status', 'Approved');
-        if (timeoffs) {
-          const conflicts = rows
-            .filter((row) => {
-              const emp = Object.values(state.employeeMap).find(
-                (e) => e.name.toLowerCase() === row.employee.toLowerCase(),
-              );
-              if (!emp) return false;
-              const hasShifts = row.shifts.some((s) => s && s !== '-' && s.trim() !== '');
-              return hasShifts && timeoffs.some((t) => t.user_id === emp.id);
-            })
-            .map((r) => r.employee);
+    const scheduleData = readScheduleEditor();
+    const { weekRange, rows } = scheduleData;
 
-          if (
-            conflicts.length > 0 &&
-            !confirm(
-              `Warning: These employees have approved time-off: ${conflicts.join(', ')}. Proceed?`,
-            )
-          ) {
-            btnSubmitSchedule.disabled = false;
-            btnSubmitSchedule.style.opacity = '1';
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Conflict detection error', e);
-      }
-
-      try {
-        const newContent = JSON.stringify(scheduleData);
-
-        // When editing, compare against the snapshot taken when the editor was
-        // opened. If the manager changed nothing, skip re-notifying everyone.
-        // A brand-new post has no snapshot and always counts as changed.
-        const contentChanged =
-          !state.editingScheduleId ||
-          state.editingScheduleOriginalContent == null ||
-          newContent !== state.editingScheduleOriginalContent;
-
-        let error;
-        if (state.editingScheduleId) {
-          ({ error } = await window.supabaseClient
-            .from('schedules')
-            .update({ content: newContent })
-            .eq('id', state.editingScheduleId));
-        } else {
-          ({ error } = await window.supabaseClient
-            .from('schedules')
-            .insert([{ content: newContent }]));
-        }
-        if (error) throw error;
-
-        // Notify employees only when the schedule actually changed (a brand-new
-        // post always counts). Isolated so CORS/network failures don't block the
-        // save.
-        if (contentChanged) {
-          try {
-            const employeeNames = rows.map((r) => r.employee);
-            const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
-              'send_schedule_notifications',
-              { employee_names: employeeNames, week_range: weekRange },
+    // Conflict detection
+    try {
+      const { data: timeoffs } = await window.supabaseClient
+        .from('time_off_requests')
+        .select('*')
+        .eq('status', 'Approved');
+      if (timeoffs) {
+        const conflicts = rows
+          .filter((row) => {
+            const emp = Object.values(state.employeeMap).find(
+              (e) => e.name.toLowerCase() === row.employee.toLowerCase(),
             );
+            if (!emp) return false;
+            const hasShifts = row.shifts.some((s) => s && s !== '-' && s.trim() !== '');
+            return hasShifts && timeoffs.some((t) => t.user_id === emp.id);
+          })
+          .map((r) => r.employee);
 
-            if (rpcErr) {
-              console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
-            } else {
-              console.log('Schedule push notifications RPC result:', rpcData);
-            }
-          } catch (pushErr) {
-            console.warn('Failed to invoke schedule notifications RPC:', pushErr);
-          }
+        if (
+          conflicts.length > 0 &&
+          !confirm(
+            `Warning: These employees have approved time-off: ${conflicts.join(', ')}. Proceed?`,
+          )
+        ) {
+          restoreButtons();
+          return;
         }
-
-        showToast(
-          !state.editingScheduleId
-            ? 'Schedule posted!'
-            : contentChanged
-              ? 'Schedule updated!'
-              : 'No changes to save.',
-        );
-        state.editingScheduleId = null;
-        state.editingScheduleOriginalContent = null;
-        if (postScheduleSection) postScheduleSection.classList.add('hidden');
-        loadSchedules();
-      } catch (err) {
-        showToast('Failed to save schedule.', 'error');
-      } finally {
-        btnSubmitSchedule.disabled = false;
-        btnSubmitSchedule.style.opacity = '1';
       }
+    } catch (e) {
+      console.error('Conflict detection error', e);
+    }
+
+    try {
+      const newContent = JSON.stringify(scheduleData);
+
+      // When editing, compare against the snapshot taken when the editor was
+      // opened. If the manager changed nothing, skip re-notifying everyone.
+      // A brand-new post has no snapshot and always counts as changed.
+      const contentChanged =
+        !state.editingScheduleId ||
+        state.editingScheduleOriginalContent == null ||
+        newContent !== state.editingScheduleOriginalContent;
+
+      // Notifications for a scheduled post are sent by the go-live job, not now.
+      const notifyNow = !isScheduledPost && contentChanged;
+
+      const fields = { content: newContent };
+      if (isScheduledPost) {
+        fields.publish_at = publishAtIso;
+        fields.notified = false;
+      } else if (state.editingScheduleId && state.editingSchedulePublishAt) {
+        // Converting a previously-scheduled post into an immediate one: clear
+        // its go-live time and mark it notified. For a normal (already-live)
+        // schedule edit we leave these columns untouched, keeping the update
+        // identical to the pre-scheduled-posts behavior.
+        fields.publish_at = null;
+        fields.notified = true;
+      }
+
+      let error;
+      if (state.editingScheduleId) {
+        ({ error } = await window.supabaseClient
+          .from('schedules')
+          .update(fields)
+          .eq('id', state.editingScheduleId));
+      } else {
+        ({ error } = await window.supabaseClient.from('schedules').insert([fields]));
+      }
+      if (error) throw error;
+
+      // Notify employees only for an immediate post that actually changed.
+      // Isolated so CORS/network failures don't block the save.
+      if (notifyNow) {
+        try {
+          const employeeNames = rows.map((r) => r.employee);
+          const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
+            'send_schedule_notifications',
+            { employee_names: employeeNames, week_range: weekRange },
+          );
+
+          if (rpcErr) {
+            console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
+          } else {
+            console.log('Schedule push notifications RPC result:', rpcData);
+          }
+        } catch (pushErr) {
+          console.warn('Failed to invoke schedule notifications RPC:', pushErr);
+        }
+      }
+
+      let toastMsg;
+      if (isScheduledPost) {
+        const when = new Date(publishAtIso).toLocaleString('en-US', {
+          timeZone: 'America/Chicago',
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        });
+        toastMsg = `Schedule set to go live ${when}.`;
+      } else if (!state.editingScheduleId) {
+        toastMsg = 'Schedule posted!';
+      } else {
+        toastMsg = contentChanged ? 'Schedule updated!' : 'No changes to save.';
+      }
+      showToast(toastMsg);
+
+      state.editingScheduleId = null;
+      state.editingScheduleOriginalContent = null;
+      state.editingSchedulePublishAt = null;
+      if (schedulePublishAt) schedulePublishAt.value = '';
+      if (postScheduleSection) postScheduleSection.classList.add('hidden');
+      loadSchedules();
+    } catch (err) {
+      showToast('Failed to save schedule.', 'error');
+    } finally {
+      restoreButtons();
+    }
+  }
+
+  if (btnSubmitSchedule) {
+    btnSubmitSchedule.addEventListener('click', () => saveSchedule(null));
+  }
+
+  if (btnSchedulePost) {
+    btnSchedulePost.addEventListener('click', () => {
+      const val = schedulePublishAt ? schedulePublishAt.value : '';
+      if (!val) {
+        showToast('Pick a date and time for the schedule to go live.', 'error');
+        return;
+      }
+      const when = new Date(val);
+      if (isNaN(when.getTime())) {
+        showToast('That go-live date/time is not valid.', 'error');
+        return;
+      }
+      if (when.getTime() <= Date.now()) {
+        showToast('Pick a go-live time in the future (or use Post Schedule now).', 'error');
+        return;
+      }
+      saveSchedule(when.toISOString());
     });
   }
 
@@ -745,9 +945,15 @@ export function init() {
       if (e.target.classList.contains('btn-edit-schedule')) {
         state.editingScheduleId = e.target.dataset.id;
         state.editingScheduleOriginalContent = null;
+        state.editingSchedulePublishAt = e.target.dataset.publishAt || null;
         try {
           const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
           if (scheduleWeekRange) scheduleWeekRange.value = parsed.weekRange || '';
+          if (schedulePublishAt) {
+            schedulePublishAt.value = e.target.dataset.publishAt
+              ? toLocalInputValue(e.target.dataset.publishAt)
+              : '';
+          }
           parsed.headers.forEach((h, idx) => {
             if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h;
           });
@@ -785,6 +991,40 @@ export function init() {
           }
         } catch (err) {
           showToast('Could not load schedule for editing.', 'error');
+        }
+      } else if (e.target.classList.contains('btn-post-now')) {
+        if (!confirm('Post this schedule now? Employees will be notified.')) return;
+        const id = e.target.dataset.id;
+        try {
+          const { data: rowData, error: fetchErr } = await window.supabaseClient
+            .from('schedules')
+            .select('content')
+            .eq('id', id)
+            .single();
+          if (fetchErr) throw fetchErr;
+
+          const { error } = await window.supabaseClient
+            .from('schedules')
+            .update({ publish_at: null, notified: true })
+            .eq('id', id);
+          if (error) throw error;
+
+          // Notify employees immediately, mirroring an immediate post.
+          try {
+            const parsed = JSON.parse(rowData.content);
+            const employeeNames = (parsed.rows || []).map((r) => r.employee);
+            await window.supabaseClient.rpc('send_schedule_notifications', {
+              employee_names: employeeNames,
+              week_range: parsed.weekRange || 'Weekly Schedule',
+            });
+          } catch (pushErr) {
+            console.warn('Failed to send notifications on Post Now:', pushErr);
+          }
+
+          showToast('Schedule posted!');
+          loadSchedules();
+        } catch (err) {
+          showToast('Failed to post schedule.', 'error');
         }
       } else if (e.target.classList.contains('btn-delete-schedule')) {
         if (!confirm('Delete this schedule?')) return;

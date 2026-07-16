@@ -14,6 +14,9 @@ export const state = {
   // Snapshot of the schedule editor taken when editing begins, so a save that
   // changes nothing can skip re-notifying employees.
   editingScheduleOriginalContent: null,
+  // Go-live time of the schedule being edited (ISO string) when it is a
+  // not-yet-published scheduled post, else null.
+  editingSchedulePublishAt: null,
   editingChecklistId: null,
   currentEditingPunchId: null,
   activeAnnouncement: null,
