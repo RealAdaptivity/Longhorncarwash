@@ -11,6 +11,10 @@ export const state = {
   currentPortalEmployee: null,
   selectedEmployeeForLogs: null,
   editingScheduleId: null,
+  // Publish state of the schedule currently open in the editor ('pending' or
+  // 'published'), so a save knows whether it should notify employees. Null when
+  // creating a brand-new draft.
+  editingScheduleStatus: null,
   // Snapshot of the schedule editor taken when editing begins, so a save that
   // changes nothing can skip re-notifying employees.
   editingScheduleOriginalContent: null,
