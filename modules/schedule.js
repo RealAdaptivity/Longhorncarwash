@@ -264,8 +264,8 @@ export async function loadSchedules() {
               const isActive = idx === activeDayIndex;
               return `
                 <div class="sched-day-tab ${isActive ? 'active' : ''}" data-day-idx="${idx}" data-sched-id="${sched.id}">
-                  <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">${tab.name}</div>
-                  <div style="font-size: 1.2rem; font-weight: bold; margin-top: 2px;">${tab.number || idx + 1}</div>
+                  <div class="sched-day-tab-name">${tab.name}</div>
+                  <div class="sched-day-tab-date">${tab.number || idx + 1}</div>
                 </div>
               `;
             })
@@ -401,14 +401,14 @@ export async function loadSchedules() {
       }
 
       const editBtn = state.managerLoggedIn
-        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-status="${sched.status || 'published'}" data-publish-at="${sched.publish_at || ''}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
+        ? `<button class="sched-action-btn sched-action-btn--ghost btn-edit-schedule" data-id="${sched.id}" data-status="${sched.status || 'published'}" data-publish-at="${sched.publish_at || ''}" data-content="${encodeURIComponent(sched.content)}">Edit</button>`
         : '';
       const publishBtn =
         state.managerLoggedIn && isPending
-          ? `<button class="btn-success btn-publish-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Publish / Go Live</button>`
+          ? `<button class="sched-action-btn sched-action-btn--publish btn-publish-schedule" data-id="${sched.id}">Publish / Go Live</button>`
           : '';
       const deleteBtn = state.managerLoggedIn
-        ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>`
+        ? `<button class="sched-action-btn sched-action-btn--danger btn-delete-schedule" data-id="${sched.id}">Delete</button>`
         : '';
 
       const scheduledPublishText =
@@ -426,7 +426,7 @@ export async function loadSchedules() {
         : `<span>Posted on ${time}</span>`;
 
       div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-        ${statusLabel}<div>${publishBtn}${editBtn}${deleteBtn}</div></div>${contentHtml}`;
+        ${statusLabel}<div style="display:flex;gap:8px;flex-wrap:wrap;">${publishBtn}${editBtn}${deleteBtn}</div></div>${contentHtml}`;
 
       scheduleList.appendChild(div);
     });
