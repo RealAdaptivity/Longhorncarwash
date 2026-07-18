@@ -880,6 +880,53 @@ export async function loadTimesheets() {
       }
     }
 
+    // Shift swap requests
+    const { data: swapData } = await window.supabaseClient
+      .from('shift_swaps')
+      .select('id, original_user_id, target_user_id, week_range, details, created_at')
+      .eq('status', 'Pending')
+      .order('created_at', { ascending: true });
+    const swapBody = document.getElementById('shift-swap-body');
+    const swapSection = document.getElementById('pending-shift-swap-section');
+    if (swapBody) {
+      swapBody.innerHTML = '';
+      if (swapData && swapData.length > 0) {
+        swapData.forEach((req) => {
+          pendingCount++;
+          const origEmp = state.employeeMap[req.original_user_id];
+          const origName = origEmp ? origEmp.name : 'Unknown';
+          const targetEmp = req.target_user_id ? state.employeeMap[req.target_user_id] : null;
+          const targetName = targetEmp ? targetEmp.name : '—';
+          const avatarUrl =
+            (origEmp && origEmp.avatar) ||
+            "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>";
+          const detailsText = req.details
+            ? String(req.details).replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            : '<span style="color: var(--text-muted);">—</span>';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-weight: bold; display: flex; align-items: center; justify-content: flex-start; gap: 10px;">
+              <img src="${avatarUrl}" class="avatar-circle" />
+              ${origName}
+            </td>
+            <td>${targetName}</td>
+            <td>${req.week_range || '—'}</td>
+            <td style="max-width: 220px;">${detailsText}</td>
+            <td>
+              <button class="btn btn-success btn-sm btn-approve-swap" data-id="${req.id}"
+                data-orig="${req.original_user_id || ''}" data-target="${req.target_user_id || ''}">Approve</button>
+              <button class="btn btn-danger btn-sm btn-deny-swap" data-id="${req.id}"
+                data-orig="${req.original_user_id || ''}" data-target="${req.target_user_id || ''}">Deny</button>
+            </td>
+          `;
+          swapBody.appendChild(tr);
+        });
+        if (swapSection) swapSection.classList.remove('hidden');
+      } else {
+        if (swapSection) swapSection.classList.add('hidden');
+      }
+    }
+
     // Approval badge
     const badge = document.getElementById('approval-badge');
     if (badge) {
@@ -1455,6 +1502,49 @@ export function init() {
         } catch (err) {
           showToast('Failed to deny request.', 'error');
         }
+      }
+    });
+  }
+
+  // Shift swap approvals
+  const swapBodyEl = document.getElementById('shift-swap-body');
+  if (swapBodyEl) {
+    swapBodyEl.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (!id) return;
+      const isApprove = e.target.classList.contains('btn-approve-swap');
+      const isDeny = e.target.classList.contains('btn-deny-swap');
+      if (!isApprove && !isDeny) return;
+
+      e.target.disabled = true;
+      try {
+        await window.supabaseClient
+          .from('shift_swaps')
+          .update({ status: isApprove ? 'Approved' : 'Denied' })
+          .eq('id', id);
+
+        // Notify both employees involved in the swap. Isolated so a
+        // CORS/network failure doesn't block the approval itself.
+        const targetIds = [e.target.dataset.orig, e.target.dataset.target].filter(Boolean);
+        if (targetIds.length) {
+          try {
+            await window.supabaseClient.rpc('send_targeted_notification', {
+              user_ids: targetIds,
+              title: isApprove ? '✅ Shift Swap Approved' : '❌ Shift Swap Denied',
+              body: isApprove
+                ? 'Your shift swap request has been approved.'
+                : 'Your shift swap request was denied.',
+            });
+          } catch (pushErr) {
+            console.warn('Failed to send shift-swap notification:', pushErr);
+          }
+        }
+
+        showToast(isApprove ? 'Shift swap approved!' : 'Shift swap denied.');
+        loadTimesheets();
+      } catch (err) {
+        e.target.disabled = false;
+        showToast('Failed to update swap request.', 'error');
       }
     });
   }

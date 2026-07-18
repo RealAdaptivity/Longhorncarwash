@@ -401,7 +401,7 @@ export async function loadSchedules() {
       }
 
       const editBtn = state.managerLoggedIn
-        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-status="${sched.status || 'published'}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
+        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-status="${sched.status || 'published'}" data-publish-at="${sched.publish_at || ''}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
         : '';
       const publishBtn =
         state.managerLoggedIn && isPending
@@ -411,8 +411,18 @@ export async function loadSchedules() {
         ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>`
         : '';
 
+      const scheduledPublishText =
+        isPending && sched.publish_at
+          ? ` · Auto-publishes ${new Date(sched.publish_at).toLocaleString('en-US', {
+              timeZone: 'America/Chicago',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}`
+          : '';
       const statusLabel = isPending
-        ? `<span style="display:inline-flex;align-items:center;gap:6px;"><span style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid #f39c12;padding:2px 10px;border-radius:12px;font-weight:bold;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;">Pending · Not live</span><span>Draft created ${time}</span></span>`
+        ? `<span style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid #f39c12;padding:2px 10px;border-radius:12px;font-weight:bold;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;">Pending · Not live</span><span>Draft created ${time}${scheduledPublishText}</span></span>`
         : `<span>Posted on ${time}</span>`;
 
       div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -562,6 +572,18 @@ export function init() {
   const btnPrintSchedule = document.getElementById('btn-print-schedule');
   const btnScheduleManagerLogin = document.getElementById('btn-schedule-manager-login');
   const scheduleManagerAuth = document.getElementById('schedule-manager-auth');
+  const schedulePublishAt = document.getElementById('schedule-publish-at');
+  const scheduleAutopublishRow = document.getElementById('schedule-autopublish-row');
+
+  // Convert a stored UTC ISO timestamp into the local `YYYY-MM-DDTHH:mm` value a
+  // datetime-local input expects (and back-conversion happens via `new Date()`).
+  function isoToLocalInput(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
   if (btnPrintSchedule) btnPrintSchedule.addEventListener('click', () => window.print());
 
@@ -578,6 +600,8 @@ export function init() {
       state.editingScheduleOriginalContent = null;
       if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Draft';
       if (scheduleWeekRange) scheduleWeekRange.value = '';
+      if (schedulePublishAt) schedulePublishAt.value = '';
+      if (scheduleAutopublishRow) scheduleAutopublishRow.classList.remove('hidden');
       if (postScheduleSection) postScheduleSection.classList.toggle('hidden');
 
       if (postScheduleSection && !postScheduleSection.classList.contains('hidden')) {
@@ -714,16 +738,25 @@ export function init() {
         const isNew = !state.editingScheduleId;
         const isDraft = isNew || state.editingScheduleStatus === 'pending';
 
+        // Optional auto-publish time only applies to drafts. Stored as UTC.
+        const publishAtRaw = schedulePublishAt ? schedulePublishAt.value : '';
+        const publishAtIso = isDraft && publishAtRaw ? new Date(publishAtRaw).toISOString() : null;
+
         let error;
         if (state.editingScheduleId) {
+          // Editing a draft can change its auto-publish time; editing a live
+          // schedule leaves publish workflow fields untouched.
+          const updatePayload = isDraft
+            ? { content: newContent, publish_at: publishAtIso }
+            : { content: newContent };
           ({ error } = await window.supabaseClient
             .from('schedules')
-            .update({ content: newContent })
+            .update(updatePayload)
             .eq('id', state.editingScheduleId));
         } else {
           ({ error } = await window.supabaseClient
             .from('schedules')
-            .insert([{ content: newContent, status: 'pending' }]));
+            .insert([{ content: newContent, status: 'pending', publish_at: publishAtIso }]));
         }
         if (error) throw error;
 
@@ -748,12 +781,21 @@ export function init() {
           }
         }
 
+        const scheduledNote = publishAtIso
+          ? ` It will go live automatically on ${new Date(publishAtIso).toLocaleString('en-US', {
+              timeZone: 'America/Chicago',
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })}.`
+          : '';
         showToast(
           isNew
-            ? 'Draft saved. Review it, then Publish to go live.'
+            ? `Draft saved. Review it, then Publish to go live.${scheduledNote}`
             : isDraft
               ? contentChanged
-                ? 'Draft updated. Publish when ready.'
+                ? `Draft updated. Publish when ready.${scheduledNote}`
                 : 'No changes to save.'
               : contentChanged
                 ? 'Schedule updated!'
@@ -783,6 +825,16 @@ export function init() {
         try {
           const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
           if (scheduleWeekRange) scheduleWeekRange.value = parsed.weekRange || '';
+
+          // Auto-publish is a draft-only control: show and prefill it for a
+          // pending draft, hide it when editing a schedule that is already live.
+          const editingDraft = state.editingScheduleStatus === 'pending';
+          if (scheduleAutopublishRow)
+            scheduleAutopublishRow.classList.toggle('hidden', !editingDraft);
+          if (schedulePublishAt)
+            schedulePublishAt.value = editingDraft
+              ? isoToLocalInput(e.target.dataset.publishAt)
+              : '';
           parsed.headers.forEach((h, idx) => {
             if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h;
           });
@@ -929,24 +981,38 @@ export function init() {
     });
   if (btnSubmitSwap) {
     btnSubmitSwap.addEventListener('click', async () => {
-      const target = document.getElementById('swap-target-employee')?.value;
-      const details = document.getElementById('swap-details')?.value.trim();
+      const swapTargetSelect = document.getElementById('swap-target-employee');
+      const swapDetailsInput = document.getElementById('swap-details');
+      const target = swapTargetSelect?.value;
+      const details = swapDetailsInput?.value.trim();
       if (!target || !details) {
         showToast('Please select a teammate and provide details.', 'error');
         return;
       }
       try {
+        // Resolve the chosen teammate's id so the request records who it's with.
+        const { data: targetUser } = await window.supabaseClient
+          .from('users')
+          .select('id')
+          .eq('name', target)
+          .limit(1)
+          .maybeSingle();
+
         const { error } = await window.supabaseClient.from('shift_swaps').insert([
           {
             original_user_id: state.currentPortalEmployee?.id,
-            target_user_id: null,
-            shift_date: new Date(),
+            target_user_id: targetUser?.id ?? null,
+            shift_date: new Date().toISOString().split('T')[0],
+            week_range: modalShiftSwap?.dataset.week || null,
+            details,
             status: 'Pending',
             created_at: new Date().toISOString(),
           },
         ]);
         if (error) throw error;
         showToast('Swap request sent to manager!');
+        if (swapDetailsInput) swapDetailsInput.value = '';
+        if (swapTargetSelect) swapTargetSelect.value = '';
         if (modalShiftSwap) modalShiftSwap.classList.add('hidden');
       } catch (e) {
         showToast('Failed to send swap request.', 'error');
