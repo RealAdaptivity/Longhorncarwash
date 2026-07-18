@@ -1341,6 +1341,7 @@ nav {
   .btn-primary,
   .btn-danger,
   .btn-success,
+  .sched-action-btn,
   #manager-auth,
   #toast,
   .modal,
@@ -2002,6 +2003,116 @@ nav {
 
 .sched-day-tab.active div:last-child {
   color: var(--text) !important;
+}
+
+/* Day-tab labels: keep them clearly legible in both themes. The day name is
+   intentionally lighter than the date but still high-contrast (not --text-muted,
+   which was unreadable on the dark tab background). */
+.sched-day-tab-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0.78;
+}
+
+.sched-day-tab-date {
+  font-size: 1.3rem;
+  font-weight: 800;
+  margin-top: 2px;
+  color: var(--text);
+}
+
+.sched-day-tab.active .sched-day-tab-name {
+  color: var(--primary);
+  opacity: 1;
+}
+
+.sched-day-tab.active .sched-day-tab-date {
+  color: var(--text);
+}
+
+/* Roster status pill: the legacy `.status-indicator` rule (used elsewhere as a
+   bare 8px dot) forces width/height:8px, which clamped this flex container and
+   made the "Scheduled" text overflow underneath the Request Swap button. Reset
+   those here so the status label and swap button lay out side by side. */
+.sched-roster-actions .status-indicator {
+  width: auto;
+  height: auto;
+  background-color: transparent;
+  animation: none;
+}
+
+/* ── Professional schedule action buttons (Print / Post / Publish / Edit / Delete) ── */
+.sched-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 15px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.sched-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.sched-action-btn:active {
+  transform: translateY(0);
+}
+
+.sched-action-btn--lg {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+
+.sched-action-btn--primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.sched-action-btn--primary:hover {
+  background: var(--primary-hover);
+}
+
+.sched-action-btn--publish {
+  background: var(--success);
+  color: #fff;
+}
+
+.sched-action-btn--publish:hover {
+  filter: brightness(1.1);
+}
+
+.sched-action-btn--ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.sched-action-btn--ghost:hover {
+  background: var(--hover-bg);
+  border-color: var(--text-muted);
+}
+
+.sched-action-btn--danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.sched-action-btn--danger:hover {
+  background: var(--danger);
+  color: #fff;
 }
 
 .sched-roster-item {
