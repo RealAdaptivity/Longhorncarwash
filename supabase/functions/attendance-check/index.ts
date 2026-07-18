@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
     const { date, mins, mo, dy, yr } = nowCT();
 
     const { data: scheds } = await sb.from('schedules')
-      .select('content').order('created_at', { ascending: false }).limit(10);
+      .select('content').neq('status', 'pending').order('created_at', { ascending: false }).limit(10);
     if (!scheds?.length) return new Response('No schedules', { status: 200 });
 
     let idx = -1, rows: any[] = [];

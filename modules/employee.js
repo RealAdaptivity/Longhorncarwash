@@ -387,6 +387,7 @@ export async function loadMySchedule() {
     const { data: schedules, error } = await window.supabaseClient
       .from('schedules')
       .select('id, content, created_at')
+      .neq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(10);
 

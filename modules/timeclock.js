@@ -814,6 +814,7 @@ export function init() {
       const { data: schedules } = await window.supabaseClient
         .from('schedules')
         .select('content')
+        .neq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(5);
 

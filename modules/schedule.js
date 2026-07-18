@@ -109,7 +109,13 @@ export async function loadSchedules() {
       });
     }
 
-    const data = rawData.sort((a, b) => {
+    // Pending schedules are drafts: only visible to a logged-in manager so they
+    // can review and edit before publishing. Everyone else sees live schedules.
+    const visibleData = state.managerLoggedIn
+      ? rawData
+      : rawData.filter((s) => s.status !== 'pending');
+
+    const data = visibleData.sort((a, b) => {
       function getStart(sched) {
         try {
           const content = JSON.parse(sched.content);
@@ -144,13 +150,20 @@ export async function loadSchedules() {
         parsed = null;
       }
       const weekRange = parsed ? parsed.weekRange || 'Weekly Schedule' : 'Weekly Schedule';
+      const isPending = sched.status === 'pending';
 
       if (scheduleSelector) {
         const btn = document.createElement('button');
         btn.className = 'btn-ghost';
         btn.style.cssText =
           'padding:8px 15px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.9rem;transition:all 0.2s;';
-        btn.textContent = weekRange;
+        if (isPending) {
+          btn.style.borderStyle = 'dashed';
+          btn.style.borderColor = '#f39c12';
+          btn.textContent = `${weekRange} (Draft)`;
+        } else {
+          btn.textContent = weekRange;
+        }
         btn.onclick = () => {
           document.querySelectorAll('.schedule-card').forEach((c) => c.classList.add('hidden'));
           document.getElementById(`schedule-card-${sched.id}`)?.classList.remove('hidden');
@@ -171,8 +184,9 @@ export async function loadSchedules() {
       const div = document.createElement('div');
       div.id = `schedule-card-${sched.id}`;
       div.className = 'schedule-card' + (index === data.length - 1 ? '' : ' hidden');
-      div.style.cssText =
-        'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
+      div.style.cssText = isPending
+        ? 'background:var(--card);padding:20px;border-radius:12px;border:2px dashed #f39c12;margin-bottom:20px;'
+        : 'background:var(--card);padding:20px;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;';
 
       const time = new Date(sched.created_at).toLocaleString('en-US', {
         timeZone: 'America/Chicago',
@@ -387,14 +401,22 @@ export async function loadSchedules() {
       }
 
       const editBtn = state.managerLoggedIn
-        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
+        ? `<button class="btn-primary btn-edit-schedule" data-id="${sched.id}" data-status="${sched.status || 'published'}" data-content="${encodeURIComponent(sched.content)}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Edit</button>`
         : '';
+      const publishBtn =
+        state.managerLoggedIn && isPending
+          ? `<button class="btn-success btn-publish-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;margin-right:5px;">Publish / Go Live</button>`
+          : '';
       const deleteBtn = state.managerLoggedIn
         ? `<button class="btn-danger btn-delete-schedule" data-id="${sched.id}" style="padding:5px 10px;font-size:0.8rem;border:none;border-radius:4px;cursor:pointer;">Delete</button>`
         : '';
 
-      div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
-        <span>Posted on ${time}</span><div>${editBtn}${deleteBtn}</div></div>${contentHtml}`;
+      const statusLabel = isPending
+        ? `<span style="display:inline-flex;align-items:center;gap:6px;"><span style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid #f39c12;padding:2px 10px;border-radius:12px;font-weight:bold;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;">Pending · Not live</span><span>Draft created ${time}</span></span>`
+        : `<span>Posted on ${time}</span>`;
+
+      div.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+        ${statusLabel}<div>${publishBtn}${editBtn}${deleteBtn}</div></div>${contentHtml}`;
 
       scheduleList.appendChild(div);
     });
@@ -552,8 +574,9 @@ export function init() {
   if (btnShowPostSchedule) {
     btnShowPostSchedule.addEventListener('click', async () => {
       state.editingScheduleId = null;
+      state.editingScheduleStatus = null;
       state.editingScheduleOriginalContent = null;
-      if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Post Schedule';
+      if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Draft';
       if (scheduleWeekRange) scheduleWeekRange.value = '';
       if (postScheduleSection) postScheduleSection.classList.toggle('hidden');
 
@@ -685,6 +708,12 @@ export function init() {
           state.editingScheduleOriginalContent == null ||
           newContent !== state.editingScheduleOriginalContent;
 
+        // New schedules are saved as pending drafts so a manager can review and
+        // adjust them before they go live. An edit keeps whatever status the
+        // schedule already had (a draft stays a draft; a live one stays live).
+        const isNew = !state.editingScheduleId;
+        const isDraft = isNew || state.editingScheduleStatus === 'pending';
+
         let error;
         if (state.editingScheduleId) {
           ({ error } = await window.supabaseClient
@@ -694,14 +723,14 @@ export function init() {
         } else {
           ({ error } = await window.supabaseClient
             .from('schedules')
-            .insert([{ content: newContent }]));
+            .insert([{ content: newContent, status: 'pending' }]));
         }
         if (error) throw error;
 
-        // Notify employees only when the schedule actually changed (a brand-new
-        // post always counts). Isolated so CORS/network failures don't block the
-        // save.
-        if (contentChanged) {
+        // Only a live schedule notifies employees, and only when it actually
+        // changed. Draft saves stay silent — notifications fire when the draft
+        // is published. Isolated so CORS/network failures don't block the save.
+        if (!isDraft && contentChanged) {
           try {
             const employeeNames = rows.map((r) => r.employee);
             const { data: rpcData, error: rpcErr } = await window.supabaseClient.rpc(
@@ -720,13 +749,18 @@ export function init() {
         }
 
         showToast(
-          !state.editingScheduleId
-            ? 'Schedule posted!'
-            : contentChanged
-              ? 'Schedule updated!'
-              : 'No changes to save.',
+          isNew
+            ? 'Draft saved. Review it, then Publish to go live.'
+            : isDraft
+              ? contentChanged
+                ? 'Draft updated. Publish when ready.'
+                : 'No changes to save.'
+              : contentChanged
+                ? 'Schedule updated!'
+                : 'No changes to save.',
         );
         state.editingScheduleId = null;
+        state.editingScheduleStatus = null;
         state.editingScheduleOriginalContent = null;
         if (postScheduleSection) postScheduleSection.classList.add('hidden');
         loadSchedules();
@@ -744,6 +778,7 @@ export function init() {
     scheduleList.addEventListener('click', async (e) => {
       if (e.target.classList.contains('btn-edit-schedule')) {
         state.editingScheduleId = e.target.dataset.id;
+        state.editingScheduleStatus = e.target.dataset.status || 'published';
         state.editingScheduleOriginalContent = null;
         try {
           const parsed = JSON.parse(decodeURIComponent(e.target.dataset.content));
@@ -778,13 +813,62 @@ export function init() {
           // exactly means nothing was changed and no notification is sent.
           state.editingScheduleOriginalContent = JSON.stringify(readScheduleEditor());
 
-          if (btnSubmitSchedule) btnSubmitSchedule.textContent = 'Save Changes';
+          if (btnSubmitSchedule)
+            btnSubmitSchedule.textContent =
+              state.editingScheduleStatus === 'pending' ? 'Save Draft' : 'Save Changes';
           if (postScheduleSection) {
             postScheduleSection.classList.remove('hidden');
             postScheduleSection.scrollIntoView({ behavior: 'smooth' });
           }
         } catch (err) {
           showToast('Could not load schedule for editing.', 'error');
+        }
+      } else if (e.target.classList.contains('btn-publish-schedule')) {
+        const id = e.target.dataset.id;
+        if (
+          !confirm(
+            'Publish this schedule? It will go live for employees and they will be notified.',
+          )
+        )
+          return;
+        e.target.disabled = true;
+        e.target.style.opacity = '0.5';
+        try {
+          const { error } = await window.supabaseClient
+            .from('schedules')
+            .update({ status: 'published' })
+            .eq('id', id);
+          if (error) throw error;
+
+          // Notify the scheduled employees now that the schedule is live.
+          // Isolated so CORS/network failures don't block publishing.
+          try {
+            const { data: sched } = await window.supabaseClient
+              .from('schedules')
+              .select('content')
+              .eq('id', id)
+              .limit(1)
+              .single();
+            const parsed = sched ? JSON.parse(sched.content) : null;
+            if (parsed) {
+              const employeeNames = (parsed.rows || []).map((r) => r.employee);
+              const { error: rpcErr } = await window.supabaseClient.rpc(
+                'send_schedule_notifications',
+                { employee_names: employeeNames, week_range: parsed.weekRange || '' },
+              );
+              if (rpcErr)
+                console.warn('Failed to send schedule notifications via database RPC:', rpcErr);
+            }
+          } catch (pushErr) {
+            console.warn('Failed to invoke schedule notifications RPC:', pushErr);
+          }
+
+          showToast('Schedule published! Employees have been notified.');
+          loadSchedules();
+        } catch (err) {
+          showToast('Failed to publish schedule.', 'error');
+          e.target.disabled = false;
+          e.target.style.opacity = '1';
         }
       } else if (e.target.classList.contains('btn-delete-schedule')) {
         if (!confirm('Delete this schedule?')) return;
@@ -936,6 +1020,7 @@ export function init() {
         const { data, error } = await window.supabaseClient
           .from('schedules')
           .select('*')
+          .neq('status', 'pending')
           .order('created_at', { ascending: false })
           .limit(1);
         if (error || !data || data.length === 0) {
