@@ -99,7 +99,7 @@ export function TimesheetScreen() {
         text: 'Delete', style: 'destructive', onPress: async () => {
           await supabase.from('time_logs').delete().eq('id', logId);
           if (selectedEmployee) {
-            const updated = { ...selectedEmployee, logs: selectedEmployee.logs.filter(l => l.id !== logId) };
+            const updated = { ...selectedEmployee, logs: selectedEmployee.logs.filter((l: TimeLog) => l.id !== logId) };
             updated.hours = calcHours(updated.logs);
             setSelectedEmployee(updated);
           }
@@ -119,17 +119,19 @@ export function TimesheetScreen() {
       edited_by_manager: true,
     });
     setAddingLog(false);
-    if (error) { Alert.alert('Error', 'Could not add punch.'); return; }
+    if (error) { Alert.alert('Error', 'Could not add log.'); return; }
+
+    const newLogItem: TimeLog = {
+      id: Date.now().toString(),
+      user_id: selectedEmployee.user.id,
+      action: newAction as any,
+      created_at: new Date(newTime).toISOString(),
+      edited_by_manager: true,
+    };
+    const updatedLogs = [...selectedEmployee.logs, newLogItem];
+    setSelectedEmployee({ ...selectedEmployee, logs: updatedLogs, hours: calcHours(updatedLogs) });
     setNewTime('');
     loadTimesheet();
-    setManagingLogs(false);
-    setSelectedEmployee(null);
-  }
-
-  function statusColor(status: string) {
-    if (status === 'Clocked In' || status === 'Back from Lunch') return colors.success;
-    if (status === 'On Lunch') return colors.warning;
-    return colors.textMuted;
   }
 
   if (loading) {
@@ -145,7 +147,7 @@ export function TimesheetScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={styles.weekLabel}>Week of {getWeekStart()}</Text>
 
-        {rows.map(row => (
+        {rows.map((row: EmployeeRow) => (
           <TouchableOpacity
             key={row.user.id}
             style={styles.employeeCard}
@@ -154,45 +156,42 @@ export function TimesheetScreen() {
           >
             <View style={styles.employeeInfo}>
               <Text style={styles.employeeName}>{row.user.name}</Text>
-              <View style={[styles.statusPill, { backgroundColor: statusColor(row.status) + '22' }]}>
-                <Text style={[styles.statusPillText, { color: statusColor(row.status) }]}>{row.status}</Text>
-              </View>
+              <Text style={styles.employeeRole}>{row.user.role}</Text>
             </View>
-            <Text style={styles.hoursText}>{row.hours.toFixed(2)} hrs</Text>
+            <View style={styles.employeeRight}>
+              <Text style={styles.hoursText}>{row.hours.toFixed(2)} hrs</Text>
+              <Text style={styles.statusText}>{row.status}</Text>
+            </View>
           </TouchableOpacity>
         ))}
-      </ScrollView>
 
-      {/* Manage Logs Modal */}
-      <Modal visible={managingLogs} animationType="slide">
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedEmployee?.user.name}</Text>
-            <TouchableOpacity onPress={() => { setManagingLogs(false); setSelectedEmployee(null); }}>
-              <Text style={styles.closeBtn}>Close</Text>
-            </TouchableOpacity>
-          </View>
+        <Modal visible={managingLogs} animationType="slide" onRequestClose={() => setManagingLogs(false)}>
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{selectedEmployee?.user.name} - Punch Logs</Text>
+              <TouchableOpacity onPress={() => setManagingLogs(false)}>
+                <Text style={styles.closeText}>Close</Text>
+              </TouchableOpacity>
+            </View>
 
-          <ScrollView contentContainerStyle={styles.modalScroll}>
-            {/* Add punch */}
-            <View style={styles.addSection}>
-              <Text style={styles.addTitle}>Add Punch</Text>
-              <View style={styles.actionRow}>
-                {(['IN','OUT','START_LUNCH','END_LUNCH'] as const).map(a => (
+            <ScrollView contentContainerStyle={styles.modalScroll}>
+              <Text style={styles.formTitle}>Add Manual Punch</Text>
+              <View style={styles.actionSelector}>
+                {(['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'] as ActionType[]).map((a: ActionType) => (
                   <TouchableOpacity
                     key={a}
-                    style={[styles.actionBtn, newAction === a && styles.actionBtnActive]}
+                    style={[styles.actionChip, newAction === a && styles.actionChipActive]}
                     onPress={() => setNewAction(a)}
                   >
-                    <Text style={[styles.actionBtnText, newAction === a && styles.actionBtnTextActive]}>
-                      {a.replace('_', '\n')}
+                    <Text style={[styles.actionChipText, newAction === a && styles.actionChipTextActive]}>
+                      {a.replace('_', ' ')}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <TextInput
-                style={[styles.timeInput, { color: colors.text }]}
-                placeholder="YYYY-MM-DDTHH:MM (local)"
+                style={styles.input}
+                placeholder="Time (e.g. 2026-07-21 09:00)"
                 placeholderTextColor={colors.textMuted}
                 value={newTime}
                 onChangeText={setNewTime}
@@ -200,11 +199,9 @@ export function TimesheetScreen() {
               <TouchableOpacity style={styles.addBtn} onPress={addLog} disabled={addingLog}>
                 {addingLog ? <ActivityIndicator color={colors.white} /> : <Text style={styles.addBtnText}>Add Punch</Text>}
               </TouchableOpacity>
-            </View>
 
-            {/* Existing logs */}
-            <Text style={styles.logsTitle}>Punch Log ({selectedEmployee?.hours.toFixed(2)} hrs)</Text>
-            {(selectedEmployee?.logs ?? []).slice().reverse().map(l => (
+              <Text style={styles.logsTitle}>Punch Log ({selectedEmployee?.hours.toFixed(2)} hrs)</Text>
+              {(selectedEmployee?.logs ?? []).slice().reverse().map((l: TimeLog) => (
               <View key={l.id} style={styles.logRow}>
                 <View>
                   <Text style={styles.logAction}>{l.action.replace('_', ' ')}</Text>

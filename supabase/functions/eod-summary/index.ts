@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
     .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
     .order('created_at', { ascending: true });
 
-  const logs = (allLogs ?? []).filter(l =>
+  const logs = (allLogs ?? []).filter((l: any) =>
     new Date(l.created_at).toLocaleDateString('en-CA', { timeZone: TZ }) === today
   );
 
@@ -59,9 +59,9 @@ Deno.serve(async (req: Request) => {
     const hrs = calcHours(ul);
     totalHours += hrs;
     const last = ul[ul.length - 1].action;
-    const clockedIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH';
-    const inLog = ul.find(l => l.action === 'IN');
-    const outLog = [...ul].reverse().find(l => l.action === 'OUT');
+    const clockedIn = last === 'IN' || last === 'END_LUNCH' || last === 'START_LUNCH' || last === 'CLOCK_IN';
+    const inLog = ul.find((l: any) => l.action === 'IN' || l.action === 'CLOCK_IN');
+    const outLog = [...ul].reverse().find((l: any) => l.action === 'OUT' || l.action === 'CLOCK_OUT');
     if (clockedIn) {
       stillIn.push(user.name);
       lines.push(`${user.name}: ${hrs.toFixed(1)} hrs (in ${inLog ? fmtTime(inLog.created_at) : '?'}) STILL IN`);
