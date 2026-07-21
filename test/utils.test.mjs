@@ -8,6 +8,10 @@ import {
   formatNameLastFirst,
   parseShiftHours,
   parseShiftStartTime,
+  parseShiftEndTime,
+  getChicagoIsoString,
+  getAutoOutIso,
+  hasForgottenClockOut,
   getStartOfWeek,
   getBiweeklyWeeks,
   getDistanceInMeters,
@@ -102,6 +106,49 @@ test('parseShiftStartTime: returns 24h hour/minute', () => {
 test('parseShiftStartTime: off/invalid returns null', () => {
   assert.equal(parseShiftStartTime('OFF'), null);
   assert.equal(parseShiftStartTime(''), null);
+});
+
+test('parseShiftEndTime: returns 24h hour/minute for end of shift', () => {
+  assert.deepEqual(parseShiftEndTime('9am-5pm'), { hour: 17, minute: 0 });
+  assert.deepEqual(parseShiftEndTime('9-5'), { hour: 17, minute: 0 });
+  assert.deepEqual(parseShiftEndTime('8:30am-4:30pm'), { hour: 16, minute: 30 });
+  assert.deepEqual(parseShiftEndTime('10am-6pm'), { hour: 18, minute: 0 });
+});
+
+test('parseShiftEndTime: off/invalid returns null', () => {
+  assert.equal(parseShiftEndTime('OFF'), null);
+  assert.equal(parseShiftEndTime('-'), null);
+  assert.equal(parseShiftEndTime(''), null);
+});
+
+test('getChicagoIsoString: generates accurate UTC ISO string for Chicago time', () => {
+  // July 21 is Daylight Saving Time (CDT, UTC-5)
+  const dtJul = getChicagoIsoString('2026-07-21', 17, 0, 0, 0);
+  assert.equal(dtJul, '2026-07-21T22:00:00.000Z');
+
+  // Jan 15 is Standard Time (CST, UTC-6)
+  const dtJan = getChicagoIsoString('2026-01-15', 17, 0, 0, 0);
+  assert.equal(dtJan, '2026-01-15T23:00:00.000Z');
+});
+
+test('hasForgottenClockOut: returns false during active shift and grace period', () => {
+  const clockIn = new Date('2026-07-21T14:00:00Z'); // 9:00 AM CDT
+  const shiftStr = '9am-5pm'; // scheduled end = 5:00 PM CDT (22:00 UTC)
+
+  // 1:00 PM CDT (18:00 UTC) -> middle of shift
+  assert.equal(hasForgottenClockOut(clockIn, shiftStr, new Date('2026-07-21T18:00:00Z')), false);
+
+  // 5:30 PM CDT (22:30 UTC) -> 30 mins past end, within 2h grace
+  assert.equal(hasForgottenClockOut(clockIn, shiftStr, new Date('2026-07-21T22:30:00Z')), false);
+
+  // 7:05 PM CDT (00:05 UTC July 22) -> >2h past end -> forgotten!
+  assert.equal(hasForgottenClockOut(clockIn, shiftStr, new Date('2026-07-22T00:05:00Z')), true);
+});
+
+test('getAutoOutIso: calculates correct scheduled end timestamp', () => {
+  const clockIn = new Date('2026-07-21T14:00:00Z'); // 9:00 AM CDT
+  const iso = getAutoOutIso(clockIn, '9am-5pm');
+  assert.equal(iso, '2026-07-21T22:00:00.000Z'); // 5:00 PM CDT
 });
 
 test('getStartOfWeek: always a Wednesday at midnight', () => {

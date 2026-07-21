@@ -373,6 +373,122 @@ export function parseShiftHours(shiftStr) {
   }
 }
 
+export function parseShiftEndTime(shiftStr) {
+  if (!shiftStr || typeof shiftStr !== 'string') return null;
+  const s = shiftStr.trim();
+  if (!s || s === '-' || s.toUpperCase() === 'OFF' || s.toUpperCase() === 'OC') return null;
+  const parts = s.split(/\s*[-–]\s*/);
+  if (parts.length < 2) return null;
+  const endPart = parts[parts.length - 1].trim().toLowerCase();
+  const isPM = endPart.includes('pm') || (endPart.endsWith('p') && !endPart.endsWith('am'));
+  const isAM = endPart.includes('am') || endPart.endsWith('a');
+  const clean = endPart.replace(/[a-z]/g, '');
+  const [hStr, mStr] = clean.split(':');
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr || '0', 10);
+  if (isNaN(h)) return null;
+
+  if (!isAM && !isPM) {
+    const startObj = parseShiftStartTime(shiftStr);
+    const startH = startObj ? startObj.hour : 9;
+    if (h <= startH) h += 12;
+    else if (h - startH <= 5 && h <= 11) h += 12;
+  } else {
+    if (isPM && h !== 12) h += 12;
+    if (isAM && h === 12) h = 0;
+  }
+  return { hour: h, minute: isNaN(m) ? 0 : m };
+}
+
+export function getChicagoIsoString(dateStr, hour, minute = 0, second = 0, millisecond = 0) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const padMs = (n) => String(n).padStart(3, '0');
+  const timePart = `${pad(hour)}:${pad(minute)}:${pad(second)}.${padMs(millisecond)}`;
+
+  let candidate = new Date(`${dateStr}T${timePart}-05:00`);
+  const candDay = candidate.toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
+  const candHour = parseInt(
+    candidate.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', hour12: false }),
+    10,
+  );
+  if (candDay === dateStr && candHour === hour) {
+    return candidate.toISOString();
+  }
+  candidate = new Date(`${dateStr}T${timePart}-06:00`);
+  return candidate.toISOString();
+}
+
+export function parseShiftTimes(shiftStr) {
+  const start = parseShiftStartTime(shiftStr);
+  const end = parseShiftEndTime(shiftStr);
+  if (!start || !end) return null;
+  const isOvernight = end.hour < start.hour || (end.hour === start.hour && end.minute < start.minute);
+  return { start, end, isOvernight };
+}
+
+export function getAutoOutIso(logDate, shiftStr) {
+  const TZ = 'America/Chicago';
+  const logDay = logDate.toLocaleDateString('en-CA', { timeZone: TZ });
+
+  if (shiftStr) {
+    const shiftTimes = parseShiftTimes(shiftStr);
+    if (shiftTimes) {
+      let targetDay = logDay;
+      if (shiftTimes.isOvernight) {
+        const d = new Date(`${logDay}T12:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + 1);
+        targetDay = d.toISOString().split('T')[0];
+      }
+      return getChicagoIsoString(targetDay, shiftTimes.end.hour, shiftTimes.end.minute, 0, 0);
+    }
+  }
+
+  const inHour = parseInt(
+    logDate.toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false }),
+    10,
+  );
+  const inMin = parseInt(
+    logDate.toLocaleTimeString('en-US', { timeZone: TZ, minute: 'numeric' }),
+    10,
+  );
+
+  let targetDay = logDay;
+  let outHour = 19;
+  let outMin = inMin;
+
+  if (inHour < 19) {
+    outHour = Math.min(inHour + 8, 19);
+  } else {
+    outHour = (inHour + 8) % 24;
+    if (inHour + 8 >= 24) {
+      const d = new Date(`${logDay}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1);
+      targetDay = d.toISOString().split('T')[0];
+    }
+  }
+
+  return getChicagoIsoString(targetDay, outHour, outMin, 0, 0);
+}
+
+export function hasForgottenClockOut(logDate, shiftStr, now = new Date()) {
+  const elapsedMs = now.getTime() - logDate.getTime();
+  const elapsedHours = elapsedMs / (1000 * 60 * 60);
+
+  if (elapsedHours < 2) return false;
+
+  const autoOutIso = getAutoOutIso(logDate, shiftStr);
+  const autoOutTime = new Date(autoOutIso).getTime();
+  const GRACE_MS = 2 * 60 * 60 * 1000;
+
+  if (now.getTime() >= autoOutTime + GRACE_MS) {
+    return true;
+  }
+
+  if (elapsedHours >= 14) return true;
+
+  return false;
+}
+
 // --- CSV Download Helper ---
 export function downloadCsv(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

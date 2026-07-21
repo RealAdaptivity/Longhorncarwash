@@ -4,6 +4,10 @@ import {
   checkLocation,
   calculateTotalHoursForLogs,
   parseShiftStartTime,
+  parseShiftEndTime,
+  getChicagoIsoString,
+  getAutoOutIso,
+  hasForgottenClockOut,
   getPunchTransitionError,
   getMissedPunchRequestError,
 } from './utils.js';
@@ -110,10 +114,12 @@ async function updateClockActions() {
   btnEndLunch.style.display = 'none';
 
   try {
+    const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
     const { data: logs, error } = await window.supabaseClient
       .from('time_logs')
       .select('action, created_at')
       .eq('user_id', state.currentUser.id)
+      .in('action', PUNCH_ACTIONS)
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -360,10 +366,12 @@ export async function logTime(action, tips = 0) {
     await state.settingsReady;
 
     if (navigator.onLine) {
+      const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
       const { data: lastLog, error: logErr } = await window.supabaseClient
         .from('time_logs')
         .select('action')
         .eq('user_id', state.currentUser.id)
+        .in('action', PUNCH_ACTIONS)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -1013,15 +1021,32 @@ export function init() {
   // Midnight sweep + checklist purge
   async function performMidnightSweep() {
     try {
-      const { data: users, error: uErr } = await window.supabaseClient.from('users').select('id');
+      const { data: users, error: uErr } = await window.supabaseClient.from('users').select('id, name, is_salary');
       if (uErr || !users) return;
+
+      const { data: schedules } = await window.supabaseClient
+        .from('schedules')
+        .select('content')
+        .neq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const TZ = 'America/Chicago';
+      const now = new Date();
+
+      const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
+
       for (const u of users) {
+        if (u.is_salary) continue;
+
         const { data: latestLog, error: logErr } = await window.supabaseClient
           .from('time_logs')
           .select('action, created_at')
           .eq('user_id', u.id)
+          .in('action', PUNCH_ACTIONS)
           .order('created_at', { ascending: false })
           .limit(1);
+
         if (!logErr && latestLog && latestLog.length > 0) {
           const log = latestLog[0];
           // Any action that leaves the employee on the clock needs an auto
@@ -1037,28 +1062,192 @@ export function init() {
             log.action === 'CLOCK_IN' ||
             log.action === 'START_LUNCH'
           ) {
-            // Compare calendar days in the shop's timezone explicitly — relying
-            // on the host's local timezone would sweep on the wrong boundary if
-            // the kiosk/runtime isn't set to Central time.
-            const TZ = 'America/Chicago';
             const logDate = new Date(log.created_at);
-            const logDay = logDate.toLocaleDateString('en-CA', { timeZone: TZ });
-            const nowDay = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
-            if (logDay !== nowDay) {
-              const autoOut = new Date(logDate);
-              autoOut.setHours(23, 59, 59, 999);
+
+            // Find user's scheduled shift for logDate
+            let userShiftStr = null;
+            if (schedules && schedules.length > 0 && u.name) {
+              const mo = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, month: 'numeric' }), 10);
+              const dy = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, day: 'numeric' }), 10);
+              const yr = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, year: 'numeric' }), 10);
+              const dayAbbr = logDate.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
+
+              for (const sched of schedules) {
+                try {
+                  const parsed = JSON.parse(sched.content);
+                  const myRow = parsed.rows?.find(
+                    (r) => r.employee?.trim().toLowerCase() === u.name.trim().toLowerCase(),
+                  );
+                  if (!myRow) continue;
+
+                  const dayIdx = (parsed.headers || []).findIndex((h) => {
+                    if (!h) return false;
+                    const hStr = h.toString();
+                    if (hStr.toUpperCase().startsWith(dayAbbr.toUpperCase())) return true;
+                    const m = hStr.match(/(\d{1,2})\/(\d{1,2})/);
+                    if (m && parseInt(m[1], 10) === mo && parseInt(m[2], 10) === dy) return true;
+                    return false;
+                  });
+
+                  if (dayIdx >= 0) {
+                    userShiftStr = myRow.shifts?.[dayIdx] || null;
+                    if (userShiftStr) break;
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }
+            }
+
+            // Only sweep if the employee has actually FORGOTTEN to clock out
+            if (hasForgottenClockOut(logDate, userShiftStr, now)) {
+              const autoOutIso = getAutoOutIso(logDate, userShiftStr);
+
               await window.supabaseClient.from('time_logs').insert({
                 user_id: u.id,
                 action: 'OUT',
-                created_at: autoOut.toISOString(),
+                created_at: autoOutIso,
                 edited_by_manager: 'System Auto-Sweep',
               });
             }
           }
         }
       }
+
+      await fixDuplicateInPunches(users);
+      await fixExistingBadAutoSweeps(users, schedules);
     } catch (e) {
       console.error('Sweep failed:', e);
+    }
+  }
+
+  async function fixDuplicateInPunches(users) {
+    try {
+      const IN_ACTIONS = ['IN', 'CLOCK_IN'];
+      for (const u of users) {
+        const { data: logs, error } = await window.supabaseClient
+          .from('time_logs')
+          .select('id, action, created_at')
+          .eq('user_id', u.id)
+          .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
+          .order('created_at', { ascending: true })
+          .limit(100);
+
+        if (error || !logs || logs.length < 2) continue;
+
+        const toDelete = [];
+        let inStreak = false;
+
+        for (const log of logs) {
+          if (IN_ACTIONS.includes(log.action)) {
+            if (inStreak) {
+              toDelete.push(log.id);
+            } else {
+              inStreak = true;
+            }
+          } else {
+            inStreak = false;
+          }
+        }
+
+        if (toDelete.length > 0) {
+          await window.supabaseClient
+            .from('time_logs')
+            .delete()
+            .in('id', toDelete);
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fix duplicate IN punches:', e);
+    }
+  }
+
+  async function fixExistingBadAutoSweeps(users, schedules) {
+    try {
+      const TZ = 'America/Chicago';
+      const PUNCH_ACTIONS = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
+      const { data: badSweeps, error: sweepErr } = await window.supabaseClient
+        .from('time_logs')
+        .select('id, user_id, created_at')
+        .eq('edited_by_manager', 'System Auto-Sweep')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (sweepErr || !badSweeps || badSweeps.length === 0) return;
+
+      for (const sweepLog of badSweeps) {
+        const sweepDate = new Date(sweepLog.created_at);
+        const sweepHour = parseInt(
+          sweepDate.toLocaleTimeString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false }),
+          10,
+        );
+        const sweepMin = parseInt(
+          sweepDate.toLocaleTimeString('en-US', { timeZone: TZ, minute: 'numeric' }),
+          10,
+        );
+
+        // Check if this auto-sweep log is set to 23:58 - 23:59 (14+ hour shift artifact)
+        if (sweepHour === 23 && sweepMin >= 58) {
+          const user = users.find((u) => u.id === sweepLog.user_id);
+
+          const { data: prevLogs } = await window.supabaseClient
+            .from('time_logs')
+            .select('action, created_at')
+            .eq('user_id', sweepLog.user_id)
+            .in('action', PUNCH_ACTIONS)
+            .lt('created_at', sweepLog.created_at)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (prevLogs && prevLogs.length > 0) {
+            const inLog = prevLogs[0];
+            const inDate = new Date(inLog.created_at);
+            let userShiftStr = null;
+
+            if (schedules && schedules.length > 0 && user?.name) {
+              const mo = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, month: 'numeric' }), 10);
+              const dy = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, day: 'numeric' }), 10);
+              const yr = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, year: 'numeric' }), 10);
+              const dayAbbr = inDate.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
+
+              for (const sched of schedules) {
+                try {
+                  const parsed = JSON.parse(sched.content);
+                  const myRow = parsed.rows?.find(
+                    (r) => r.employee?.trim().toLowerCase() === user.name.trim().toLowerCase(),
+                  );
+                  if (!myRow) continue;
+
+                  const dayIdx = (parsed.headers || []).findIndex((h) => {
+                    if (!h) return false;
+                    const hStr = h.toString();
+                    if (hStr.toUpperCase().startsWith(dayAbbr.toUpperCase())) return true;
+                    const m = hStr.match(/(\d{1,2})\/(\d{1,2})/);
+                    if (m && parseInt(m[1], 10) === mo && parseInt(m[2], 10) === dy) return true;
+                    return false;
+                  });
+
+                  if (dayIdx >= 0) {
+                    userShiftStr = myRow.shifts?.[dayIdx] || null;
+                    if (userShiftStr) break;
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }
+            }
+
+            const correctAutoOutIso = getAutoOutIso(inDate, userShiftStr);
+
+            await window.supabaseClient
+              .from('time_logs')
+              .update({ created_at: correctAutoOutIso })
+              .eq('id', sweepLog.id);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fix bad auto sweeps:', e);
     }
   }
 
