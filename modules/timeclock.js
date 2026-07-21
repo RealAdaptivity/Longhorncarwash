@@ -450,6 +450,9 @@ export async function syncOfflineLogs() {
     if (error) throw error;
     localStorage.removeItem('offlineLogs');
     showToast('Offline punches synced successfully!');
+    if (state.currentUser && !state.currentUser.is_salary) {
+      updateClockActions();
+    }
     if (state.managerLoggedIn) {
       const { loadTimesheets } = await import('./manager.js');
       loadTimesheets();

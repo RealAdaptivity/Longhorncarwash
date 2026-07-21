@@ -213,7 +213,7 @@ export function TimeclockScreen() {
         let isLate = false;
         if (action === 'IN') {
           try {
-            const { data } = await supabase.from('schedules').select('content').order('created_at', { ascending: false }).limit(1).single();
+            const { data } = await supabase.from('schedules').select('content').neq('status', 'pending').order('created_at', { ascending: false }).limit(1).single();
             if (data && data.content) {
               const schedule = JSON.parse(data.content);
               const myRow = schedule.rows.find((r: any) => r.employee.trim().toLowerCase() === user.name.trim().toLowerCase());
@@ -326,7 +326,7 @@ export function TimeclockScreen() {
   }
 
   const buttons = [
-    { label: 'CLOCK IN', action: 'IN' as ActionType, color: colors.success, disabled: isClockedIn },
+    { label: 'CLOCK IN', action: 'IN' as ActionType, color: colors.success, disabled: isClockedIn || isOnLunch },
     { label: 'CLOCK OUT', action: 'OUT' as ActionType, color: colors.danger, disabled: isClockedOut },
     { label: 'START LUNCH', action: 'START_LUNCH' as ActionType, color: colors.lunch, disabled: !isClockedIn },
     { label: 'END LUNCH', action: 'END_LUNCH' as ActionType, color: colors.success, disabled: !isOnLunch },

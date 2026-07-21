@@ -27,6 +27,7 @@ export function ScheduleScreen() {
     const { data } = await supabase
       .from('schedules')
       .select('id, content, created_at')
+      .neq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(5);
 
