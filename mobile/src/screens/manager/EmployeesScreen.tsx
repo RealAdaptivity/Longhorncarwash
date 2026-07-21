@@ -134,7 +134,7 @@ export function EmployeesScreen() {
     loadData();
   }
 
-  async function respondTimeOff(id: string, status: 'approved' | 'denied') {
+  async function respondTimeOff(id: string, status: 'Approved' | 'Denied') {
     await supabase.from('time_off_requests').update({ status }).eq('id', id);
     loadData();
   }
@@ -243,10 +243,10 @@ export function EmployeesScreen() {
                 </View>
                 <Text style={styles.cardReason}>{r.reason}</Text>
                 <View style={styles.cardActions}>
-                  <TouchableOpacity style={styles.denyBtn} onPress={() => respondTimeOff(r.id, 'denied')}>
+                  <TouchableOpacity style={styles.denyBtn} onPress={() => respondTimeOff(r.id, 'Denied')}>
                     <Text style={styles.denyBtnText}>Deny</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.approveBtn} onPress={() => respondTimeOff(r.id, 'approved')}>
+                  <TouchableOpacity style={styles.approveBtn} onPress={() => respondTimeOff(r.id, 'Approved')}>
                     <Text style={styles.approveBtnText}>Approve</Text>
                   </TouchableOpacity>
                 </View>

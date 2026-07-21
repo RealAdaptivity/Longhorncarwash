@@ -72,6 +72,7 @@ export async function notifyManagers(title: string, body: string, data = {}) {
   const { data: managers } = await supabase
     .from('users')
     .select('push_token')
+    .eq('is_approved', true)
     .in('role', ['Admin', 'Site Manager', 'Assistant Site Manager', 'Supervisor', 'Manager'])
     .not('push_token', 'is', null);
 
