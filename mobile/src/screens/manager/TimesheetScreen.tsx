@@ -156,53 +156,52 @@ export function TimesheetScreen() {
           >
             <View style={styles.employeeInfo}>
               <Text style={styles.employeeName}>{row.user.name}</Text>
-              <Text style={styles.employeeRole}>{row.user.role}</Text>
+              <View style={styles.statusPill}>
+                <Text style={styles.statusPillText}>{row.status}</Text>
+              </View>
             </View>
-            <View style={styles.employeeRight}>
-              <Text style={styles.hoursText}>{row.hours.toFixed(2)} hrs</Text>
-              <Text style={styles.statusText}>{row.status}</Text>
-            </View>
+            <Text style={styles.hoursText}>{row.hours.toFixed(2)} hrs</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
       <Modal visible={managingLogs} animationType="slide" onRequestClose={() => setManagingLogs(false)}>
-          <SafeAreaView style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedEmployee?.user.name} - Punch Logs</Text>
-              <TouchableOpacity onPress={() => setManagingLogs(false)}>
-                <Text style={styles.closeText}>Close</Text>
-              </TouchableOpacity>
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{selectedEmployee?.user.name} - Punch Logs</Text>
+            <TouchableOpacity onPress={() => setManagingLogs(false)}>
+              <Text style={styles.closeBtn}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalScroll}>
+            <Text style={styles.addTitle}>Add Manual Punch</Text>
+            <View style={styles.actionRow}>
+              {(['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'] as ActionType[]).map((a: ActionType) => (
+                <TouchableOpacity
+                  key={a}
+                  style={[styles.actionBtn, newAction === a && styles.actionBtnActive]}
+                  onPress={() => setNewAction(a)}
+                >
+                  <Text style={[styles.actionBtnText, newAction === a && styles.actionBtnTextActive]}>
+                    {a.replace('_', ' ')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
+            <TextInput
+              style={[styles.timeInput, { color: colors.text }]}
+              placeholder="Time (e.g. 2026-07-21 09:00)"
+              placeholderTextColor={colors.textMuted}
+              value={newTime}
+              onChangeText={setNewTime}
+            />
+            <TouchableOpacity style={styles.addBtn} onPress={addLog} disabled={addingLog}>
+              {addingLog ? <ActivityIndicator color={colors.white} /> : <Text style={styles.addBtnText}>Add Punch</Text>}
+            </TouchableOpacity>
 
-            <ScrollView contentContainerStyle={styles.modalScroll}>
-              <Text style={styles.formTitle}>Add Manual Punch</Text>
-              <View style={styles.actionSelector}>
-                {(['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'] as ActionType[]).map((a: ActionType) => (
-                  <TouchableOpacity
-                    key={a}
-                    style={[styles.actionChip, newAction === a && styles.actionChipActive]}
-                    onPress={() => setNewAction(a)}
-                  >
-                    <Text style={[styles.actionChipText, newAction === a && styles.actionChipTextActive]}>
-                      {a.replace('_', ' ')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Time (e.g. 2026-07-21 09:00)"
-                placeholderTextColor={colors.textMuted}
-                value={newTime}
-                onChangeText={setNewTime}
-              />
-              <TouchableOpacity style={styles.addBtn} onPress={addLog} disabled={addingLog}>
-                {addingLog ? <ActivityIndicator color={colors.white} /> : <Text style={styles.addBtnText}>Add Punch</Text>}
-              </TouchableOpacity>
-
-              <Text style={styles.logsTitle}>Punch Log ({selectedEmployee?.hours.toFixed(2)} hrs)</Text>
-              {(selectedEmployee?.logs ?? []).slice().reverse().map((l: TimeLog) => (
+            <Text style={styles.logsTitle}>Punch Log ({selectedEmployee?.hours.toFixed(2)} hrs)</Text>
+            {(selectedEmployee?.logs ?? []).slice().reverse().map((l: TimeLog) => (
               <View key={l.id} style={styles.logRow}>
                 <View>
                   <Text style={styles.logAction}>{l.action.replace('_', ' ')}</Text>
