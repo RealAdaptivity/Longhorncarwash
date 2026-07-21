@@ -1335,10 +1335,12 @@ export function init() {
   const pendingPinsBody = document.getElementById('pending-pins-body');
   if (pendingPinsBody) {
     pendingPinsBody.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
-      const val = e.target.dataset.val;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { id, val } = btn.dataset;
+      if (!id) return;
 
-      if (e.target.classList.contains('btn-approve-pin')) {
+      if (btn.classList.contains('btn-approve-pin')) {
         try {
           const { error } = await window.supabaseClient
             .from('users')
@@ -1350,7 +1352,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to approve PIN change.', 'error');
         }
-      } else if (e.target.classList.contains('btn-reject-pin')) {
+      } else if (btn.classList.contains('btn-reject-pin')) {
         try {
           await window.supabaseClient.from('users').update({ pending_pin: null }).eq('id', id);
           showToast('PIN request rejected');
@@ -1358,7 +1360,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to reject PIN request.', 'error');
         }
-      } else if (e.target.classList.contains('btn-approve-pwd')) {
+      } else if (btn.classList.contains('btn-approve-pwd')) {
         try {
           await window.supabaseClient
             .from('users')
@@ -1369,7 +1371,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to approve password reset.', 'error');
         }
-      } else if (e.target.classList.contains('btn-reject-pwd')) {
+      } else if (btn.classList.contains('btn-reject-pwd')) {
         try {
           await window.supabaseClient.from('users').update({ pending_password: null }).eq('id', id);
           showToast('Password reset rejected');
@@ -1377,7 +1379,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to reject password reset.', 'error');
         }
-      } else if (e.target.classList.contains('btn-approve-account')) {
+      } else if (btn.classList.contains('btn-approve-account')) {
         try {
           await window.supabaseClient.from('users').update({ is_approved: true }).eq('id', id);
           showToast('Account approved!');
@@ -1385,7 +1387,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to approve account.', 'error');
         }
-      } else if (e.target.classList.contains('btn-reject-account')) {
+      } else if (btn.classList.contains('btn-reject-account')) {
         try {
           await window.supabaseClient.from('users').delete().eq('id', id);
           showToast('Account request removed');
@@ -1401,8 +1403,11 @@ export function init() {
   const managerTimeoffBody = document.getElementById('manager-timeoff-body');
   if (managerTimeoffBody) {
     managerTimeoffBody.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
-      if (e.target.classList.contains('btn-approve-timeoff')) {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { id } = btn.dataset;
+      if (!id) return;
+      if (btn.classList.contains('btn-approve-timeoff')) {
         try {
           await window.supabaseClient
             .from('time_off_requests')
@@ -1413,7 +1418,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to approve time off.', 'error');
         }
-      } else if (e.target.classList.contains('btn-deny-timeoff')) {
+      } else if (btn.classList.contains('btn-deny-timeoff')) {
         try {
           await window.supabaseClient
             .from('time_off_requests')
@@ -1432,9 +1437,11 @@ export function init() {
   const earlyBodyEl = document.getElementById('early-clockin-body');
   if (earlyBodyEl) {
     earlyBodyEl.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { id } = btn.dataset;
       if (!id) return;
-      if (e.target.classList.contains('btn-approve-early')) {
+      if (btn.classList.contains('btn-approve-early')) {
         try {
           await window.supabaseClient
             .from('early_clockin_approvals')
@@ -1445,7 +1452,7 @@ export function init() {
         } catch (err) {
           showToast('Failed to approve.', 'error');
         }
-      } else if (e.target.classList.contains('btn-deny-early')) {
+      } else if (btn.classList.contains('btn-deny-early')) {
         try {
           await window.supabaseClient
             .from('early_clockin_approvals')
@@ -1464,19 +1471,21 @@ export function init() {
   const missedBodyEl = document.getElementById('missed-punch-body');
   if (missedBodyEl) {
     missedBodyEl.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { id, user, action, time } = btn.dataset;
       if (!id) return;
       const manager = state.currentManager || 'Manager';
-      if (e.target.classList.contains('btn-approve-missed')) {
-        e.target.disabled = true;
+      if (btn.classList.contains('btn-approve-missed')) {
+        btn.disabled = true;
         try {
           // Insert the punch the employee missed, tagged so it's clearly a
           // manager-approved correction, then mark the request approved.
           const { error: insertErr } = await window.supabaseClient.from('time_logs').insert([
             {
-              user_id: e.target.dataset.user,
-              action: e.target.dataset.action,
-              created_at: new Date(e.target.dataset.time).toISOString(),
+              user_id: user,
+              action: action,
+              created_at: new Date(time).toISOString(),
               edited_by_manager: `${manager} (missed-punch)`,
             },
           ]);
@@ -1488,10 +1497,10 @@ export function init() {
           showToast('Missed punch approved and added.');
           loadTimesheets();
         } catch (err) {
-          e.target.disabled = false;
+          btn.disabled = false;
           showToast('Failed to approve request.', 'error');
         }
-      } else if (e.target.classList.contains('btn-deny-missed')) {
+      } else if (btn.classList.contains('btn-deny-missed')) {
         try {
           await window.supabaseClient
             .from('missed_punch_requests')
@@ -1510,13 +1519,15 @@ export function init() {
   const swapBodyEl = document.getElementById('shift-swap-body');
   if (swapBodyEl) {
     swapBodyEl.addEventListener('click', async (e) => {
-      const id = e.target.dataset.id;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const { id, orig, target } = btn.dataset;
       if (!id) return;
-      const isApprove = e.target.classList.contains('btn-approve-swap');
-      const isDeny = e.target.classList.contains('btn-deny-swap');
+      const isApprove = btn.classList.contains('btn-approve-swap');
+      const isDeny = btn.classList.contains('btn-deny-swap');
       if (!isApprove && !isDeny) return;
 
-      e.target.disabled = true;
+      btn.disabled = true;
       try {
         await window.supabaseClient
           .from('shift_swaps')
@@ -1525,7 +1536,7 @@ export function init() {
 
         // Notify both employees involved in the swap. Isolated so a
         // CORS/network failure doesn't block the approval itself.
-        const targetIds = [e.target.dataset.orig, e.target.dataset.target].filter(Boolean);
+        const targetIds = [orig, target].filter(Boolean);
         if (targetIds.length) {
           try {
             await window.supabaseClient.rpc('send_targeted_notification', {
@@ -1543,7 +1554,7 @@ export function init() {
         showToast(isApprove ? 'Shift swap approved!' : 'Shift swap denied.');
         loadTimesheets();
       } catch (err) {
-        e.target.disabled = false;
+        btn.disabled = false;
         showToast('Failed to update swap request.', 'error');
       }
     });
@@ -1600,21 +1611,25 @@ export function init() {
 
   if (manageLogsBody) {
     manageLogsBody.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('btn-delete-log')) {
-        const logId = e.target.dataset.id;
+      const btnDelete = e.target.closest('.btn-delete-log');
+      const btnEdit = e.target.closest('.btn-edit-log');
+
+      if (btnDelete) {
+        const logId = btnDelete.dataset.id;
         if (!confirm('Delete this punch?')) return;
         try {
           const { error } = await window.supabaseClient.from('time_logs').delete().eq('id', logId);
           if (error) throw error;
           showToast('Log deleted successfully');
           await loadEmployeeLogs();
+          loadTimesheets();
         } catch (err) {
           showToast('Failed to delete log.', 'error');
         }
-      } else if (e.target.classList.contains('btn-edit-log')) {
-        state.currentEditingPunchId = e.target.dataset.id;
-        if (editPunchAction) editPunchAction.value = e.target.dataset.action;
-        const d = new Date(e.target.dataset.time);
+      } else if (btnEdit) {
+        state.currentEditingPunchId = btnEdit.dataset.id;
+        if (editPunchAction) editPunchAction.value = btnEdit.dataset.action;
+        const d = new Date(btnEdit.dataset.time);
         const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
           .toISOString()
           .slice(0, 16);
@@ -1654,6 +1669,7 @@ export function init() {
         if (modalEditPunch) modalEditPunch.classList.add('hidden');
         state.currentEditingPunchId = null;
         await loadEmployeeLogs();
+        loadTimesheets();
       } catch (err) {
         showToast('Failed to update punch.', 'error');
       }
@@ -1682,6 +1698,7 @@ export function init() {
         const newLogTime = document.getElementById('new-log-time');
         if (newLogTime) newLogTime.value = '';
         await loadEmployeeLogs();
+        loadTimesheets();
       } catch (err) {
         showToast('Failed to add manual log.', 'error');
       }
