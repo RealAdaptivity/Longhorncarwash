@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import { colors, spacing, radius, font } from '../../theme';
-import { TimeLog, User } from '../../types';
+import { TimeLog, User, ActionType } from '../../types';
 
 const TZ = 'America/Chicago';
 
@@ -164,8 +164,9 @@ export function TimesheetScreen() {
             </View>
           </TouchableOpacity>
         ))}
+      </ScrollView>
 
-        <Modal visible={managingLogs} animationType="slide" onRequestClose={() => setManagingLogs(false)}>
+      <Modal visible={managingLogs} animationType="slide" onRequestClose={() => setManagingLogs(false)}>
           <SafeAreaView style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{selectedEmployee?.user.name} - Punch Logs</Text>
