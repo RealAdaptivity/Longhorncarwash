@@ -453,8 +453,8 @@ export function getAutoOutIso(logDate, shiftStr) {
   );
 
   let targetDay = logDay;
-  let outHour = 19;
-  let outMin = inMin;
+  let outHour;
+  const outMin = inMin;
 
   if (inHour < 19) {
     outHour = Math.min(inHour + 8, 19);

@@ -4,8 +4,6 @@ import {
   checkLocation,
   calculateTotalHoursForLogs,
   parseShiftStartTime,
-  parseShiftEndTime,
-  getChicagoIsoString,
   getAutoOutIso,
   hasForgottenClockOut,
   getPunchTransitionError,
@@ -1069,7 +1067,6 @@ export function init() {
             if (schedules && schedules.length > 0 && u.name) {
               const mo = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, month: 'numeric' }), 10);
               const dy = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, day: 'numeric' }), 10);
-              const yr = parseInt(logDate.toLocaleDateString('en-US', { timeZone: TZ, year: 'numeric' }), 10);
               const dayAbbr = logDate.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
 
               for (const sched of schedules) {
@@ -1207,7 +1204,6 @@ export function init() {
             if (schedules && schedules.length > 0 && user?.name) {
               const mo = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, month: 'numeric' }), 10);
               const dy = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, day: 'numeric' }), 10);
-              const yr = parseInt(inDate.toLocaleDateString('en-US', { timeZone: TZ, year: 'numeric' }), 10);
               const dayAbbr = inDate.toLocaleDateString('en-US', { timeZone: TZ, weekday: 'short' });
 
               for (const sched of schedules) {
