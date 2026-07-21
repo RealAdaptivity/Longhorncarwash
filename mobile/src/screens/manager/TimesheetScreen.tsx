@@ -65,7 +65,7 @@ export function TimesheetScreen() {
       supabase.from('time_logs')
         .select('id, user_id, action, created_at, edited_by_manager')
         .gte('created_at', since)
-        .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
+        .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
         .order('created_at', { ascending: true }),
     ]);
 

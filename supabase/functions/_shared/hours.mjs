@@ -21,9 +21,12 @@ export function calcHours(logs) {
   let lastIn = null;
   for (const l of sorted) {
     const t = new Date(l.created_at).getTime();
-    if (l.action === 'IN' || l.action === 'END_LUNCH') {
+    if (l.action === 'IN' || l.action === 'END_LUNCH' || l.action === 'CLOCK_IN') {
       lastIn = t;
-    } else if ((l.action === 'START_LUNCH' || l.action === 'OUT') && lastIn !== null) {
+    } else if (
+      (l.action === 'START_LUNCH' || l.action === 'OUT' || l.action === 'CLOCK_OUT') &&
+      lastIn !== null
+    ) {
       total += (t - lastIn) / 3600000;
       lastIn = null;
     }

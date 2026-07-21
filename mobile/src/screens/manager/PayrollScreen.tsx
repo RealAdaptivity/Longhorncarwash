@@ -77,7 +77,7 @@ export function PayrollScreen() {
       supabase.from('time_logs')
         .select('id, user_id, action, created_at')
         .gte('created_at', since)
-        .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH'])
+        .in('action', ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'])
         .order('created_at', { ascending: true }),
       supabase.from('user_rates').select('user_id, hourly_rate'),
       supabase.from('sales')
