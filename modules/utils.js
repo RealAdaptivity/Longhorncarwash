@@ -751,6 +751,21 @@ export function pickOpenInCreatedAtForSweepOut(inLogs, deletedOutCreatedAt) {
   return best;
 }
 
+// --- Paged fetch ---
+// Supabase returns at most 1000 rows per request. Queries that read every punch
+// (timesheets, payroll export) sort oldest-first, so past that cap the NEWEST
+// punches were silently dropped. This reads page by page until a short page.
+// `buildQuery` must return a fresh, fully ordered query each call.
+export async function fetchAllRows(buildQuery, pageSize = 1000) {
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+    if (error) return { data: null, error };
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) return { data: rows, error: null };
+  }
+}
+
 // --- CSV Download Helper ---
 export function downloadCsv(csvContent, filename) {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
