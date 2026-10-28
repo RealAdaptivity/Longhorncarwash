@@ -1,4 +1,10 @@
-import { state, showToast, parseShiftHours, confirmAppDialog, normalizeScheduleCellValue } from './utils.js';
+import {
+  state,
+  showToast,
+  parseShiftHours,
+  confirmAppDialog,
+  normalizeScheduleCellValue,
+} from './utils.js';
 
 function updateCellStyles(input) {
   const val = input.value.trim().toUpperCase();
@@ -37,6 +43,60 @@ function recalculateRowTotal(tr) {
       totalCell.style.color = 'var(--text)';
     }
   }
+}
+
+// Keep only the first row per employee name. Guards against schedules or
+// templates that were saved while the editor showed duplicate rows.
+function dedupeRows(rows) {
+  const seen = new Set();
+  return (rows || []).filter((r) => {
+    const key = (r?.employee || '').trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Each editor load takes a ticket. A load only draws rows if no newer load
+// started while it was waiting on the network, so overlapping loads (e.g. a
+// double-tap on Auto-Fill or Edit) can't each append a full list.
+let editorLoadTicket = 0;
+function startEditorLoad() {
+  editorLoadTicket += 1;
+  return editorLoadTicket;
+}
+function isCurrentEditorLoad(ticket) {
+  return ticket === editorLoadTicket;
+}
+
+// Replace the editor's rows. `rows` is [{ employee, shifts }].
+function renderEditorRows(tbody, rows) {
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  dedupeRows(rows).forEach((r) => {
+    const shifts = r.shifts && r.shifts.length ? r.shifts : Array(7).fill('');
+    let rowTotal = 0;
+    const cellsHtml = shifts
+      .map((s) => {
+        rowTotal += parseShiftHours(s);
+        return `<td><input type="text" class="input-field sched-cell" value="${s ?? ''}" placeholder="7am-8pm" style="padding:5px;text-align:center;margin-bottom:0;"></td>`;
+      })
+      .join('');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
+    tbody.appendChild(tr);
+    bindEditorRowEvents(tr);
+  });
+}
+
+// Build editor rows for every approved employee, filling shifts from
+// `savedRows` where a matching name exists; others get `blank` in each day.
+function rowsForUsers(users, savedRows, blank = '-') {
+  const saved = dedupeRows(savedRows);
+  return (users || []).map((u) => {
+    const match = saved.find((r) => r.employee === u.name);
+    return { employee: u.name, shifts: match ? match.shifts : Array(7).fill(blank) };
+  });
 }
 
 function bindEditorRowEvents(tr) {
@@ -210,7 +270,7 @@ export async function loadSchedules() {
           const headersHtml = parsed.headers
             .map((h) => `<th class="sched-day-header">${h}</th>`)
             .join('');
-          const activeRows = parsed.rows.filter((r) =>
+          const activeRows = dedupeRows(parsed.rows).filter((r) =>
             r.shifts.some((s) => s && s !== '-' && s.trim() !== ''),
           );
 
@@ -612,28 +672,15 @@ export function init() {
       if (postScheduleSection) postScheduleSection.classList.toggle('hidden');
 
       if (postScheduleSection && !postScheduleSection.classList.contains('hidden')) {
+        const ticket = startEditorLoad();
         try {
           const { data: users } = await window.supabaseClient
             .from('users')
             .select('name')
             .eq('is_approved', true)
             .order('name', { ascending: true });
-          if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
-          if (users) {
-            users.forEach((u) => {
-              const tr = document.createElement('tr');
-              const inputs = Array(7)
-                .fill(0)
-                .map(
-                  () =>
-                    `<td><input type="text" class="input-field sched-cell" placeholder="7am-8pm" style="padding:5px;text-align:center;margin-bottom:0;"></td>`,
-                )
-                .join('');
-              tr.innerHTML = `<td><strong>${u.name}</strong></td>${inputs}<td style="text-align:center;font-weight:bold;">-</td>`;
-              scheduleEditorBody.appendChild(tr);
-              bindEditorRowEvents(tr);
-            });
-          }
+          if (!isCurrentEditorLoad(ticket)) return;
+          renderEditorRows(scheduleEditorBody, rowsForUsers(users, [], ''));
           scheduleHeaderInputs.forEach((inp, idx) => {
             inp.value = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'][idx];
           });
@@ -681,12 +728,12 @@ export function init() {
     const rows = [];
     scheduleEditorBody?.querySelectorAll('tr').forEach((tr) => {
       const employee = tr.querySelector('td strong')?.innerText || '';
-      const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map(
-        (i) => normalizeScheduleCellValue(i.value || '-'),
+      const shifts = Array.from(tr.querySelectorAll('.sched-cell')).map((i) =>
+        normalizeScheduleCellValue(i.value || '-'),
       );
       rows.push({ employee, shifts });
     });
-    return { weekRange, headers, rows };
+    return { weekRange, headers, rows: dedupeRows(rows) };
   }
 
   if (btnSubmitSchedule) {
@@ -850,28 +897,14 @@ export function init() {
           parsed.headers.forEach((h, idx) => {
             if (scheduleHeaderInputs[idx]) scheduleHeaderInputs[idx].value = h;
           });
-          if (scheduleEditorBody) scheduleEditorBody.innerHTML = '';
-
+          const ticket = startEditorLoad();
           const { data: currentUsers } = await window.supabaseClient
             .from('users')
             .select('name')
             .eq('is_approved', true)
             .order('name', { ascending: true });
-          (currentUsers || []).forEach((u) => {
-            const savedRow = parsed.rows.find((r) => r.employee === u.name);
-            const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
-            let rowTotal = 0;
-            const cellsHtml = shifts
-              .map((s) => {
-                rowTotal += parseShiftHours(s);
-                return `<td><input type="text" class="input-field sched-cell" value="${s}" placeholder="7am-8pm" style="padding:5px;text-align:center;margin-bottom:0;"></td>`;
-              })
-              .join('');
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
-            scheduleEditorBody?.appendChild(tr);
-            bindEditorRowEvents(tr);
-          });
+          if (!isCurrentEditorLoad(ticket)) return;
+          renderEditorRows(scheduleEditorBody, rowsForUsers(currentUsers, parsed.rows));
 
           // Snapshot the freshly-populated editor; a save that matches this
           // exactly means nothing was changed and no notification is sent.
@@ -891,7 +924,8 @@ export function init() {
         const id = e.target.dataset.id;
         const ok = await confirmAppDialog({
           title: 'Publish Schedule',
-          message: 'Publish this schedule? It will go live for employees and they will be notified.',
+          message:
+            'Publish this schedule? It will go live for employees and they will be notified.',
           confirmLabel: 'Publish',
           tone: 'primary',
         });
@@ -1062,6 +1096,7 @@ export function init() {
 
   if (btnLoadTemplate) {
     btnLoadTemplate.addEventListener('click', async () => {
+      const ticket = startEditorLoad();
       try {
         const { data, error } = await window.supabaseClient
           .from('settings')
@@ -1072,23 +1107,16 @@ export function init() {
           showToast('No template found.', 'error');
           return;
         }
+        if (!isCurrentEditorLoad(ticket)) return;
         const rows = JSON.parse(data[0].value);
         const tbody = document.querySelector('#schedule-editor-table tbody');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        rows.forEach((r) => {
-          let rowTotal = 0;
-          const cells = r.shifts
-            .map((s) => {
-              rowTotal += parseShiftHours(s);
-              return `<td><input type="text" class="input-field sched-cell" value="${s || '-'}" placeholder="7am-8pm" style="padding:5px;text-align:center;margin-bottom:0;" /></td>`;
-            })
-            .join('');
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td><strong>${r.employee}</strong></td>${cells}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
-          tbody.appendChild(tr);
-          bindEditorRowEvents(tr);
-        });
+        renderEditorRows(
+          tbody,
+          rows.map((r) => ({
+            employee: r.employee,
+            shifts: (r.shifts || []).map((x) => x || '-'),
+          })),
+        );
         showToast('Template loaded!');
       } catch (e) {
         showToast('Failed to load template.', 'error');
@@ -1100,6 +1128,7 @@ export function init() {
   const btnAutofill = document.getElementById('btn-autofill-previous-week');
   if (btnAutofill) {
     btnAutofill.addEventListener('click', async () => {
+      const ticket = startEditorLoad();
       try {
         const { data, error } = await window.supabaseClient
           .from('schedules')
@@ -1114,29 +1143,14 @@ export function init() {
         const parsed = JSON.parse(data[0].content);
         const tbody = document.getElementById('schedule-editor-body');
         if (!tbody) return;
-        tbody.innerHTML = '';
 
         const { data: currentUsers } = await window.supabaseClient
           .from('users')
           .select('name')
           .eq('is_approved', true)
           .order('name', { ascending: true });
-
-        (currentUsers || []).forEach((u) => {
-          const savedRow = parsed.rows.find((r) => r.employee === u.name);
-          const shifts = savedRow ? savedRow.shifts : ['-', '-', '-', '-', '-', '-', '-'];
-          let rowTotal = 0;
-          const cellsHtml = shifts
-            .map((s) => {
-              rowTotal += parseShiftHours(s);
-              return `<td><input type="text" class="input-field sched-cell" value="${s}" placeholder="7am-8pm" style="padding:5px;text-align:center;margin-bottom:0;"></td>`;
-            })
-            .join('');
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td><strong>${u.name}</strong></td>${cellsHtml}<td style="text-align:center;font-weight:bold;">${rowTotal.toFixed(1)}</td>`;
-          tbody.appendChild(tr);
-          bindEditorRowEvents(tr);
-        });
+        if (!isCurrentEditorLoad(ticket)) return;
+        renderEditorRows(tbody, rowsForUsers(currentUsers, parsed.rows));
         showToast('Auto-filled from previous week!');
       } catch (e) {
         showToast('Failed to auto-fill schedule.', 'error');
