@@ -346,6 +346,21 @@ export function signOut() {
   import('./manager.js').then(({ logoutManager }) => logoutManager());
 }
 
+// Only one punch may be in progress at a time. The clock buttons stay visible
+// while the WiFi, schedule and last-punch checks wait on the network, so a
+// double-tap used to run two punches side by side; both saw the same last
+// punch and both inserted, leaving duplicate IN/OUT rows.
+let punchInProgress = false;
+async function runPunch(fn) {
+  if (punchInProgress) return;
+  punchInProgress = true;
+  try {
+    await fn();
+  } finally {
+    punchInProgress = false;
+  }
+}
+
 // --- Log Time ---
 export async function logTime(action, tips = 0) {
   if (!state.currentUser) return;
@@ -445,15 +460,25 @@ export async function logTime(action, tips = 0) {
 }
 
 // --- Offline Sync ---
+// 'load' and 'online' can both fire; a second sync running alongside the first
+// would upload the same queued punches twice.
+let offlineSyncInProgress = false;
 export async function syncOfflineLogs() {
+  if (offlineSyncInProgress) return;
   const offlineLogs = JSON.parse(localStorage.getItem('offlineLogs') || '[]');
   if (offlineLogs.length === 0 || !navigator.onLine) return;
 
+  offlineSyncInProgress = true;
   showToast(`Syncing ${offlineLogs.length} offline punches...`);
   try {
     const { error } = await window.supabaseClient.from('time_logs').insert(offlineLogs);
     if (error) throw error;
-    localStorage.removeItem('offlineLogs');
+    // Keep any punch queued while the upload was in flight.
+    const remaining = JSON.parse(localStorage.getItem('offlineLogs') || '[]').slice(
+      offlineLogs.length,
+    );
+    if (remaining.length > 0) localStorage.setItem('offlineLogs', JSON.stringify(remaining));
+    else localStorage.removeItem('offlineLogs');
     showToast('Offline punches synced successfully!');
     if (state.currentUser && !state.currentUser.is_salary) {
       updateClockActions();
@@ -465,6 +490,8 @@ export async function syncOfflineLogs() {
   } catch (err) {
     console.error('Failed to sync offline logs:', err);
     showToast('Failed to sync offline punches. Will retry when online.', 'error');
+  } finally {
+    offlineSyncInProgress = false;
   }
 }
 
@@ -814,7 +841,7 @@ export function init() {
     const wifiOk = await checkWifiLock();
     if (!wifiOk) return;
     if (!state.EARLY_CLOCKIN_BLOCK_ENABLED) {
-      logTime('IN');
+      await logTime('IN');
       return;
     }
     try {
@@ -889,33 +916,39 @@ export function init() {
     } catch (e) {
       console.error('Early clock-in check failed — allowing clock-in:', e);
     }
-    logTime('IN');
+    await logTime('IN');
   }
 
-  if (btnClockIn) btnClockIn.addEventListener('click', () => checkAndClockIn());
+  if (btnClockIn) btnClockIn.addEventListener('click', () => runPunch(checkAndClockIn));
   if (btnStartLunch)
-    btnStartLunch.addEventListener('click', async () => {
-      if (await checkWifiLock()) logTime('START_LUNCH');
-    });
+    btnStartLunch.addEventListener('click', () =>
+      runPunch(async () => {
+        if (await checkWifiLock()) await logTime('START_LUNCH');
+      }),
+    );
   if (btnEndLunch)
-    btnEndLunch.addEventListener('click', async () => {
-      if (await checkWifiLock()) logTime('END_LUNCH');
-    });
+    btnEndLunch.addEventListener('click', () =>
+      runPunch(async () => {
+        if (await checkWifiLock()) await logTime('END_LUNCH');
+      }),
+    );
 
   if (btnClockOut) {
-    btnClockOut.addEventListener('click', async () => {
-      if (!(await checkWifiLock())) return;
-      const modal = document.getElementById('modal-tip-declaration');
-      const tipInput = document.getElementById('tip-amount-input');
-      if (modal && tipInput) {
-        modal.classList.remove('hidden');
-        tipInput.value = '';
-        tipInput.focus();
-        stopCamera();
-      } else {
-        logTime('OUT');
-      }
-    });
+    btnClockOut.addEventListener('click', () =>
+      runPunch(async () => {
+        if (!(await checkWifiLock())) return;
+        const modal = document.getElementById('modal-tip-declaration');
+        const tipInput = document.getElementById('tip-amount-input');
+        if (modal && tipInput) {
+          modal.classList.remove('hidden');
+          tipInput.value = '';
+          tipInput.focus();
+          stopCamera();
+        } else {
+          await logTime('OUT');
+        }
+      }),
+    );
   }
 
   const btnSkipTips = document.getElementById('btn-skip-tips');
@@ -927,7 +960,7 @@ export function init() {
     btnSkipTips.addEventListener('click', () => {
       if (modalTipDeclaration) modalTipDeclaration.classList.add('hidden');
       startCamera();
-      logTime('OUT', 0);
+      runPunch(() => logTime('OUT', 0));
     });
   }
 
@@ -935,7 +968,8 @@ export function init() {
     btnSubmitTips.addEventListener('click', () => {
       if (modalTipDeclaration) modalTipDeclaration.classList.add('hidden');
       startCamera();
-      logTime('OUT', parseFloat(tipAmountInput ? tipAmountInput.value : '0') || 0);
+      const tips = parseFloat(tipAmountInput ? tipAmountInput.value : '0') || 0;
+      runPunch(() => logTime('OUT', tips));
     });
   }
 
