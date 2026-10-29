@@ -16,6 +16,8 @@ import {
 } from './utils.js';
 
 // --- Camera (Anti-Buddy Punching) ---
+let cameraStarting = false;
+
 export function startCamera() {
   const photoVideo = document.getElementById('photo-video');
   const cameraContainer = document.getElementById('camera-container');
@@ -28,16 +30,24 @@ export function startCamera() {
     console.error('Camera unavailable in this environment');
     return;
   }
+  // Already running or being started: don't open a second stream.
+  if (state.cameraStream || cameraStarting) return;
+  cameraStarting = true;
   try {
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: 'user' } })
       .then((stream) => {
+        cameraStarting = false;
         state.cameraStream = stream;
         photoVideo.srcObject = stream;
         if (cameraContainer) cameraContainer.style.display = 'block';
       })
-      .catch((err) => console.error('Camera access denied or unavailable', err));
+      .catch((err) => {
+        cameraStarting = false;
+        console.error('Camera access denied or unavailable', err);
+      });
   } catch (err) {
+    cameraStarting = false;
     console.error('Camera access denied or unavailable', err);
   }
 }
@@ -49,6 +59,28 @@ export function stopCamera() {
     state.cameraStream = null;
   }
   if (cameraContainer) cameraContainer.style.display = 'none';
+}
+
+// The camera only starts when someone types their PIN, so a remembered login
+// (or the second punch after one) had no stream and the punch went in without
+// a photo. Start it if needed and wait briefly for a real frame. Resolves
+// either way; a missing photo must never block a punch.
+function ensureCameraReady(timeoutMs = 2500) {
+  const photoVideo = document.getElementById('photo-video');
+  if (!state.ANTI_BUDDY_ENABLED || !photoVideo) return Promise.resolve();
+  if (!state.cameraStream) startCamera();
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const check = () => {
+      // readyState >= 2 means the video has a current frame to draw.
+      if ((state.cameraStream && photoVideo.readyState >= 2) || Date.now() - started > timeoutMs) {
+        resolve();
+      } else {
+        setTimeout(check, 100);
+      }
+    };
+    check();
+  });
 }
 
 function capturePhoto() {
@@ -429,6 +461,7 @@ export async function logTime(action, tips = 0) {
       return;
     }
 
+    await ensureCameraReady();
     const photoData = capturePhoto();
     const payload = { user_id: state.currentUser.id, action };
     if (photoData) payload.photo_base64 = photoData;

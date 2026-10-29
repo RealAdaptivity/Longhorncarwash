@@ -12,6 +12,7 @@ import {
   buildAutoSweepClearedRow,
   pickOpenInCreatedAtForSweepOut,
   confirmAppDialog,
+  fetchAllRows,
 } from './utils.js';
 
 // Role hierarchy: what each role can access
@@ -330,10 +331,13 @@ export async function loadTimesheets() {
       window.supabaseClient
         .from('users')
         .select('id, name, payroll_name, pay_rate, is_salary, tax_status, role, is_approved, avatar'),
-      window.supabaseClient
-        .from('time_logs')
-        .select('user_id, action, created_at, edited_by_manager')
-        .order('created_at', { ascending: true }),
+      fetchAllRows(() =>
+        window.supabaseClient
+          .from('time_logs')
+          .select('id, user_id, action, created_at, edited_by_manager')
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true }),
+      ),
       window.supabaseClient
         .from('sales')
         .select('employee_id, sale_type, item_description, created_at')
@@ -2131,10 +2135,13 @@ export function init() {
         const { data: usersData, error: uErr } = await window.supabaseClient
           .from('users')
           .select('id, name, is_salary');
-        const { data: logsData, error: lErr } = await window.supabaseClient
-          .from('time_logs')
-          .select('user_id, action, created_at, edited_by_manager')
-          .order('created_at', { ascending: true });
+        const { data: logsData, error: lErr } = await fetchAllRows(() =>
+          window.supabaseClient
+            .from('time_logs')
+            .select('id, user_id, action, created_at, edited_by_manager')
+            .order('created_at', { ascending: true })
+            .order('id', { ascending: true }),
+        );
         if (uErr || lErr) throw new Error('Fetch failed');
 
         const startOfWeek = getStartOfWeek().getTime();

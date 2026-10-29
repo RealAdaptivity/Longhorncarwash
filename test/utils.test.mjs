@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   calculateTotalHoursForLogs,
+  fetchAllRows,
   calculateEstimatedTaxes,
   calculatePayWithOvertime,
   formatNameLastFirst,
@@ -421,4 +422,33 @@ test('getMissedPunchRequestError: rejects requests older than 30 days', () => {
     getMissedPunchRequestError('OUT', old, now),
     'Requests are limited to the last 30 days. Ask a manager to add older punches.',
   );
+});
+
+test('fetchAllRows reads every page past the 1000-row cap', async () => {
+  const all = Array.from({ length: 2500 }, (_, i) => ({ id: i }));
+  const ranges = [];
+  const buildQuery = () => ({
+    range: async (from, to) => {
+      ranges.push([from, to]);
+      return { data: all.slice(from, to + 1), error: null };
+    },
+  });
+  const { data, error } = await fetchAllRows(buildQuery);
+  assert.equal(error, null);
+  assert.equal(data.length, 2500);
+  assert.equal(data[2499].id, 2499);
+  assert.deepEqual(ranges, [
+    [0, 999],
+    [1000, 1999],
+    [2000, 2999],
+  ]);
+});
+
+test('fetchAllRows returns the error from a failed page', async () => {
+  const err = new Error('boom');
+  const { data, error } = await fetchAllRows(() => ({
+    range: async () => ({ data: null, error: err }),
+  }));
+  assert.equal(data, null);
+  assert.equal(error, err);
 });
