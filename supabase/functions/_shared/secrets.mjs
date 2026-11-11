@@ -1,13 +1,16 @@
-// Edge-function secrets. Prefer Deno.env; fall back to legacy literals so
-// existing deployments keep working until secrets are configured in the dashboard.
-// Set TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, and WEBHOOK_SECRET in Supabase, then rotate.
+// Edge-function secrets. Prefer Deno.env; chat ID and webhook secret fall back
+// to legacy literals until they are configured in the dashboard.
+// The bot token has no fallback: it must be set as TELEGRAM_BOT_TOKEN in
+// Supabase (Edge Functions -> Secrets). Never commit a bot token here; this
+// repo is public.
 
-const LEGACY_BOT = '8729010258:AAEh2We1rFbEiC1WoEbz0Gz5qOyDr5Kyo4c';
 const LEGACY_CHAT = '-5595038862';
 const LEGACY_SECRET = 'lcw-punch-notify-2026';
 
 export function getTelegramBotToken() {
-  return Deno.env.get('TELEGRAM_BOT_TOKEN') || LEGACY_BOT;
+  const token = Deno.env.get('TELEGRAM_BOT_TOKEN');
+  if (!token) console.error('TELEGRAM_BOT_TOKEN secret is not set; Telegram messages will fail.');
+  return token ?? '';
 }
 
 export function getTelegramChatId() {
