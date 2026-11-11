@@ -8,6 +8,9 @@ import {
   getAutoOutIso,
   hasForgottenClockOut,
   findShiftForUser,
+  getStartOfWeek,
+  getBiweeklyWeeks,
+  getChicagoIsoString,
   isSafeAutoSweepOutInsert,
   getPunchTransitionError,
   getMissedPunchRequestError,
@@ -106,11 +109,27 @@ function updateClock() {
   const clockDisplay = document.getElementById('clock-display');
   const dateDisplay = document.getElementById('date-display');
   const now = new Date();
-  if (clockDisplay)
-    clockDisplay.textContent = now.toLocaleTimeString('en-US', {
+  if (clockDisplay) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
       hour12: true,
       timeZone: 'America/Chicago',
-    });
+    }).formatToParts(now);
+    const time = parts
+      .filter((p) => p.type !== 'dayPeriod')
+      .map((p) => p.value)
+      .join('')
+      .trim();
+    const period = parts.find((p) => p.type === 'dayPeriod')?.value || '';
+    if (clockDisplay.dataset.shown !== time + period) {
+      clockDisplay.dataset.shown = time + period;
+      const ampm = document.createElement('span');
+      ampm.className = 'tc-ampm';
+      ampm.textContent = period;
+      clockDisplay.replaceChildren(document.createTextNode(time), ampm);
+    }
+  }
   if (dateDisplay)
     dateDisplay.textContent = now.toLocaleDateString('en-US', {
       weekday: 'long',
@@ -202,7 +221,7 @@ async function updateClockActions() {
     if (welcomeCard) {
       const badgeHtml = `
         <div class="employee-status-badge ${badgeClass}">
-          <span class="status-indicator"></span>
+          <span class="tc-status-dot"></span>
           <span>${statusText}</span>
         </div>
       `;
@@ -214,6 +233,210 @@ async function updateClockActions() {
   }
 }
 
+// --- PIN entry ---
+// Every PIN change goes through here so the hidden input and the dots agree.
+function setPin(value) {
+  state.currentPin = value;
+  const pinDisplay = document.getElementById('pin-display');
+  if (pinDisplay) pinDisplay.value = value;
+  const dots = document.getElementById('pin-dots');
+  if (dots) {
+    dots.querySelectorAll('.pin-dot').forEach((dot, i) => {
+      dot.classList.toggle('filled', i < value.length);
+    });
+    dots.setAttribute('aria-label', `${value.length} of 4 digits entered`);
+  }
+}
+
+function firstName(name) {
+  return (name || '').trim().split(/\s+/)[0] || 'there';
+}
+
+function initials(name) {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '';
+  const first = parts[0][0];
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
+
+// --- Shift card + hours tiles ---
+const TZ = 'America/Chicago';
+const ON_CLOCK_ACTIONS = ['IN', 'END_LUNCH', 'CLOCK_IN'];
+const PUNCH_ACTION_LIST = ['IN', 'OUT', 'START_LUNCH', 'END_LUNCH', 'CLOCK_IN', 'CLOCK_OUT'];
+let summaryRequest = 0;
+
+function formatClock12(hour, minute) {
+  const h12 = hour % 12 || 12;
+  return `${h12}:${String(minute).padStart(2, '0')} ${hour % 24 >= 12 ? 'PM' : 'AM'}`;
+}
+
+function formatDuration(minutes) {
+  const m = Math.max(0, Math.round(minutes));
+  const h = Math.floor(m / 60);
+  return h ? `${h}h ${m % 60}m` : `${m}m`;
+}
+
+function chicagoMinutesNow(now) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+    timeZone: TZ,
+  }).formatToParts(now);
+  const get = (type) => parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
+  return get('hour') * 60 + get('minute');
+}
+
+// Start of the two-week pay period that today falls in. getBiweeklyWeeks still
+// returns the previous cycle on the first Wednesday, so step forward if needed.
+function currentPayPeriodStart(now) {
+  const { week1Start } = getBiweeklyWeeks(now);
+  const start = new Date(week1Start);
+  if (now.getTime() - start.getTime() >= 14 * 24 * 60 * 60 * 1000) {
+    start.setDate(start.getDate() + 14);
+  }
+  return start;
+}
+
+function shiftNote(times, lastAction, nowMin) {
+  const startMin = times.start.hour * 60 + times.start.minute;
+  let endMin = times.end.hour * 60 + times.end.minute;
+  if (times.isOvernight) endMin += 24 * 60;
+  if (lastAction === 'START_LUNCH') return 'On lunch';
+  if (ON_CLOCK_ACTIONS.includes(lastAction)) {
+    return nowMin < endMin ? `${formatDuration(endMin - nowMin)} left` : 'Past shift end';
+  }
+  if (nowMin < startMin) return `Starts in ${formatDuration(startMin - nowMin)}`;
+  if (nowMin < endMin) return 'Shift in progress';
+  return 'Shift over';
+}
+
+function clearSessionSummary() {
+  summaryRequest++;
+  document.getElementById('tc-shift-card')?.classList.add('hidden');
+  document.getElementById('tc-stats')?.classList.add('hidden');
+}
+
+async function loadSessionSummary(user) {
+  clearSessionSummary();
+  if (!user || user.is_salary || !window.supabaseClient) return;
+  const request = summaryRequest;
+  const now = new Date();
+  const periodStart = currentPayPeriodStart(now);
+  const weekStart = getStartOfWeek();
+  const since = new Date(Math.min(periodStart.getTime(), weekStart.getTime()));
+
+  try {
+    const [logsRes, schedRes] = await Promise.all([
+      window.supabaseClient
+        .from('time_logs')
+        .select('action, created_at')
+        .eq('user_id', user.id)
+        .in('action', PUNCH_ACTION_LIST)
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(1000),
+      window.supabaseClient
+        .from('schedules')
+        .select('content')
+        .neq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+    // Signed out, or a newer load started, while we waited.
+    if (request !== summaryRequest || state.currentUser?.id !== user.id) return;
+
+    const logs = logsRes.data || [];
+    const lastAction = logs.length ? logs[logs.length - 1].action : null;
+    // Count the open stretch up to now while still on the clock.
+    const withNow = ON_CLOCK_ACTIONS.includes(lastAction)
+      ? [...logs, { action: 'OUT', created_at: now.toISOString() }]
+      : logs;
+    const hoursSince = (from) =>
+      calculateTotalHoursForLogs(withNow.filter((l) => new Date(l.created_at) >= from));
+
+    if (!logsRes.error) {
+      const todayStr = now.toLocaleDateString('en-CA', { timeZone: TZ });
+      const todayStart = new Date(getChicagoIsoString(todayStr, 0));
+      const set = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+      set('tc-stat-today', formatDuration(hoursSince(todayStart) * 60));
+      set('tc-stat-week', `${hoursSince(weekStart).toFixed(1)} h`);
+      set('tc-stat-period', `${hoursSince(periodStart).toFixed(1)} h`);
+      document.getElementById('tc-stats')?.classList.remove('hidden');
+    }
+
+    const shiftStr = schedRes.error ? null : findShiftForUser(schedRes.data, user.name, now, TZ);
+    const shiftCard = document.getElementById('tc-shift-card');
+    const shiftTime = document.getElementById('tc-shift-time');
+    const shiftNoteEl = document.getElementById('tc-shift-note');
+    if (shiftStr && shiftCard && shiftTime && shiftNoteEl) {
+      const times = parseShiftTimes(shiftStr);
+      if (times) {
+        shiftTime.textContent = `${formatClock12(times.start.hour, times.start.minute)} – ${formatClock12(times.end.hour, times.end.minute)}`;
+        shiftNoteEl.textContent = shiftNote(times, lastAction, chicagoMinutesNow(now));
+      } else {
+        const upper = String(shiftStr).trim().toUpperCase();
+        shiftTime.textContent = upper === 'OFF' || upper === 'OC' ? 'Off today' : String(shiftStr);
+        shiftNoteEl.textContent = '';
+      }
+      shiftCard.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Failed to load shift summary:', err);
+  }
+}
+
+// --- Punch confirmation ---
+const PUNCH_DONE_TEXT = {
+  IN: 'Clocked in',
+  OUT: 'Clocked out',
+  START_LUNCH: 'Lunch started',
+  END_LUNCH: 'Back from lunch',
+};
+let confirmationTimer = null;
+
+function hidePunchConfirmation() {
+  const overlay = document.getElementById('clockin-overlay');
+  if (overlay) overlay.classList.add('hidden');
+  if (confirmationTimer) {
+    clearTimeout(confirmationTimer);
+    confirmationTimer = null;
+  }
+}
+
+function showPunchConfirmation(action, name) {
+  const overlay = document.getElementById('clockin-overlay');
+  const loading = document.getElementById('clockin-loading');
+  const success = document.getElementById('clockin-success');
+  const message = document.getElementById('clockin-success-message');
+  const detail = document.getElementById('clockin-success-detail');
+  const label = PUNCH_DONE_TEXT[action] || 'Punch saved';
+  if (!overlay || !success || !message) {
+    showToast(`${label}!`);
+    return;
+  }
+  const time = new Date().toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: TZ,
+  });
+  message.textContent = label;
+  if (detail) detail.textContent = name ? `${firstName(name)} · ${time}` : time;
+  if (loading) loading.classList.add('hidden');
+  // Re-show the content so the checkmark animation plays again.
+  success.classList.add('hidden');
+  void success.offsetWidth;
+  success.classList.remove('hidden');
+  overlay.classList.remove('hidden');
+  if (confirmationTimer) clearTimeout(confirmationTimer);
+  confirmationTimer = setTimeout(hidePunchConfirmation, 2200);
+}
+
 function showUserSession(userData) {
   state.currentUser = userData;
   const pinPad = document.querySelector('.pin-pad');
@@ -223,7 +446,9 @@ function showUserSession(userData) {
   const clockGrid = document.getElementById('clock-action-grid');
   const salaryMsg = document.getElementById('salary-employee-msg');
 
-  if (employeeWelcome) employeeWelcome.textContent = `Welcome, ${userData.name}`;
+  if (employeeWelcome) employeeWelcome.textContent = `Hi, ${firstName(userData.name)}`;
+  const avatar = document.getElementById('tc-avatar');
+  if (avatar) avatar.textContent = initials(userData.name);
   if (pinPad) pinPad.classList.add('hidden');
   if (pinDisplay) pinDisplay.classList.add('hidden');
   if (clockGrid) clockGrid.style.display = userData.is_salary ? 'none' : '';
@@ -274,6 +499,7 @@ function showUserSession(userData) {
 
   // Fetch status and update button states dynamically
   updateClockActions();
+  loadSessionSummary(userData);
 }
 
 export function resetTimeclockState() {
@@ -282,7 +508,8 @@ export function resetTimeclockState() {
     state.idleTimeout = null;
   }
   stopCamera();
-  state.currentPin = '';
+  setPin('');
+  clearSessionSummary();
 
   const btnGoToManager = document.getElementById('btn-go-to-manager');
   if (btnGoToManager) btnGoToManager.style.display = 'none';
@@ -350,7 +577,8 @@ export function signOut() {
     state.idleTimeout = null;
   }
   stopCamera();
-  state.currentPin = '';
+  setPin('');
+  clearSessionSummary();
   state.currentUser = null;
 
   const pinDisplay = document.getElementById('pin-display');
@@ -475,7 +703,7 @@ export async function logTime(action, tips = 0) {
     const { error } = await window.supabaseClient.from('time_logs').insert([payload]);
     if (error) throw error;
 
-    showToast(`Successfully Logged ${action.replace('_', ' ')}!`);
+    showPunchConfirmation(action, state.currentUser?.name);
     resetTimeclockState();
 
     if (state.managerLoggedIn) {
@@ -711,7 +939,6 @@ export function init() {
   });
 
   // PIN pad
-  const pinDisplay = document.getElementById('pin-display');
   const pinBtns = document.querySelectorAll('.pin-btn:not(.btn-clear):not(.btn-primary)');
   const btnClear = document.getElementById('btn-clear');
   const btnSubmit = document.getElementById('btn-submit');
@@ -732,18 +959,12 @@ export function init() {
 
   pinBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (state.currentPin.length < 4) {
-        state.currentPin += btn.dataset.val;
-        if (pinDisplay) pinDisplay.value = state.currentPin;
-      }
+      if (state.currentPin.length < 4) setPin(state.currentPin + btn.dataset.val);
     });
   });
 
   if (btnClear) {
-    btnClear.addEventListener('click', () => {
-      state.currentPin = '';
-      if (pinDisplay) pinDisplay.value = '';
-    });
+    btnClear.addEventListener('click', () => setPin(''));
   }
 
   if (btnSubmit) {
@@ -761,15 +982,13 @@ export function init() {
 
         if (error || !data) {
           showToast('Invalid PIN', 'error');
-          state.currentPin = '';
-          if (pinDisplay) pinDisplay.value = '';
+          setPin('');
           return;
         }
 
         if (!data.is_approved) {
           showToast('Account not approved. Contact a manager.', 'error');
-          state.currentPin = '';
-          if (pinDisplay) pinDisplay.value = '';
+          setPin('');
           return;
         }
 
@@ -798,13 +1017,38 @@ export function init() {
         resetIdleTimeout();
       } catch (err) {
         showToast('Network error. Check configuration.', 'error');
-        state.currentPin = '';
-        if (pinDisplay) pinDisplay.value = '';
+        setPin('');
       }
     });
   }
 
   if (btnCancelAction) btnCancelAction.addEventListener('click', resetTimeclockState);
+
+  // Typing the PIN on a keyboard works too, while the sign-in screen is up.
+  document.addEventListener('keydown', (e) => {
+    if (!document.body.classList.contains('logged-out')) return;
+    if (!document.getElementById('view-timeclock')?.classList.contains('active')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (
+      e.target instanceof Element &&
+      e.target.closest('input, textarea, select, [contenteditable]')
+    )
+      return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    if (/^[0-9]$/.test(e.key)) {
+      if (state.currentPin.length < 4) setPin(state.currentPin + e.key);
+    } else if (e.key === 'Backspace') {
+      setPin(state.currentPin.slice(0, -1));
+    } else if (e.key === 'Enter') {
+      if (btnSubmit) btnSubmit.click();
+    } else {
+      return;
+    }
+    e.preventDefault();
+  });
+
+  const clockinOverlay = document.getElementById('clockin-overlay');
+  if (clockinOverlay) clockinOverlay.addEventListener('click', hidePunchConfirmation);
 
   // Clock in/out buttons
   const btnClockIn = document.getElementById('btn-clock-in');
@@ -1075,7 +1319,9 @@ export function init() {
   // Midnight sweep + checklist purge
   async function performMidnightSweep() {
     try {
-      const { data: users, error: uErr } = await window.supabaseClient.from('users').select('id, name, is_salary');
+      const { data: users, error: uErr } = await window.supabaseClient
+        .from('users')
+        .select('id, name, is_salary');
       if (uErr || !users) return;
 
       const { data: schedules } = await window.supabaseClient
@@ -1215,10 +1461,7 @@ export function init() {
         }
 
         if (toDelete.length > 0) {
-          await window.supabaseClient
-            .from('time_logs')
-            .delete()
-            .in('id', toDelete);
+          await window.supabaseClient.from('time_logs').delete().in('id', toDelete);
         }
       }
     } catch (e) {
@@ -1311,7 +1554,8 @@ export function init() {
         if (!nearbyLogs?.length) continue;
 
         const candidateIns = nearbyLogs.filter(
-          (l) => IN_LIKE.includes(l.action) && new Date(l.created_at).getTime() <= sweepDate.getTime(),
+          (l) =>
+            IN_LIKE.includes(l.action) && new Date(l.created_at).getTime() <= sweepDate.getTime(),
         );
         if (!candidateIns.length) continue;
 
