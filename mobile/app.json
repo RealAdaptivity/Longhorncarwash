@@ -11,7 +11,9 @@
       "bundleIdentifier": "com.longhorncarwash.timeclock",
       "appleTeamId": "68QFVQ738K",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Longhorn Car Wash takes a photo when you clock in or out to confirm it is you, and lets you add photos to reports.",
+        "NSPhotoLibraryUsageDescription": "Longhorn Car Wash lets you attach photos from your library to your profile and to maintenance or incident reports."
       }
     },
     "android": {
@@ -21,7 +23,8 @@
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA"
       ]
     },
     "plugins": [

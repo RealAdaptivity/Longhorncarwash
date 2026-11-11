@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, SafeAreaView, StatusBar, LogBox } from 'react-native';
+import { StyleSheet, SafeAreaView, StatusBar, LogBox, View, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { registerForPushNotificationsAsync } from './src/lib/notifications';
 import { supabase } from './src/lib/supabase';
@@ -93,6 +93,22 @@ export default function App() {
           allowsBackForwardNavigationGestures={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          // Punch photos use the front camera inside the page. iOS needs inline
+          // playback or the preview opens fullscreen / never shows.
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          // Our own site gets camera access without a second web prompt; the
+          // iOS system permission prompt still appears the first time.
+          mediaCapturePermissionGrantType="grantIfSameHostElsePrompt"
+          renderError={() => (
+            <View style={styles.offline}>
+              <Text style={styles.offlineTitle}>Can't reach Longhorn Car Wash</Text>
+              <Text style={styles.offlineBody}>Check your Wi-Fi or cell signal and try again.</Text>
+              <TouchableOpacity style={styles.retry} onPress={() => webViewRef.current?.reload()}>
+                <Text style={styles.retryText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         />
       </SafeAreaView>
     </>
@@ -111,5 +127,36 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  offline: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+  },
+  offlineTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  offlineBody: {
+    fontSize: 15,
+    color: '#555555',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  retry: {
+    backgroundColor: '#A93B2F',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });
