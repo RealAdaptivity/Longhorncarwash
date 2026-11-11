@@ -125,77 +125,6 @@ body.logged-out #view-timeclock {
   height: 100%;
 }
 
-body.logged-out .clock-container {
-  display: none;
-}
-
-body.logged-out .pin-pad-container {
-  max-width: 380px;
-  width: 100%;
-  padding: 48px 40px;
-  background: var(--card);
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.login-logo-wrap {
-  display: none;
-  justify-content: center;
-  margin-bottom: 20px;
-}
-
-body.logged-out .login-logo-wrap {
-  display: flex;
-}
-
-.login-logo {
-  width: 140px;
-  height: 70px;
-  object-fit: contain;
-  background: #fff;
-  border-radius: 12px;
-  padding: 8px 12px;
-}
-
-.login-heading {
-  display: none;
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text);
-  text-align: center;
-  margin-bottom: 4px;
-}
-
-body.logged-out .login-heading {
-  display: block;
-}
-
-.login-subheading {
-  display: none;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  text-align: center;
-  margin-bottom: 28px;
-}
-
-body.logged-out .login-subheading {
-  display: block;
-}
-
-.login-credit {
-  display: none;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-align: center;
-  margin-top: 20px;
-  opacity: 0.5;
-  letter-spacing: 0.5px;
-}
-
-body.logged-out .login-credit {
-  display: block;
-}
-
 /* SIDEBAR */
 .sidebar {
   width: 240px;
@@ -350,80 +279,6 @@ nav {
   }
 }
 
-/* TIMECLOCK */
-.clock-container {
-  text-align: center;
-  margin-bottom: 50px;
-}
-
-#clock-display {
-  font-size: 5rem;
-  font-weight: 800;
-  letter-spacing: -2px;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-#date-display {
-  font-size: 1.2rem;
-  color: var(--text-muted);
-}
-
-.pin-pad-container {
-  background-color: var(--card);
-  padding: 40px;
-  border-radius: 20px;
-  box-shadow: 0 10px 30px var(--shadow-strong);
-  text-align: center;
-  width: 100%;
-  max-width: 400px;
-}
-
-.pin-pad-container h3 {
-  margin-bottom: 20px;
-  color: var(--text-muted);
-}
-
-.pin-display-wrapper {
-  margin-bottom: 30px;
-}
-
-#pin-display {
-  width: 100%;
-  background: var(--bg);
-  border: 2px solid var(--border);
-  color: var(--text);
-  font-size: 2rem;
-  text-align: center;
-  padding: 15px;
-  border-radius: 10px;
-  letter-spacing: 15px;
-  outline: none;
-}
-
-.pin-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-}
-
-.pin-btn {
-  background-color: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  font-size: 1.5rem;
-  font-weight: 600;
-  padding: 20px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: 0.1s all;
-}
-
-.pin-btn:active {
-  transform: scale(0.95);
-  background-color: var(--border);
-}
-
 .btn-primary {
   background-color: var(--primary);
   color: white;
@@ -448,258 +303,6 @@ nav {
   cursor: pointer;
   border: none;
   transition: 0.2s;
-}
-
-/* ── Redesigned Timeclock Action Panel ── */
-
-.employee-welcome-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 20px 24px;
-  border-radius: 16px;
-  margin-bottom: 25px;
-  text-align: center;
-  box-shadow: 0 4px 15px var(--shadow-strong);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.welcome-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  letter-spacing: 1.5px;
-  font-weight: 700;
-}
-
-#employee-welcome {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-}
-
-.employee-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 6px;
-}
-
-.employee-status-badge.status-in {
-  background: rgba(46, 204, 113, 0.12);
-  color: #2ecc71;
-  border: 1px solid rgba(46, 204, 113, 0.25);
-}
-
-.employee-status-badge.status-out {
-  background: rgba(231, 76, 60, 0.12);
-  color: #e74c3c;
-  border: 1px solid rgba(231, 76, 60, 0.25);
-}
-
-.employee-status-badge.status-lunch {
-  background: rgba(241, 196, 15, 0.12);
-  color: #f1c40f;
-  border: 1px solid rgba(241, 196, 15, 0.25);
-}
-
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  background-color: currentColor;
-  animation: statusPulse 1.8s infinite ease-in-out;
-}
-
-@keyframes statusPulse {
-  0% { opacity: 0.4; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.1); }
-  100% { opacity: 0.4; transform: scale(0.9); }
-}
-
-/* Punches Action Grid */
-.clock-action-grid {
-  display: grid;
-  gap: 15px;
-  margin-bottom: 24px;
-  width: 100%;
-}
-.clock-action-grid.cols-2 {
-  grid-template-columns: 1fr 1fr;
-}
-.clock-action-grid.cols-1 {
-  grid-template-columns: 1fr;
-}
-
-.action-card-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 24px 16px;
-  border-radius: 16px;
-  border: 1px solid transparent;
-  font-weight: 700;
-  font-size: 0.95rem;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #ffffff;
-}
-
-.action-card-btn:active {
-  transform: scale(0.96);
-}
-
-.action-btn-icon {
-  width: 28px;
-  height: 28px;
-  stroke-width: 2.2;
-}
-
-/* Button colors */
-.action-in {
-  background: linear-gradient(135deg, #2E7D32, #1B5E20);
-  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.35);
-}
-.action-in:hover {
-  background: linear-gradient(135deg, #358f39, #206d25);
-  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.45);
-}
-
-.action-out {
-  background: linear-gradient(135deg, #C62828, #B71C1C);
-  box-shadow: 0 4px 15px rgba(198, 40, 40, 0.35);
-}
-.action-out:hover {
-  background: linear-gradient(135deg, #d33030, #c82222);
-  box-shadow: 0 6px 20px rgba(198, 40, 40, 0.45);
-}
-
-.action-lunch-start {
-  background: linear-gradient(135deg, #D4820A, #B45309);
-  box-shadow: 0 4px 15px rgba(212, 130, 10, 0.35);
-}
-.action-lunch-start:hover {
-  background: linear-gradient(135deg, #e38f15, #c75e0d);
-  box-shadow: 0 6px 20px rgba(212, 130, 10, 0.45);
-}
-
-.action-lunch-end {
-  background: linear-gradient(135deg, #1565C0, #0D47A1);
-  box-shadow: 0 4px 15px rgba(21, 101, 192, 0.35);
-}
-.action-lunch-end:hover {
-  background: linear-gradient(135deg, #1a75dd, #1052b5);
-  box-shadow: 0 6px 20px rgba(21, 101, 192, 0.45);
-}
-
-/* Administrative Action List */
-.admin-action-list {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  overflow: hidden;
-  margin-bottom: 24px;
-  width: 100%;
-  box-shadow: 0 4px 15px var(--shadow-strong);
-}
-
-.admin-list-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  color: var(--text);
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: background-color 0.2s ease;
-  text-align: left;
-}
-
-.admin-list-item:last-child {
-  border-bottom: none;
-}
-
-.admin-list-item:hover {
-  background-color: var(--hover-bg);
-}
-
-.admin-list-item:active {
-  background-color: var(--border);
-}
-
-.admin-list-item-content {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.admin-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--primary);
-}
-
-.chevron-icon {
-  width: 18px;
-  height: 18px;
-  color: var(--text-muted);
-  opacity: 0.5;
-  transition: transform 0.2s;
-}
-
-.admin-list-item:hover .chevron-icon {
-  transform: translateX(3px);
-  opacity: 0.8;
-}
-
-/* Sign Out link */
-.btn-signout-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: transparent;
-  border: none;
-  color: var(--danger);
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  padding: 12px 24px;
-  border-radius: 999px;
-  transition: all 0.2s ease;
-  margin: 10px auto 0 auto;
-}
-
-.btn-signout-link svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.2;
-}
-
-.btn-signout-link:hover {
-  background-color: rgba(231, 76, 60, 0.08);
-}
-
-.btn-signout-link:active {
-  transform: scale(0.96);
 }
 
 /* MANAGER */
@@ -1191,21 +794,12 @@ nav {
   .view { padding-top: 80px; }
 
   /* ── Typography ── */
-  #clock-display { font-size: 3rem; }
 
   /* Prevent iOS from zooming on input focus */
   .input-field { font-size: 16px !important; padding: 14px 12px; }
 
   /* ── Timeclock ── */
-  .pin-pad-container {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    padding: 20px !important;
-    margin: 10px auto !important;
-    border-radius: 15px;
-  }
 
-  .pin-btn { padding: 15px; font-size: 1.3rem; }
 
   /* ── Modals — override any inline width ── */
   .modal-content {
@@ -2315,5 +1909,736 @@ nav {
   }
   .schedule-desktop-table {
     display: block !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TIMECLOCK — "Split Kiosk" layout: red clock panel + white punch side.
+   Colors come from the theme tokens so dark mode keeps working.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+#view-timeclock {
+  padding: 0;
+  width: 100%;
+  align-items: stretch;
+}
+
+body.logged-out #view-timeclock {
+  align-items: stretch;
+}
+
+.tc-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Red panel ── */
+.tc-panel {
+  flex: 0 0 clamp(320px, 36%, 480px);
+  box-sizing: border-box;
+  padding: 48px;
+  background: var(--primary);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.tc-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tc-logo-box {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.tc-logo {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
+.tc-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tc-brand-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tc-brand-sub {
+  font-size: 0.85rem;
+  opacity: 0.88;
+}
+
+.tc-panel .clock-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#clock-display {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(4rem, 8.5vw, 8rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tc-ampm {
+  font-size: 0.3em;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-left: 0.3em;
+}
+
+body:not(.logged-out) .tc-brand {
+  display: none;
+}
+
+body:not(.logged-out) .tc-panel {
+  flex-basis: clamp(260px, 30%, 400px);
+  justify-content: center;
+}
+
+body:not(.logged-out) #clock-display {
+  font-size: clamp(3.25rem, 6vw, 6rem);
+}
+
+body:not(.logged-out) .tc-panel-credit {
+  display: none;
+}
+
+#date-display {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-weight: 500;
+  opacity: 0.92;
+}
+
+.tc-panel-credit {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.75;
+  letter-spacing: 0.03em;
+}
+
+/* ── White punch side ── */
+.tc-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 48px;
+  background: var(--card);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-pad-container {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+body:not(.logged-out) .pin-pad-container {
+  max-width: 680px;
+  text-align: left;
+}
+
+.login-heading,
+.login-subheading {
+  display: none;
+}
+
+body.logged-out .login-heading,
+body.logged-out .login-subheading {
+  display: block;
+}
+
+.login-heading {
+  margin: 0 0 8px;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.login-subheading {
+  margin: 0 0 28px;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+}
+
+body:not(.logged-out) .pin-display-wrapper {
+  display: none;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.pin-dot {
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  opacity: 0.5;
+  transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.pin-dot.filled {
+  background: var(--primary);
+  border-color: var(--primary);
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.pin-btn {
+  height: 84px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 2rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.pin-btn:active {
+  transform: scale(0.96);
+  background: var(--border);
+}
+
+.pin-btn.btn-clear {
+  background: var(--card);
+  color: var(--primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.pin-btn.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #ffffff;
+}
+
+.pin-btn.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.pin-btn.btn-primary svg {
+  width: 32px;
+  height: 32px;
+}
+
+.tc-text-btn {
+  margin-top: 20px;
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── Signed-in session ── */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tc-session-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tc-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.employee-welcome-card {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+#employee-welcome {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.employee-status-badge {
+  display: inline-flex;
+  max-width: 100%;
+  white-space: nowrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.employee-status-badge.status-in {
+  background: rgba(46, 125, 50, 0.12);
+  color: var(--success);
+}
+
+.employee-status-badge.status-lunch {
+  background: rgba(212, 130, 10, 0.14);
+  color: var(--warning);
+}
+
+.tc-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.tc-camera {
+  display: none;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--primary);
+}
+
+.tc-camera video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.tc-signout {
+  height: 48px;
+  padding: 0 20px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tc-signout:hover {
+  background: var(--hover-bg);
+}
+
+.tc-shift-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: var(--bg);
+}
+
+.tc-shift-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tc-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.tc-shift-time {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.tc-shift-note {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.tc-salary-msg {
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--bg);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.clock-action-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.clock-action-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clock-action-grid.cols-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.action-card-btn {
+  height: 160px;
+  border-radius: 20px;
+  border: 2px solid var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 1.6rem;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+}
+
+.clock-action-grid.cols-1 .action-card-btn {
+  height: 180px;
+}
+
+.action-card-btn:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+.action-card-btn:active {
+  transform: scale(0.98);
+}
+
+.action-card-btn:disabled {
+  cursor: wait;
+}
+
+.action-card-btn.action-lunch-start {
+  background: var(--card);
+  color: var(--primary);
+}
+
+.action-card-btn.action-lunch-start:hover {
+  background: var(--primary-tint);
+  border-color: var(--primary);
+}
+
+.action-btn-icon {
+  width: 40px;
+  height: 40px;
+}
+
+.tc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tc-stat {
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tc-stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tc-stat-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tc-link {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tc-link:hover {
+  background: var(--hover-bg);
+}
+
+/* ── Full-screen "punch saved" confirmation ── */
+.clockin-overlay {
+  background: var(--card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  cursor: pointer;
+}
+
+.clockin-success-text {
+  margin: 0;
+  color: var(--text);
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+
+.clockin-success-detail {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  text-align: center;
+  animation: fadeUp 0.4s ease-out 0.9s both;
+}
+
+.clockin-checkmark {
+  width: 104px;
+  height: 104px;
+}
+
+/* ── Phones and narrow windows: stack the red panel on top ── */
+@media (max-width: 768px) {
+  .tc-layout {
+    flex-direction: column;
+  }
+
+  .tc-panel {
+    flex: none;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  body.logged-out .tc-panel {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 28px);
+    gap: 28px;
+  }
+
+  /* The phone header already shows the logo once signed in. */
+  body:not(.logged-out) .tc-brand,
+  .tc-panel-credit {
+    display: none;
+  }
+
+  #clock-display {
+    font-size: 4.25rem;
+  }
+
+  body:not(.logged-out) #clock-display {
+    font-size: 2.75rem;
+  }
+
+  #date-display {
+    font-size: 1.05rem;
+  }
+
+  .tc-main {
+    padding: 24px 16px 32px;
+    align-items: flex-start;
+  }
+
+  .login-heading {
+    font-size: 1.6rem;
+  }
+
+  .login-subheading {
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+
+  .pin-dots {
+    margin-bottom: 22px;
+  }
+
+  .pin-pad {
+    gap: 10px;
+  }
+
+  .pin-btn {
+    height: 64px;
+    font-size: 1.6rem;
+  }
+
+  .action-buttons {
+    gap: 14px;
+  }
+
+  .tc-session-head {
+    gap: 12px;
+  }
+
+  /* The camera preview already shows who is signed in. */
+  .tc-avatar {
+    display: none;
+  }
+
+  body.logged-out .content {
+    margin-bottom: 0;
+  }
+
+  body.logged-out .tc-layout {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .employee-status-badge {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+  }
+
+  #employee-welcome {
+    font-size: 1.5rem;
+  }
+
+  .tc-camera {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tc-signout {
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .clock-action-grid.cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .action-card-btn,
+  .clock-action-grid.cols-1 .action-card-btn {
+    height: 112px;
+    flex-direction: row;
+    font-size: 1.5rem;
+  }
+
+  .action-card-btn.action-lunch-start {
+    height: 72px;
+    font-size: 1.2rem;
+  }
+
+  .action-btn-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .tc-stats {
+    gap: 10px;
+  }
+
+  .tc-stat {
+    padding: 12px;
+  }
+
+  .tc-stat-label {
+    font-size: 0.8rem;
+  }
+
+  .tc-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .tc-link {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }
